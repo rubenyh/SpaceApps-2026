@@ -41,6 +41,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", default="http://127.0.0.1:8000")
     parser.add_argument("--days", type=int, default=21)
+    parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument(
+        "--perclos", type=float, nargs=2, metavar=("LOW", "HIGH"),
+        help="resting PERCLOS range for simulated logs (pending recalibration)",
+    )
     args = parser.parse_args()
 
     for astronaut_id, name in CREW.items():
@@ -48,7 +53,13 @@ def main() -> None:
     settings = WellbeingSettings()
     conn = connect_wellbeing(settings.db_path)
     try:
-        simulate(WellbeingRepository(conn), datetime.now(UTC).date(), days=args.days)
+        simulate(
+            WellbeingRepository(conn),
+            datetime.now(UTC).date(),
+            days=args.days,
+            seed=args.seed,
+            perclos=tuple(args.perclos) if args.perclos else None,
+        )
     finally:
         conn.close()
     print(f"Historial SIMULADO de {args.days} días cargado en {settings.db_path}")

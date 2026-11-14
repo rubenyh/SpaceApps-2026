@@ -80,3 +80,18 @@ def test_live_log_today_meets_a_formed_baseline(tmp_path) -> None:
     perclos = next(c for c in fatigue.components if c.definition.component == "vision.perclos")
     assert perclos.ready and perclos.latest_day == TODAY and perclos.latest_z is not None
     assert fatigue.status != "baseline_pending"
+
+
+def test_perclos_range_is_configurable(tmp_path) -> None:
+    import pytest
+
+    conn = connect_wellbeing(tmp_path / "wellbeing.db")
+    repo = WellbeingRepository(conn)
+    simulate(repo, TODAY, perclos=(0.03, 0.06))
+    values = [v.fatigue.perclos for v in repo.list_vision_sessions("ast-01")]
+    assert all(0.03 <= p <= 0.06 for p in values)
+    altered = [v.fatigue.perclos for v in repo.list_vision_sessions("ast-02")][-3:]
+    assert all(0.16 <= p <= 0.26 for p in altered)
+    with pytest.raises(ValueError):
+        simulate(repo, TODAY, perclos=(0.2, 0.1))
+    conn.close()

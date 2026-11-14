@@ -38,17 +38,20 @@ VISION_REST = {
     "yawn_count": (0, 2),  # measured
     "nod_count": (0, 2),  # measured
     "tension_mean": (0.0, 0.05),  # measured (brow_lower / lip_press deltas)
-    "perclos": (0.10, 0.20),  # measured 0.12-0.22 (3 logs, build before eye-closure debounce)
+    # PENDING RECALIBRATION: placeholder from 3 logs of the old vision build (~1 m,
+    # repeated-blink bug; PERCLOS inconsistent with eye openness). Override with
+    # simulate(perclos=...) / --perclos until logs from the new build are measured.
+    "perclos": (0.10, 0.20),
     "tension_peak_1s": (0.05, 0.15),  # assumed
 }
 # Altered days (more fatigue and tension). Assumed, for the demo story only.
+# PERCLOS on altered days is derived from the rest range (see _vision_ranges).
 VISION_ALTERED = {
     "blink_rate_per_min": (15.0, 25.0),
     "eye_openness_vs_neutral": (0.70, 0.80),
     "yawn_count": (2, 4),
     "nod_count": (2, 4),
     "tension_mean": (0.08, 0.12),
-    "perclos": (0.30, 0.40),
     "tension_peak_1s": (0.30, 0.50),
 }
 
@@ -69,8 +72,29 @@ def clear_simulated(repo: WellbeingRepository) -> None:
     )
 
 
-def simulate(repo: WellbeingRepository, today: date, days: int = 21, seed: int = 7) -> None:
-    """Replace previous simulated rows with `days` days of history ending today."""
+def _vision_ranges(
+    perclos: tuple[float, float] | None,
+) -> tuple[dict[str, tuple[float, float]], dict[str, tuple[float, float]]]:
+    low, high = perclos or VISION_REST["perclos"]
+    if not 0 <= low < high <= 1:
+        raise ValueError(f"perclos range must satisfy 0 <= low < high <= 1, got {perclos}")
+    rest = {**VISION_REST, "perclos": (low, high)}
+    altered = {**VISION_ALTERED, "perclos": (min(1.0, high + 0.10), min(1.0, high + 0.20))}
+    return rest, altered
+
+
+def simulate(
+    repo: WellbeingRepository,
+    today: date,
+    days: int = 21,
+    seed: int = 7,
+    perclos: tuple[float, float] | None = None,
+) -> None:
+    """Replace previous simulated rows with `days` days of history ending today.
+
+    perclos: resting PERCLOS range for the daily logs (default VISION_REST).
+    """
+    vision_rest, vision_altered = _vision_ranges(perclos)
     rng = random.Random(seed)
     clear_simulated(repo)
     start = today - timedelta(days=days - 1)
@@ -124,7 +148,7 @@ def simulate(repo: WellbeingRepository, today: date, days: int = 21, seed: int =
             if i < days - 1:  # leave today free for a live log
                 altered = passive_low or bad_day
                 repo.create_vision_session(
-                    _bitacora(aid, day, VISION_ALTERED if altered else VISION_REST, rng),
+                    _bitacora(aid, day, vision_altered if altered else vision_rest, rng),
                     received_at=_at(day, 8, 2),
                 )
 
