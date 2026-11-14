@@ -23,6 +23,8 @@ def main() -> None:
     bit.add_argument("--astronaut", type=_astronaut, required=True)
     bit.add_argument("--camera", type=int, default=0)
     bit.add_argument("--seconds", type=float, default=60.0)
+    bit.add_argument("--mirror", action=argparse.BooleanOptionalAction, default=True,
+                     help="mirror the preview (default on); text is never mirrored")
     bit.add_argument("--dry-run", action="store_true", help="print JSON instead of POSTing")
     bit.add_argument("--out", type=Path, help="with --dry-run, also append JSON lines here")
 
@@ -37,5 +39,5 @@ def main() -> None:
     if args.cmd == "bitacora":
         from wellbeing_vision.bitacora import run_bitacora  # imports MediaPipe only when needed
 
-        if run_bitacora(settings, sink, args.astronaut, args.camera, args.seconds) is None:
+        if run_bitacora(settings, sink, args.astronaut, args.camera, args.seconds, args.mirror) is None:
             raise SystemExit(1)

@@ -18,7 +18,7 @@ The repo lives in OneDrive: if `.venv` files get locked during `uv sync`, pause 
 | Command | What |
 |---|---|
 | `uv run wellbeing-vision models` | Download MediaPipe and OpenCV Zoo models. |
-| `uv run wellbeing-vision bitacora --astronaut ast-01 [--camera 0] [--seconds 60] [--dry-run]` | Daily video log: 3 s neutral, then fatigue and tension with a live preview. Sends one summary. |
+| `uv run wellbeing-vision bitacora --astronaut ast-01 [--camera 0] [--seconds 60] [--no-mirror] [--dry-run]` | Daily video log: 3 s neutral, then fatigue and tension with a live preview. Sends one summary. Keys: `f` fullscreen, `q`/Esc end. |
 | `uv run pytest` | Unit tests (no camera needed). |
 
 `--dry-run` prints the JSON instead of posting it (add `--out file.jsonl` to also save it).
