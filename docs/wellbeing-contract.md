@@ -223,7 +223,7 @@ Request (bitácora):
   "identity": {"method": "face", "match_score": 0.71},
   "neutral_ok": true,
   "fatigue": {"blink_rate_per_min": 18.2, "perclos": 0.07, "eye_openness_vs_neutral": 0.88, "yawn_count": 1, "nod_count": 0},
-  "tension": {"brow_lower_delta": 0.12, "lip_press_delta": 0.05},
+  "tension": {"brow_lower_delta": 0.12, "lip_press_delta": 0.05, "brow_lower_peak_1s": 0.31, "lip_press_peak_1s": null},
   "motion": null,
   "provisional": true
 }
@@ -242,7 +242,7 @@ En modo ambiente (`"session_type": "ambiente"`), `motion` lleva:
 | `valid_frame_ratio` | número | 0–1 | calidad (se guarda) |
 | `identity.method` | `"face"` \| `"wearable"` \| `"manual"` | | — |
 | `identity.match_score` | número \| null | 0–1 | — |
-| `neutral_ok` | boolean | | si es `false`, se ignoran las métricas relativas al neutral (`eye_openness_vs_neutral`, `tension.*`) |
+| `neutral_ok` | boolean | | si es `false`, se ignoran las métricas relativas al neutral (`eye_openness_vs_neutral` y todo `tension.*`, picos incluidos) |
 | `fatigue.blink_rate_per_min` | número \| null | ≥0 | se guarda; no entra en v1 (su dirección es ambigua) |
 | `fatigue.perclos` | número \| null | 0–1 | fatigue ↑ |
 | `fatigue.eye_openness_vs_neutral` | número \| null | ≥0 (1 = igual al neutral) | fatigue ↓ |
@@ -250,6 +250,8 @@ En modo ambiente (`"session_type": "ambiente"`), `motion` lleva:
 | `fatigue.nod_count` | entero \| null | ≥0 | fatigue ↑ (por minuto de sesión) |
 | `tension.brow_lower_delta` | número \| null | 0–1 | stress ↑ |
 | `tension.lip_press_delta` | número \| null | 0–1 | stress ↑ |
+| `tension.brow_lower_peak_1s` | número \| null, **opcional** | 0–1 | stress ↑. Nivel más alto sostenido ≥ 1 s; `null` si nunca hubo 1 s seguido con la cara visible |
+| `tension.lip_press_peak_1s` | número \| null, **opcional** | 0–1 | stress ↑. Igual que el anterior, para labios apretados |
 | `motion.speed` | número \| null | ≥0 (aprox., anchos de hombro/s) | activation ↕ |
 | `motion.stationary_ratio` | número \| null | 0–1 | activation ↕ |
 | `motion.fidget_index` | número \| null | ≥0 | activation ↑ |
@@ -257,6 +259,7 @@ En modo ambiente (`"session_type": "ambiente"`), `motion` lleva:
 | `provisional` | boolean | | se guarda; las salidas siempre son provisionales en v1 |
 
 - `fatigue`, `tension` y `motion` pueden ser `null`, pero debe venir al menos uno.
+- Los picos (`*_peak_1s`) son opcionales: un envío sin ellos sigue siendo válido. Entran a la fusión como componentes propios del indicador `stress`, porque una mueca de 1–2 s casi no mueve el promedio de una bitácora de 90 s pero sí el pico.
 - El día de la sesión es el de `started_at`. Varias sesiones del mismo día se promedian.
 - `astronaut_id` puede ser `"unknown-<track>"` (persona no identificada). Se acepta y se guarda, pero **nunca entra en ninguna línea base** ni en la fusión.
 
@@ -602,6 +605,9 @@ export interface VisionFatigue {
 export interface VisionTension {
   brow_lower_delta?: number | null;
   lip_press_delta?: number | null;
+  /** Highest level held for at least 1 s; null if never 1 s with the face visible. */
+  brow_lower_peak_1s?: number | null;
+  lip_press_peak_1s?: number | null;
 }
 
 export interface VisionMotion {

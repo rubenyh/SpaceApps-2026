@@ -203,3 +203,47 @@ def test_heart_rate_low_needs_enough_readings() -> None:
     rates = [hr(70, t) for _ in range(9)]
     inputs = build_daily_inputs("ast-01", [], [], [], [], rates, SETTINGS)
     assert "onboard.heart_rate_low" not in inputs.values
+
+
+def bitacora(i: int, brow: float, lip: float, brow_peak, lip_peak, neutral_ok=True):
+    start = datetime.combine(day(i), datetime.min.time(), tzinfo=UTC).replace(hour=8)
+    return VisionSession(
+        id=i, astronaut_id="ast-01", session_type="bitacora", module_id="modulo-a",
+        source="vision:cam0", started_at=start, ended_at=start + timedelta(seconds=90),
+        quality="good", valid_frame_ratio=0.95, identity={"method": "face"},
+        neutral_ok=neutral_ok,
+        tension={"brow_lower_delta": brow, "lip_press_delta": lip,
+                 "brow_lower_peak_1s": brow_peak, "lip_press_peak_1s": lip_peak},
+        received_at=start, simulated=False,
+    )
+
+
+def test_tension_peaks_catch_brief_grimaces_the_mean_dilutes() -> None:
+    def sessions(with_peaks: bool):
+        out = []
+        for i in range(DAYS):
+            tense = i >= DERAIL
+            # A few 1-2 s grimaces in a 90 s log barely move the session mean.
+            brow, lip = (0.035, 0.03) if tense else (0.03 + 0.005 * (i % 2), 0.025)
+            peaks = (0.45, 0.40) if tense else (0.10 + 0.02 * (i % 3), 0.08)
+            out.append(bitacora(i, brow, lip, *(peaks if with_peaks else (None, None))))
+        return out
+
+    def stress(with_peaks: bool):
+        inputs = build_daily_inputs("ast-01", [], [], sessions(with_peaks), [], [], SETTINGS)
+        ev = evaluate(inputs, TODAY, SETTINGS)
+        return ev, next(i for i in ev.indicators if i.kind == "stress")
+
+    ev, ind = stress(with_peaks=True)
+    assert ind.status == "attention" and ind.run and ind.run.start == day(DERAIL)
+    assert ev.sustained_sources == ["vision"]
+
+    ev, ind = stress(with_peaks=False)
+    assert ind.status == "ok" and ev.level == "ok"
+
+
+def test_tension_peaks_are_dropped_without_a_neutral() -> None:
+    inputs = build_daily_inputs(
+        "ast-01", [], [], [bitacora(0, 0.03, 0.02, 0.5, 0.5, neutral_ok=False)], [], [], SETTINGS
+    )
+    assert not any(k.startswith("vision.") for k in inputs.values)

@@ -62,6 +62,9 @@ COMPONENTS: tuple[ComponentDef, ...] = (
     ComponentDef("onboard.heart_rate_low", "physiology", "stress", "high", 2.0, "bpm"),
     ComponentDef("vision.brow_lower_delta", "vision", "stress", "high", 0.03, "0-1"),
     ComponentDef("vision.lip_press_delta", "vision", "stress", "high", 0.03, "0-1"),
+    # Peaks keep brief grimaces that the session mean dilutes.
+    ComponentDef("vision.brow_lower_peak_1s", "vision", "stress", "high", 0.05, "0-1"),
+    ComponentDef("vision.lip_press_peak_1s", "vision", "stress", "high", 0.05, "0-1"),
     ComponentDef("vision.speed", "vision", "activation", "both", 0.05, "shoulders/s"),
     ComponentDef("vision.stationary_ratio", "vision", "activation", "both", 0.05, "ratio"),
     ComponentDef("vision.fidget_index", "vision", "activation", "high", 0.05, "index"),
@@ -177,8 +180,7 @@ def build_daily_inputs(
                 metrics["nods_per_min"] = v.fatigue.nod_count / minutes
         # Tension deltas are relative to the day's neutral: useless without it.
         if v.tension and v.neutral_ok:
-            metrics["brow_lower_delta"] = v.tension.brow_lower_delta
-            metrics["lip_press_delta"] = v.tension.lip_press_delta
+            metrics.update(v.tension.model_dump())
         if v.motion:
             metrics.update(v.motion.model_dump())
         for name, value in metrics.items():

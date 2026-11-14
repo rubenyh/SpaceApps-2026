@@ -166,6 +166,10 @@ class VisionFatigue(BaseModel):
 class VisionTension(BaseModel):
     brow_lower_delta: float | None = _Ratio
     lip_press_delta: float | None = _Ratio
+    # Highest level held for at least 1 s; None if never 1 s with the face
+    # visible. Optional so older senders keep working.
+    brow_lower_peak_1s: float | None = _Ratio
+    lip_press_peak_1s: float | None = _Ratio
 
 
 class VisionMotion(BaseModel):
