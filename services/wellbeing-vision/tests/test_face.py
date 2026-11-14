@@ -52,6 +52,17 @@ def test_blinks_counted_once_per_closure():
     assert 29 <= m.fatigue().blink_rate_per_min <= 31
 
 
+def test_ear_jitter_at_threshold_is_one_blink():
+    # Neutral 0.30 -> closes below 0.18, reopens above 0.21. Jitter 0.17/0.19 is one closure.
+    m = _run(lambda t: _frame(t, ear=(0.17 if int(t * 30) % 2 else 0.19) if 5 <= t < 5.5 else 0.30))
+    assert m.blinks.count == 1
+
+
+def test_relaxing_below_neutral_is_not_negative_tension():
+    m = _run(lambda t: _frame(t, brow_down=0.0, lip_press=0.0))
+    assert m.tension().brow_lower_delta == 0.0 and m.tension().lip_press_delta == 0.0
+
+
 def test_yawn_needs_sustained_jaw_and_talking_does_not_count():
     talking = _run(lambda t: _frame(t, jaw_open=0.7 if (t % 1) < 0.4 else 0.05))
     assert talking.fatigue().yawn_count == 0

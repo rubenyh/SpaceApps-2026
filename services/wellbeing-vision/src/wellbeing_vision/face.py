@@ -17,6 +17,7 @@ RIGHT_EYE = (33, 160, 158, 133, 153, 144)
 LEFT_EYE = (362, 385, 387, 263, 373, 380)
 
 EYE_CLOSED_RATIO = 0.6  # PROVISIONAL: eye closed when EAR < 60 % of the day's neutral EAR
+EYE_REOPEN_RATIO = 0.7  # hysteresis: EAR jitter around 0.6 must not count as several blinks
 YAWN_JAW_DELTA = 0.5  # PROVISIONAL: jawOpen blendshape above neutral
 YAWN_MIN_S = 1.5  # PROVISIONAL: talking opens the jaw briefly; a yawn holds it
 NOD_PITCH_DEG = 15.0  # PROVISIONAL: head dropped forward vs neutral
@@ -103,6 +104,7 @@ class SessionMetrics:
     blinks: _Episode = field(default_factory=lambda: _Episode(0.0))
     yawns: _Episode = field(default_factory=lambda: _Episode(YAWN_MIN_S))
     nods: _Episode = field(default_factory=lambda: _Episode(NOD_MIN_S))
+    eyes_closed: bool = False
     _last_t: float | None = None
 
     def add(self, frame: FaceFrame | None, t: float) -> None:
@@ -113,13 +115,15 @@ class SessionMetrics:
             return
         n = self.neutral
         dt = min(t - last, MAX_DT_S) if last is not None else 0.0
-        closed = frame.ear < EYE_CLOSED_RATIO * n.ear
+        limit = EYE_REOPEN_RATIO if self.eyes_closed else EYE_CLOSED_RATIO
+        closed = self.eyes_closed = frame.ear < limit * n.ear
         self.frames_valid += 1
         self.valid_s += dt
         self.closed_s += dt if closed else 0.0
         self.ear_ratio_sum += frame.ear / n.ear if n.ear else 0.0
-        self.brow_delta_sum += frame.brow_down - n.brow_down
-        self.lip_delta_sum += frame.lip_press - n.lip_press
+        # Only increases over the neutral count as tension (contract range 0-1).
+        self.brow_delta_sum += max(0.0, frame.brow_down - n.brow_down)
+        self.lip_delta_sum += max(0.0, frame.lip_press - n.lip_press)
         self.blinks.update(closed, t)
         self.yawns.update(frame.jaw_open - n.jaw_open > YAWN_JAW_DELTA, t)
         self.nods.update(frame.pitch - n.pitch > NOD_PITCH_DEG, t)
