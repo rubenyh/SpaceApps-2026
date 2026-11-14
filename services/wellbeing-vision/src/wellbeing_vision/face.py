@@ -6,6 +6,7 @@ All thresholds are PROVISIONAL (no clinical source); they are relative to the pe
 
 import math
 import statistics
+from collections import deque
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -15,13 +16,15 @@ from wellbeing_vision.schemas import Fatigue, Tension
 # MediaPipe Face Mesh indices, ordered p1..p6 for the eye aspect ratio.
 RIGHT_EYE = (33, 160, 158, 133, 153, 144)
 LEFT_EYE = (362, 385, 387, 263, 373, 380)
+FACE_EDGES = (234, 454)  # cheek to cheek: face width in pixels
 
 EYE_CLOSED_RATIO = 0.6  # PROVISIONAL: eye closed when EAR < 60 % of the day's neutral EAR
 EYE_REOPEN_RATIO = 0.7  # hysteresis: EAR jitter around 0.6 must not count as several blinks
-YAWN_JAW_DELTA = 0.5  # PROVISIONAL: jawOpen blendshape above neutral
-YAWN_MIN_S = 1.5  # PROVISIONAL: talking opens the jaw briefly; a yawn holds it
+YAWN_JAW_DELTA = 0.35  # PROVISIONAL: jawOpen blendshape above neutral (0.5 missed acted yawns)
+YAWN_MIN_S = 1.0  # PROVISIONAL: talking opens the jaw briefly; a yawn holds it
 NOD_PITCH_DEG = 15.0  # PROVISIONAL: head dropped forward vs neutral
 NOD_MIN_S = 0.3
+TENSION_HOLD_S = 1.0  # a grimace must be held this long to count as a peak
 MIN_VALID_S = 10.0  # below this, rates are not measurable -> None
 MAX_DT_S = 0.2  # cap frame gaps so a stalled camera does not inflate durations
 
@@ -34,6 +37,8 @@ class FaceFrame:
     brow_down: float
     lip_press: float
     pitch: float
+    face_px: float = 0.0
+    eye_blink: float = 0.0  # MediaPipe eyeBlink blendshape, traced to compare against EAR
 
 
 def eye_aspect_ratio(pts: np.ndarray) -> float:
@@ -50,9 +55,8 @@ def pitch_degrees(matrix: np.ndarray) -> float:
     return math.degrees(math.atan2(matrix[2, 1], matrix[2, 2]))
 
 
-def face_frame(t: float, landmarks, blendshapes, matrix, width: int, height: int) -> FaceFrame:
-    """Build a FaceFrame from one MediaPipe FaceLandmarker face."""
-    xy = np.array([(p.x * width, p.y * height) for p in landmarks])
+def face_frame(t: float, xy: np.ndarray, blendshapes, matrix) -> FaceFrame:
+    """Build a FaceFrame from one face: xy are landmark pixel coords in the original frame."""
     ear = (eye_aspect_ratio(xy[list(RIGHT_EYE)]) + eye_aspect_ratio(xy[list(LEFT_EYE)])) / 2
     bs = {c.category_name: c.score for c in blendshapes}
     return FaceFrame(
@@ -62,6 +66,8 @@ def face_frame(t: float, landmarks, blendshapes, matrix, width: int, height: int
         brow_down=(bs["browDownLeft"] + bs["browDownRight"]) / 2,
         lip_press=(bs["mouthPressLeft"] + bs["mouthPressRight"]) / 2,
         pitch=pitch_degrees(np.asarray(matrix)),
+        face_px=float(np.linalg.norm(xy[FACE_EDGES[0]] - xy[FACE_EDGES[1]])),
+        eye_blink=(bs["eyeBlinkLeft"] + bs["eyeBlinkRight"]) / 2,
     )
 
 
@@ -92,6 +98,27 @@ class _Episode:
 
 
 @dataclass
+class _SustainedPeak:
+    """Highest level held for at least hold_s: max over time of the rolling minimum.
+    A 1.5 s frown in a 60 s log is ~2 % of frames, so a mean or a p90 would both miss it."""
+
+    hold_s: float
+    window: deque = field(default_factory=deque)
+    peak: float | None = None
+
+    def update(self, value: float | None, t: float) -> None:
+        if value is None:  # the hold must be continuous
+            self.window.clear()
+            return
+        self.window.append((t, value))
+        while len(self.window) > 1 and self.window[1][0] <= t - self.hold_s:
+            self.window.popleft()
+        if self.window[0][0] <= t - self.hold_s:
+            level = min(v for _, v in self.window)
+            self.peak = level if self.peak is None else max(self.peak, level)
+
+
+@dataclass
 class SessionMetrics:
     neutral: FaceFrame
     frames_total: int = 0
@@ -104,6 +131,8 @@ class SessionMetrics:
     blinks: _Episode = field(default_factory=lambda: _Episode(0.0))
     yawns: _Episode = field(default_factory=lambda: _Episode(YAWN_MIN_S))
     nods: _Episode = field(default_factory=lambda: _Episode(NOD_MIN_S))
+    brow_peak: _SustainedPeak = field(default_factory=lambda: _SustainedPeak(TENSION_HOLD_S))
+    lip_peak: _SustainedPeak = field(default_factory=lambda: _SustainedPeak(TENSION_HOLD_S))
     eyes_closed: bool = False
     _last_t: float | None = None
 
@@ -112,6 +141,8 @@ class SessionMetrics:
         self.frames_total += 1
         last, self._last_t = self._last_t, t
         if frame is None:
+            self.brow_peak.update(None, t)
+            self.lip_peak.update(None, t)
             return
         n = self.neutral
         dt = min(t - last, MAX_DT_S) if last is not None else 0.0
@@ -122,8 +153,11 @@ class SessionMetrics:
         self.closed_s += dt if closed else 0.0
         self.ear_ratio_sum += frame.ear / n.ear if n.ear else 0.0
         # Only increases over the neutral count as tension (contract range 0-1).
-        self.brow_delta_sum += max(0.0, frame.brow_down - n.brow_down)
-        self.lip_delta_sum += max(0.0, frame.lip_press - n.lip_press)
+        brow, lip = max(0.0, frame.brow_down - n.brow_down), max(0.0, frame.lip_press - n.lip_press)
+        self.brow_delta_sum += brow
+        self.lip_delta_sum += lip
+        self.brow_peak.update(brow, t)
+        self.lip_peak.update(lip, t)
         self.blinks.update(closed, t)
         self.yawns.update(frame.jaw_open - n.jaw_open > YAWN_JAW_DELTA, t)
         self.nods.update(frame.pitch - n.pitch > NOD_PITCH_DEG, t)
@@ -152,3 +186,8 @@ class SessionMetrics:
             brow_lower_delta=round(self.brow_delta_sum / self.frames_valid, 3),
             lip_press_delta=round(self.lip_delta_sum / self.frames_valid, 3),
         )
+
+    def tension_peaks(self) -> dict[str, float | None]:
+        """Sustained (>= TENSION_HOLD_S) peaks. Not in the contract yet: printed, not sent."""
+        r = lambda v: None if v is None else round(v, 3)  # noqa: E731
+        return {"brow_lower_peak_1s": r(self.brow_peak.peak), "lip_press_peak_1s": r(self.lip_peak.peak)}

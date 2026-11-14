@@ -103,10 +103,10 @@ def render(
         for r in rows:
             d.text((x0, y), r.label, font=font(24), fill=WHITE)
             d.text((x1, y), r.value, font=font(24, True), fill=r.color, anchor="ra")
-            y += 36
+            y += 34
             if r.bar is not None:
                 _bar(d, x0, y, x1, 8, r.bar, r.color, r.mark)
-                y += 20
+                y += 18
             else:
                 y += 6
         y += 14

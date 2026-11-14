@@ -1,11 +1,14 @@
-"""Daily video log: 3 s neutral of the day, then fatigue and tension live, then one summary.
-Frames stay in memory only; nothing is written to disk except the summary."""
+"""Daily video log at a controlled distance (~50 cm): 3 s neutral of the day, then fatigue and
+tension live, then one summary. Frames stay in memory only; only derived numbers leave."""
 
+import csv
 import time
 from datetime import UTC, datetime
+from pathlib import Path
 
 import cv2
 import mediapipe as mp
+import numpy as np
 from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python.vision import FaceLandmarker, FaceLandmarkerOptions, RunningMode
 
@@ -13,9 +16,10 @@ from wellbeing_vision.capture import open_camera
 from wellbeing_vision.config import Settings
 from wellbeing_vision.download import model_path
 from wellbeing_vision.face import (
-    EYE_CLOSED_RATIO, LEFT_EYE, MIN_VALID_S, NOD_PITCH_DEG, RIGHT_EYE, FaceFrame, SessionMetrics, face_frame,
-    neutral_of,
+    EYE_CLOSED_RATIO, LEFT_EYE, MIN_VALID_S, NOD_PITCH_DEG, RIGHT_EYE, YAWN_JAW_DELTA, FaceFrame, SessionMetrics,
+    face_frame, neutral_of,
 )
+from wellbeing_vision.facecrop import CROP_PX, FaceCrop
 from wellbeing_vision.overlay import AMBER, WHITE, Notice, Row, render, severity
 from wellbeing_vision.schemas import Identity, VisionSession
 from wellbeing_vision.sink import Sink
@@ -28,10 +32,11 @@ FOOTER = "Umbrales provisionales · no se guarda video"
 # Display-only marks for the live bars. PROVISIONAL, no clinical source.
 PERCLOS_MARK = 0.15
 TENSION_MARK = 0.20
+TRACE_FIELDS = ("t", "face_px", "usable", "ear_ratio", "eye_blink", "jaw_delta", "brow_delta", "lip_delta")
 
 
 def quality_of(valid_frame_ratio: float) -> str:
-    # PROVISIONAL: share of frames with a usable face.
+    # PROVISIONAL: share of frames with a usable face (too far counts as not usable).
     return "good" if valid_frame_ratio >= 0.8 else "suspect" if valid_frame_ratio >= 0.5 else "bad"
 
 
@@ -54,8 +59,9 @@ def live_sections(m: SessionMetrics, live: dict[str, float]) -> list[tuple[str, 
         row("PERCLOS (ojos cerrados)", "perclos", pct, PERCLOS_MARK, 0.30),
         Row("Parpadeos", f"{m.blinks.count / (m.valid_s / 60):.0f} /min" if m.valid_s >= MIN_VALID_S else "—"),
         row("Inclinación de cabeza", "pitch", lambda v: f"{v:+.0f}°", NOD_PITCH_DEG, 30.0),
-        Row("Bostezos", str(m.yawns.count)),
         Row("Cabeceos", str(m.nods.count)),
+        row("Apertura de boca", "mouth", pct, YAWN_JAW_DELTA, 0.70),
+        Row("Bostezos", str(m.yawns.count)),
     ]
     tension = [
         row("Cejo fruncido", "brow", pct, TENSION_MARK, 0.40),
@@ -74,17 +80,47 @@ def _landmarker(settings: Settings) -> FaceLandmarker:
     ))
 
 
+def _detect(landmarker: FaceLandmarker, cropper: FaceCrop, frame: np.ndarray, t: float, ts_ms: int):
+    """Landmarks on the face crop, reprojected to frame pixels. Returns (FaceFrame, xy) or (None, None)."""
+    c = cropper.crop(frame)
+    if c is None:
+        return None, None
+    crop, ox, oy, k = c
+    res = landmarker.detect_for_video(
+        mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)), ts_ms
+    )
+    if not res.face_landmarks:
+        cropper.follow(None)
+        return None, None
+    xy = np.array([(p.x * CROP_PX / k + ox, p.y * CROP_PX / k + oy) for p in res.face_landmarks[0]])
+    cropper.follow(xy)
+    return face_frame(t, xy, res.face_blendshapes[0], res.facial_transformation_matrixes[0]), xy
+
+
+def _far_notice(ff: FaceFrame, min_px: float) -> Notice:
+    return Notice("Acércate a la cámara", f"Rostro {ff.face_px:.0f} px · mínimo {min_px:.0f} px (~50 cm)", AMBER)
+
+
+NO_FACE = Notice("No se detecta el rostro", "Colócate de frente a la cámara", AMBER)
+
+
 def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int, seconds: float,
-                 mirror: bool = True) -> VisionSession | None:
+                 mirror: bool = True, trace: Path | None = None) -> VisionSession | None:
     landmarker = _landmarker(settings)
+    cropper = FaceCrop(model_path(settings.models_dir, "face_detection_yunet_2023mar.onnx"))
     cap = open_camera(camera)
     cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
     title = f"BITÁCORA · {settings.astronauts.get(astronaut_id, astronaut_id)}"
+    min_px = settings.min_face_px
     t0, last_ms, fullscreen = time.monotonic(), -1, False
     neutral_frames: list[FaceFrame] = []
     metrics: SessionMetrics | None = None
     live: dict[str, float] = {}
     started_at = rec_t0 = None
+    trace_file = trace.open("w", newline="", encoding="utf-8") if trace else None
+    tracer = csv.writer(trace_file) if trace_file else None
+    if tracer:
+        tracer.writerow(TRACE_FIELDS)
     try:
         while True:
             ok, frame = cap.read()
@@ -96,43 +132,43 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
             t = time.monotonic() - t0
             last_ms = max(int(t * 1000), last_ms + 1)
             h, w = frame.shape[:2]
-            res = landmarker.detect_for_video(
-                mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)), last_ms
-            )
-            ff, points = None, []
-            if res.face_landmarks:
-                lm = res.face_landmarks[0]
-                ff = face_frame(t, lm, res.face_blendshapes[0], res.facial_transformation_matrixes[0], w, h)
-                points = [(lm[i].x, lm[i].y) for i in LANDMARKS_SHOWN]
+            ff, xy = _detect(landmarker, cropper, frame, t, last_ms)
+            points = [(xy[i][0] / w, xy[i][1] / h) for i in LANDMARKS_SHOWN] if xy is not None else []
+            # Too far: eye landmarks are too coarse for blinks, so the frame counts as not usable.
+            usable = ff if ff and ff.face_px >= min_px else None
+            notice = None if usable else _far_notice(ff, min_px) if ff else NO_FACE
 
             if metrics is None:
-                # The neutral must be continuous: losing the face restarts it.
-                neutral_frames = neutral_frames + [ff] if ff else []
+                # The neutral must be continuous and close enough: anything else restarts it.
+                neutral_frames = neutral_frames + [usable] if usable else []
                 held = neutral_frames[-1].t - neutral_frames[0].t if neutral_frames else 0.0
-                notice = (Notice("Mantén el rostro relajado", "Mira a la cámara · neutral del día",
-                                 progress=held / NEUTRAL_S) if ff else
-                          Notice("No se detecta el rostro", "Colócate de frente a la cámara", AMBER, 0.0))
+                notice = notice or Notice("Mantén el rostro relajado", "Mira a la cámara · neutral del día",
+                                          progress=held / NEUTRAL_S)
                 canvas = render(frame, title, "CALIBRANDO", [("Las métricas aparecen al calibrar", [])],
                                 FOOTER, notice, points)
                 if held >= NEUTRAL_S:
                     metrics = SessionMetrics(neutral_of(neutral_frames))
                     started_at, rec_t0 = datetime.now(UTC), t
                 elif t > NEUTRAL_TIMEOUT_S:
-                    print("Calibration failed: no steady face for 3 s. No summary sent.")
+                    print("Calibration failed: no steady, close face for 3 s. No summary sent.")
                     break
             else:
-                metrics.add(ff, t)
+                metrics.add(usable, t)
                 n = metrics.neutral
-                if ff:
-                    live["eyes"] = _ema(live.get("eyes"), ff.ear / n.ear if n.ear else 0.0, 0.1)
-                    live["pitch"] = _ema(live.get("pitch"), ff.pitch - n.pitch, 0.3)
-                    live["brow"] = _ema(live.get("brow"), max(0.0, ff.brow_down - n.brow_down), 0.2)
-                    live["lip"] = _ema(live.get("lip"), max(0.0, ff.lip_press - n.lip_press), 0.2)
+                if usable:
+                    live["eyes"] = _ema(live.get("eyes"), usable.ear / n.ear if n.ear else 0.0, 0.1)
+                    live["pitch"] = _ema(live.get("pitch"), usable.pitch - n.pitch, 0.3)
+                    live["mouth"] = _ema(live.get("mouth"), max(0.0, usable.jaw_open - n.jaw_open), 0.3)
+                    live["brow"] = _ema(live.get("brow"), max(0.0, usable.brow_down - n.brow_down), 0.2)
+                    live["lip"] = _ema(live.get("lip"), max(0.0, usable.lip_press - n.lip_press), 0.2)
                 if metrics.valid_s >= MIN_VALID_S:  # same rule as the summary: too short is not measurable
                     live["perclos"] = metrics.closed_s / metrics.valid_s
+                if tracer and ff:
+                    tracer.writerow([f"{t:.3f}", f"{ff.face_px:.0f}", int(usable is not None),
+                                     f"{ff.ear / n.ear:.3f}", f"{ff.eye_blink:.3f}", f"{ff.jaw_open - n.jaw_open:.3f}",
+                                     f"{ff.brow_down - n.brow_down:.3f}", f"{ff.lip_press - n.lip_press:.3f}"])
                 left = max(0.0, seconds - (t - rec_t0))
                 status = f"GRABANDO · {int(left) // 60}:{int(left) % 60:02d} restante"
-                notice = None if ff else Notice("No se detecta el rostro", "Colócate de frente a la cámara", AMBER)
                 canvas = render(frame, title, status, live_sections(metrics, live), FOOTER, notice, points)
                 if t - rec_t0 >= seconds:
                     break
@@ -149,6 +185,8 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
         cap.release()
         cv2.destroyAllWindows()
         landmarker.close()
+        if trace_file:
+            trace_file.close()
 
     if metrics is None or metrics.frames_total == 0:
         return None
@@ -167,4 +205,5 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
         tension=metrics.tension(),
     )
     sink.send("/wellbeing/vision-sessions", session)
+    print(f"Tension sustained peaks (local only, not in the contract yet): {metrics.tension_peaks()}")
     return session

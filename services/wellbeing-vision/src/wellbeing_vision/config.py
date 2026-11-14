@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     models_dir: Path = Path("models")
     data_dir: Path = Path("data")
     outbox_path: Path = Path("outbox/pending.jsonl")
+    # PROVISIONAL: below this face width (cheek to cheek, px) eye landmarks get too noisy for blinks.
+    # ~256 px at 50 cm and ~128 px at 1 m on a 720p webcam with a 70 degree field of view.
+    min_face_px: float = 160.0
     cameras: dict[int, str] = Field(default={0: "modulo-a", 1: "modulo-b"})
     astronauts: dict[str, str] = Field(
         default={f"ast-0{i}": f"ast-0{i}" for i in range(1, 5)}
