@@ -9,6 +9,9 @@ from onboard_api.wellbeing.schemas import (
     CheckinUpsert,
     CoPresence,
     CoPresenceCreate,
+    GroundPackage,
+    GroundPackageCreate,
+    GroundPackageStatus,
     Signal,
     SignalCreate,
     VisionSession,
@@ -219,6 +222,60 @@ class WellbeingRepository:
                     id=row["id"],
                     received_at=from_db_timestamp(row["received_at"]),
                     simulated=is_simulated_source(data.source),
+                )
+            )
+        return result
+
+    # --- ground packages ---
+
+    def create_ground_package(
+        self, package_id: str, data: GroundPackageCreate, now: datetime
+    ) -> GroundPackage:
+        stamp = to_db_timestamp(now)
+        self._conn.execute(
+            "INSERT INTO ground_packages (id, astronaut_id, body, status,"
+            " consent_recorded_at, created_at, updated_at)"
+            " VALUES (?, ?, ?, 'queued', ?, ?, ?)",
+            (package_id, data.astronaut_id, data.model_dump_json(), stamp, stamp, stamp),
+        )
+        package = self.get_ground_package(package_id)
+        assert package is not None
+        return package
+
+    def get_ground_package(self, package_id: str) -> GroundPackage | None:
+        rows = self._ground_rows("WHERE id = ?", (package_id,))
+        return rows[0] if rows else None
+
+    def list_ground_packages(self, astronaut_id: str) -> list[GroundPackage]:
+        return self._ground_rows(
+            "WHERE astronaut_id = ? ORDER BY created_at DESC, id", (astronaut_id,)
+        )
+
+    def set_ground_package_status(
+        self, package_id: str, status: GroundPackageStatus, now: datetime
+    ) -> None:
+        self._conn.execute(
+            "UPDATE ground_packages SET status = ?, updated_at = ? WHERE id = ?",
+            (status, to_db_timestamp(now), package_id),
+        )
+
+    def _ground_rows(self, where: str, params: tuple[object, ...]) -> list[GroundPackage]:
+        rows = self._conn.execute(
+            "SELECT id, body, status, consent_recorded_at, created_at"
+            f" FROM ground_packages {where}",
+            params,
+        ).fetchall()
+        result = []
+        for row in rows:
+            data = GroundPackageCreate.model_validate_json(row["body"])
+            result.append(
+                GroundPackage(
+                    **data.model_dump(exclude={"consent"}),
+                    id=row["id"],
+                    status=row["status"],
+                    consent_statement_version=data.consent.statement_version,
+                    consent_recorded_at=from_db_timestamp(row["consent_recorded_at"]),
+                    created_at=from_db_timestamp(row["created_at"]),
                 )
             )
         return result

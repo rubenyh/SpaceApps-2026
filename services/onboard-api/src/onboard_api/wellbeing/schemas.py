@@ -336,3 +336,61 @@ class WellbeingTimeline(BaseModel):
     z_threshold: float
     provisional: bool = True
     days: list[TimelineDay]
+
+
+# --- Ground psychologist packages (manual, consent required) ---
+
+GroundRequester = Literal["self", "captain", "ground_psychologist"]
+GroundInclude = Literal["assessment", "timeline", "checkins", "comments"]
+GroundPackageStatus = Literal["queued", "withdrawn", "sent"]
+
+
+class GroundConsent(BaseModel):
+    astronaut_confirmed: bool
+    statement_version: str = Field(min_length=1, max_length=16)
+
+
+class GroundPackageCreate(BaseModel):
+    astronaut_id: str
+    requested_by: GroundRequester
+    requested_by_name: str = Field(min_length=1, max_length=80)
+    consent: GroundConsent
+    period_from: date
+    period_to: date
+    include: list[GroundInclude] = Field(min_length=1)
+    note: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def _valid_request(self) -> Self:
+        # Never sent, never even queued, without the astronaut's own consent.
+        if not self.consent.astronaut_confirmed:
+            raise ValueError("explicit consent from the astronaut is required")
+        if self.period_to < self.period_from:
+            raise ValueError("period_to must not be before period_from")
+        if len(set(self.include)) != len(self.include):
+            raise ValueError("include must not repeat")
+        if "comments" in self.include and "checkins" not in self.include:
+            raise ValueError("'comments' requires 'checkins'")
+        return self
+
+
+class GroundPackage(BaseModel):
+    id: str
+    astronaut_id: str
+    requested_by: GroundRequester
+    requested_by_name: str
+    period_from: date
+    period_to: date
+    include: list[GroundInclude]
+    note: str | None
+    status: GroundPackageStatus
+    consent_statement_version: str
+    consent_recorded_at: AwareDatetime
+    created_at: AwareDatetime
+
+
+class GroundPackageContent(BaseModel):
+    package: GroundPackage
+    assessment: WellbeingAssessment | None
+    timeline: WellbeingTimeline | None
+    checkins: list[Checkin] | None

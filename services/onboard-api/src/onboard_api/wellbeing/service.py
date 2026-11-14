@@ -1,6 +1,7 @@
 """Glue between storage, the read-only onboard data and the fusion engine."""
 
-from datetime import date, datetime, timedelta
+import uuid
+from datetime import UTC, date, datetime, time, timedelta
 
 from onboard_api.wellbeing import engine
 from onboard_api.wellbeing.onboard_reader import OnboardReader
@@ -15,6 +16,9 @@ from onboard_api.wellbeing.schemas import (
     CoPresenceCreate,
     CrewMemberSummary,
     CrewWellbeing,
+    GroundPackage,
+    GroundPackageContent,
+    GroundPackageCreate,
     IndicatorState,
     Signal,
     SignalCreate,
@@ -265,3 +269,82 @@ def get_crew(
             )
         )
     return CrewWellbeing(generated_at=now, members=members)
+
+
+# --- Ground psychologist packages ---
+
+
+class PackageNotFoundError(Exception):
+    def __init__(self, package_id: str) -> None:
+        super().__init__(f"Ground package '{package_id}' not found")
+
+
+class PackageStateError(Exception):
+    pass
+
+
+def create_ground_package(
+    repo: WellbeingRepository, reader: OnboardReader, data: GroundPackageCreate, now: datetime
+) -> GroundPackage:
+    """Queue a package on board. Consent is validated by GroundPackageCreate."""
+    if reader.get_astronaut(data.astronaut_id) is None:
+        raise AstronautNotFoundError(data.astronaut_id)
+    if data.period_to > now.date():
+        raise FutureDayError(data.period_to)
+    return repo.create_ground_package(str(uuid.uuid4()), data, now)
+
+
+def list_ground_packages(
+    repo: WellbeingRepository, reader: OnboardReader, astronaut_id: str
+) -> list[GroundPackage]:
+    _ensure_astronauts(reader, astronaut_id)
+    return repo.list_ground_packages(astronaut_id)
+
+
+def _get_package(repo: WellbeingRepository, package_id: str) -> GroundPackage:
+    package = repo.get_ground_package(package_id)
+    if package is None:
+        raise PackageNotFoundError(package_id)
+    return package
+
+
+def get_ground_package_content(
+    repo: WellbeingRepository,
+    reader: OnboardReader,
+    settings: WellbeingSettings,
+    package_id: str,
+    now: datetime,
+) -> GroundPackageContent:
+    """Exactly what would be sent: the data as of the end of the period."""
+    package = _get_package(repo, package_id)
+    if package.status == "withdrawn":
+        raise PackageStateError("Consent for this package was withdrawn")
+    aid, include = package.astronaut_id, package.include
+    as_of = min(now, datetime.combine(package.period_to, time.max, tzinfo=UTC))
+    days = (package.period_to - package.period_from).days + 1
+    checkins = None
+    if "checkins" in include:
+        checkins = repo.list_checkins(aid, package.period_from, package.period_to)
+        if "comments" not in include:
+            checkins = [c.model_copy(update={"comment": None}) for c in checkins]
+    return GroundPackageContent(
+        package=package,
+        assessment=get_assessment(repo, reader, aid, settings, as_of)
+        if "assessment" in include
+        else None,
+        timeline=get_timeline(repo, reader, aid, settings, as_of, days)
+        if "timeline" in include
+        else None,
+        checkins=checkins,
+    )
+
+
+def withdraw_ground_package(
+    repo: WellbeingRepository, package_id: str, now: datetime
+) -> GroundPackage:
+    package = _get_package(repo, package_id)
+    if package.status == "sent":
+        raise PackageStateError("Package already sent; it can no longer be withdrawn")
+    if package.status == "queued":
+        repo.set_ground_package_status(package_id, "withdrawn", now)
+    return _get_package(repo, package_id)

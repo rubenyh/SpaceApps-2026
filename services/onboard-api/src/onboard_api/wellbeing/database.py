@@ -5,7 +5,8 @@ import threading
 from importlib.resources import files
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+_MIGRATIONS = ((1, "schema.sql"), (2, "0002_ground_packages.sql"))
+SCHEMA_VERSION = _MIGRATIONS[-1][0]
 
 _init_lock = threading.Lock()
 _initialized: set[Path] = set()
@@ -38,20 +39,22 @@ def init_wellbeing_db(db_path: Path) -> None:
     conn = _open(db_path)
     try:
         version = conn.execute("PRAGMA user_version").fetchone()[0]
-        if version == SCHEMA_VERSION:
-            return
-        if version != 0:
+        if version > SCHEMA_VERSION:
             raise RuntimeError(
                 f"unsupported wellbeing schema version {version} in {db_path}; "
-                f"expected {SCHEMA_VERSION}"
+                f"expected at most {SCHEMA_VERSION}"
             )
-        script = files("onboard_api.wellbeing").joinpath("schema.sql").read_text("utf-8")
-        try:
-            conn.executescript("BEGIN;\n" + script + "\nCOMMIT;")
-        except BaseException:
-            if conn.in_transaction:
-                conn.execute("ROLLBACK")
-            raise
+        # Each script sets PRAGMA user_version to its own version.
+        for target, name in _MIGRATIONS:
+            if version >= target:
+                continue
+            script = files("onboard_api.wellbeing").joinpath(name).read_text("utf-8")
+            try:
+                conn.executescript("BEGIN;\n" + script + "\nCOMMIT;")
+            except BaseException:
+                if conn.in_transaction:
+                    conn.execute("ROLLBACK")
+                raise
     finally:
         conn.close()
 

@@ -20,6 +20,9 @@ from onboard_api.wellbeing.schemas import (
     CoPresence,
     CoPresenceCreate,
     CrewWellbeing,
+    GroundPackage,
+    GroundPackageContent,
+    GroundPackageCreate,
     Signal,
     SignalCreate,
     VisionSession,
@@ -178,3 +181,72 @@ def timeline(
         )
     except service.AstronautNotFoundError as exc:
         raise _not_found(exc) from exc
+
+
+# --- Ground psychologist packages: manual, explicit consent, queued on board ---
+
+_PACKAGE_ERRORS = {
+    status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+    status.HTTP_409_CONFLICT: {"model": ErrorResponse},
+}
+
+
+@router.post(
+    "/wellbeing/ground-packages",
+    response_model=GroundPackage,
+    status_code=status.HTTP_201_CREATED,
+    responses=_NOT_FOUND,
+)
+def post_ground_package(
+    data: GroundPackageCreate, repo: RepoDep, reader: ReaderDep, clock: ClockDep
+) -> GroundPackage:
+    try:
+        return service.create_ground_package(repo, reader, data, now=clock())
+    except service.AstronautNotFoundError as exc:
+        raise _not_found(exc) from exc
+    except service.FutureDayError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+
+
+@router.get(
+    "/wellbeing/ground-packages", response_model=list[GroundPackage], responses=_NOT_FOUND
+)
+def get_ground_packages(
+    astronaut_id: str, repo: RepoDep, reader: ReaderDep
+) -> list[GroundPackage]:
+    try:
+        return service.list_ground_packages(repo, reader, astronaut_id)
+    except service.AstronautNotFoundError as exc:
+        raise _not_found(exc) from exc
+
+
+@router.get(
+    "/wellbeing/ground-packages/{package_id}/content",
+    response_model=GroundPackageContent,
+    responses=_PACKAGE_ERRORS,
+)
+def get_ground_package_content(
+    package_id: str, repo: RepoDep, reader: ReaderDep, settings: SettingsDep, clock: ClockDep
+) -> GroundPackageContent:
+    try:
+        return service.get_ground_package_content(
+            repo, reader, settings, package_id, now=clock()
+        )
+    except service.PackageNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except service.PackageStateError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+@router.post(
+    "/wellbeing/ground-packages/{package_id}/withdraw",
+    response_model=GroundPackage,
+    responses=_PACKAGE_ERRORS,
+)
+def withdraw_ground_package(package_id: str, repo: RepoDep, clock: ClockDep) -> GroundPackage:
+    try:
+        return service.withdraw_ground_package(repo, package_id, now=clock())
+    except service.PackageNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except service.PackageStateError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=str(exc)) from exc
