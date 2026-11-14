@@ -101,7 +101,7 @@ Se reutiliza la convención física donde aplica (`no_data`, `stale`). `no_range
   "trend_min_delta": 0.5,
   "z_cap": 5.0,
   "components": [
-    {"component": "checkin.sleep_hours", "source": "checkin", "indicator": "sleep", "adverse_direction": "low", "scale_floor": 0.5, "unit": "h"},
+    {"component": "checkin.sleep_hours", "source": "checkin", "indicator": "sleep", "adverse_direction": "low", "scale_floor": 1.0, "unit": "h"},
     {"component": "signal.hrv_sdnn", "source": "physiology", "indicator": "stress", "adverse_direction": "low", "scale_floor": 5.0, "unit": "ms"}
   ]
 }

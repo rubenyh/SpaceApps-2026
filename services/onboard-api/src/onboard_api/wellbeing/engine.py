@@ -48,15 +48,15 @@ class ComponentDef:
 
 
 COMPONENTS: tuple[ComponentDef, ...] = (
-    ComponentDef("checkin.sleep_hours", "checkin", "sleep", "low", 0.5, "h"),
-    ComponentDef("checkin.sleep_quality", "checkin", "sleep", "low", 0.5, "0-4"),
+    ComponentDef("checkin.sleep_hours", "checkin", "sleep", "low", 1.0, "h"),
+    ComponentDef("checkin.sleep_quality", "checkin", "sleep", "low", 1.0, "0-4"),
     ComponentDef("signal.sleep_hours", "physiology", "sleep", "low", 0.5, "h"),
-    ComponentDef("checkin.energy", "checkin", "fatigue", "low", 0.5, "0-4"),
+    ComponentDef("checkin.energy", "checkin", "fatigue", "low", 1.0, "0-4"),
     ComponentDef("vision.perclos", "vision", "fatigue", "high", 0.02, "ratio"),
     ComponentDef("vision.eye_openness_vs_neutral", "vision", "fatigue", "low", 0.03, "ratio"),
     ComponentDef("vision.yawns_per_min", "vision", "fatigue", "high", 0.1, "1/min"),
     ComponentDef("vision.nods_per_min", "vision", "fatigue", "high", 0.1, "1/min"),
-    ComponentDef("checkin.stress", "checkin", "stress", "high", 0.5, "0-4"),
+    ComponentDef("checkin.stress", "checkin", "stress", "high", 1.0, "0-4"),
     ComponentDef("signal.hrv_sdnn", "physiology", "stress", "low", 5.0, "ms"),
     ComponentDef("signal.resting_heart_rate", "physiology", "stress", "high", 2.0, "bpm"),
     ComponentDef("onboard.heart_rate_low", "physiology", "stress", "high", 2.0, "bpm"),
@@ -67,9 +67,9 @@ COMPONENTS: tuple[ComponentDef, ...] = (
     ComponentDef("vision.fidget_index", "vision", "activation", "high", 0.05, "index"),
     ComponentDef("vision.torso_angle_dev", "vision", "activation", "high", 2.0, "deg"),
     ComponentDef("social.accompanied_minutes", "social", "social", "low", 10.0, "min"),
-    ComponentDef("checkin.crew_connection", "checkin", "social", "low", 0.5, "0-4"),
-    ComponentDef("checkin.mood", "checkin", "mood", "low", 0.5, "0-4"),
-    ComponentDef("checkin.interest", "checkin", "mood", "low", 0.5, "0-4"),
+    ComponentDef("checkin.crew_connection", "checkin", "social", "low", 1.0, "0-4"),
+    ComponentDef("checkin.mood", "checkin", "mood", "low", 1.0, "0-4"),
+    ComponentDef("checkin.interest", "checkin", "mood", "low", 1.0, "0-4"),
 )
 COMPONENTS_BY_NAME = {c.component: c for c in COMPONENTS}
 
