@@ -35,6 +35,11 @@ LABELS = {
 }
 _QUALITY = {"suspect": "dudosa", "bad": "mala"}
 _UNAVAILABLE = "Repositorio de lecturas no disponible: no se consultaron lecturas."
+# Validity when a kind has no sensor_config row (plan's provisional demo value).
+# A row with stale_after_seconds NULL still means "never stale".
+DEFAULT_STALE_AFTER_SECONDS = 300
+# Clock skew tolerated for capture times slightly ahead of `now`.
+FUTURE_SKEW_SECONDS = 5
 
 
 def format_age(seconds: int) -> str:
@@ -86,9 +91,11 @@ class SqliteReadingsProvider:
                     ctx.warnings.append(f"Sin lectura de {label}.")
                 continue
             config = configs.get(kind)
-            limit = config.stale_after_seconds if config else None
-            age = max(0, int((now - row.recorded_at).total_seconds()))
-            stale = limit is not None and age > limit
+            limit = config.stale_after_seconds if config else DEFAULT_STALE_AFTER_SECONDS
+            raw_age = int((now - row.recorded_at).total_seconds())
+            future = raw_age < -FUTURE_SKEW_SECONDS
+            age = max(0, raw_age)
+            stale = future or (limit is not None and age > limit)
             ctx.latest[kind] = VitalReading(
                 kind=kind,
                 value=row.value,
@@ -100,7 +107,12 @@ class SqliteReadingsProvider:
                 age_seconds=age,
                 stale=stale,
             )
-            if stale:
+            if future:
+                ctx.warnings.append(
+                    f"La lectura de {label} tiene hora de captura en el futuro"
+                    f" ({-raw_age} s por delante del reloj): no se usa como lectura actual."
+                )
+            elif stale:
                 ctx.warnings.append(
                     f"La lectura de {label} tiene {format_age(age)} de antigüedad"
                     f" (vigencia {limit} s): no refleja el estado actual."

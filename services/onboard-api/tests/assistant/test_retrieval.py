@@ -99,6 +99,32 @@ def test_chroma_failure_is_dependency_unavailable(tmp_path: Path) -> None:
         r.search("dolor de pecho")
 
 
+def test_concurrent_first_use_opens_one_client(tmp_path: Path, monkeypatch) -> None:
+    import threading
+    import time
+
+    import chromadb
+
+    opened = []
+
+    class SlowClient:
+        def __init__(self, path):
+            opened.append(path)
+            time.sleep(0.05)
+
+        def get_or_create_collection(self, *args, **kwargs):
+            return object()
+
+    monkeypatch.setattr(chromadb, "PersistentClient", SlowClient)
+    r = GuideRetriever(tmp_path / "chroma", "medical_guides", KeywordEmbedder(), 0.6)
+    threads = [threading.Thread(target=r._get_collection) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(opened) == 1
+
+
 # MedlinePlus XML parsing and chunking -------------------------------------------
 
 XML = """<?xml version="1.0" encoding="UTF-8"?>

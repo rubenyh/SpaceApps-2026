@@ -4,6 +4,7 @@ Embeddings always come from the injected Embedder (Ollama in production), never 
 Chroma's default embedding function, so ingest and query share one pinned model.
 """
 
+import threading
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -39,20 +40,25 @@ class GuideRetriever:
         self.embedder = embedder
         self.max_distance = max_distance
         self._collection = None
+        self._init_lock = threading.Lock()
 
     def _get_collection(self):
-        if self._collection is None:
-            try:
-                import chromadb
+        if self._collection is not None:
+            return self._collection
+        # FastAPI runs sync handlers in a threadpool: one PersistentClient per retriever.
+        with self._init_lock:
+            if self._collection is None:
+                try:
+                    import chromadb
 
-                client = chromadb.PersistentClient(path=str(self.path))
-                self._collection = client.get_or_create_collection(
-                    self.collection_name,
-                    embedding_function=None,
-                    configuration={"hnsw": {"space": "cosine"}},
-                )
-            except Exception as exc:  # chromadb raises many types; all mean "unavailable"
-                raise DependencyUnavailable(f"ChromaDB unavailable: {exc!r}") from exc
+                    client = chromadb.PersistentClient(path=str(self.path))
+                    self._collection = client.get_or_create_collection(
+                        self.collection_name,
+                        embedding_function=None,
+                        configuration={"hnsw": {"space": "cosine"}},
+                    )
+                except Exception as exc:  # chromadb raises many types; all mean "unavailable"
+                    raise DependencyUnavailable(f"ChromaDB unavailable: {exc!r}") from exc
         return self._collection
 
     def search(
