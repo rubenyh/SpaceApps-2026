@@ -1,0 +1,63 @@
+{
+  "id": "dizziness_or_space_motion_sickness",
+  "version": "1.0.0",
+  "title": "Mareo o cinetosis espacial",
+  "priority": 160,
+  "summary": "Mareo o sensación de giro. Importan el inicio, la ingesta, las pérdidas de líquidos, el movimiento y la fase de la misión. La cinetosis espacial se considera solo si el contexto la sustenta (adaptación, movimientos de cabeza); la deshidratación, si hay pérdidas o baja ingesta. Debilidad de un lado o alteración del habla activan la ficha neurológica. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "with_neurologic_signs": {
+      "urgency": "immediate",
+      "text": "El mareo se acompaña de signos neurológicos: se aplica la ficha de señales neurológicas de alarma (aviso inmediato).",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    },
+    "assessment": {
+      "urgency": "review_required",
+      "text": "Pedir valoración al responsable médico a bordo si el mareo persiste, interfiere con las actividades o el contexto es insuficiente.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    }
+  },
+  "questions": {},
+  "candidates": [
+    {
+      "id": "space_motion_sickness",
+      "label": "Cinetosis espacial (síndrome de adaptación espacial)",
+      "minimum_evidence": "Mareo durante la adaptación a microgravedad o relacionado con movimientos, sin señales neurológicas.",
+      "source_ids": [
+        "nasa_space_adaptation_sickness"
+      ]
+    },
+    {
+      "id": "dehydration",
+      "label": "Deshidratación",
+      "minimum_evidence": "Mareo con pérdidas de líquidos (vómitos, diarrea, sudoración) o baja ingesta reportadas.",
+      "source_ids": [
+        "medlineplus_dizziness_vertigo"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "nasa_space_adaptation_sickness",
+      "title": "NASA OCHMO: Space Adaptation Sickness (SAS)",
+      "section": "Technical brief",
+      "url": "https://www.nasa.gov/wp-content/uploads/2025/09/ochmo-mtb-004-space-adaptation-sickness-sas.pdf"
+    },
+    {
+      "id": "medlineplus_dizziness_vertigo",
+      "title": "MedlinePlus: Mareos y vértigo",
+      "section": "Resumen",
+      "url": "https://medlineplus.gov/spanish/dizzinessandvertigo.html"
+    }
+  ],
+  "guide_topics": [
+    "dizziness_vertigo",
+    "motion_sickness",
+    "space_adaptation",
+    "dehydration"
+  ]
+}

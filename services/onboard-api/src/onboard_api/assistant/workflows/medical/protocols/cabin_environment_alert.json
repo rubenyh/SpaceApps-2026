@@ -1,0 +1,71 @@
+{
+  "id": "cabin_environment_alert",
+  "version": "1.0.0",
+  "title": "Alerta ambiental de cabina",
+  "priority": 30,
+  "summary": "Alerta operativa de aire o presión, o varios tripulantes con síntomas simultáneos en un contexto compatible. Se conserva el tipo de alarma: presión, humo, CO₂ u otra. Con evidencia de una fuente, la exposición ambiental requiere descarte. Nunca se sustituye el procedimiento de la nave por una SpO₂ normal: la oximetría convencional no detecta monóxido de carbono. Una alarma reportada por texto se trata como reportada, no como confirmada. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "confirmed_event": {
+      "urgency": "immediate",
+      "text": "Seguir de inmediato el procedimiento de la nave para esta alarma y avisar a la tripulación y al responsable médico a bordo. Una SpO₂ normal no sustituye esa evaluación.",
+      "notify": [
+        "tripulación",
+        "responsable médico a bordo"
+      ]
+    },
+    "simulated_event": {
+      "urgency": "immediate",
+      "text": "Evento SIMULADO (ejercicio etiquetado): ejecutar el procedimiento de la nave como en el ejercicio y avisar a la tripulación y al responsable médico a bordo. No es una alarma real confirmada.",
+      "notify": [
+        "tripulación",
+        "responsable médico a bordo"
+      ]
+    },
+    "reported_alarm": {
+      "urgency": "immediate",
+      "text": "Alarma REPORTADA por texto, no confirmada por la nave: seguir el procedimiento de la nave, verificar el panel de alarmas y avisar a la tripulación y al responsable médico a bordo.",
+      "notify": [
+        "tripulación",
+        "responsable médico a bordo"
+      ]
+    },
+    "multiple_crew": {
+      "urgency": "immediate",
+      "text": "Varios tripulantes con síntomas simultáneos: tratar como posible problema ambiental, seguir el procedimiento de la nave y avisar a la tripulación y al responsable médico a bordo.",
+      "notify": [
+        "tripulación",
+        "responsable médico a bordo"
+      ]
+    }
+  },
+  "questions": {},
+  "candidates": [
+    {
+      "id": "environmental_exposure",
+      "label": "Exposición ambiental (requiere descarte)",
+      "minimum_evidence": "Evento de cabina confirmado o evidencia de una fuente (alarma, humo, varios tripulantes con síntomas).",
+      "source_ids": [
+        "nasa_carbon_dioxide",
+        "cdc_carbon_monoxide_clinical"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "nasa_carbon_dioxide",
+      "title": "NASA OCHMO: Carbon Dioxide",
+      "section": "Technical brief",
+      "url": "https://www.nasa.gov/ochmo-tb-004-carbon-dioxide-2/"
+    },
+    {
+      "id": "cdc_carbon_monoxide_clinical",
+      "title": "CDC: Carbon Monoxide Poisoning - Clinical Guidance",
+      "section": "Límites de la oximetría convencional",
+      "url": "https://www.cdc.gov/carbon-monoxide/hcp/clinical-guidance/index.html"
+    }
+  ],
+  "guide_topics": [
+    "carbon_dioxide",
+    "carbon_monoxide"
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "id": "chest_pain",
+  "version": "1.0.0",
+  "title": "Dolor torácico",
+  "priority": 70,
+  "summary": "Dolor, presión o molestia torácica nueva o inexplicada. Si el patrón es preocupante (presión, dolor intenso, persistente o que reaparece, o acompañado de falta de aire, sudor frío o mareo), el síndrome coronario agudo es una causa prioritaria que requiere descarte; eso no significa que sea la causa más probable. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "immediate": {
+      "urgency": "immediate",
+      "text": "Avisar de inmediato al responsable médico a bordo y seguir la ficha de dolor torácico de la misión.",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    },
+    "new_pain": {
+      "urgency": "review_required",
+      "text": "Pedir valoración al responsable médico a bordo por dolor torácico nuevo. Avisar de inmediato si persiste, reaparece o se acompaña de falta de aire, sudor frío o mareo.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    }
+  },
+  "questions": {},
+  "candidates": [
+    {
+      "id": "acs",
+      "label": "Síndrome coronario agudo (requiere descarte)",
+      "minimum_evidence": "Dolor o presión torácica con patrón preocupante: persistente, recurrente, intenso o con falta de aire, sudor frío o mareo.",
+      "source_ids": [
+        "cdc_heart_attack",
+        "medlineplus_chest_pain"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "cdc_heart_attack",
+      "title": "CDC: About Heart Attack and Symptoms",
+      "section": "Síntomas de infarto",
+      "url": "https://www.cdc.gov/heart-disease/about/heart-attack.html"
+    },
+    {
+      "id": "medlineplus_chest_pain",
+      "title": "MedlinePlus: Chest Pain",
+      "section": "Resumen",
+      "url": "https://medlineplus.gov/chestpain.html"
+    }
+  ],
+  "guide_topics": [
+    "chest_pain",
+    "heart_attack"
+  ]
+}

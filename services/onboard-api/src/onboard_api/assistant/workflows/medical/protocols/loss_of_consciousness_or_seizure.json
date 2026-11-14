@@ -1,0 +1,62 @@
+{
+  "id": "loss_of_consciousness_or_seizure",
+  "version": "1.0.0",
+  "title": "Pérdida de conciencia o convulsión",
+  "priority": 10,
+  "summary": "Tripulante que no responde, pérdida de conciencia, desmayo o convulsión observada. Diferenciar pérdida de conciencia actual, episodio resuelto y evento convulsivo. Son criterios de aviso inmediato: no responde, primera convulsión, convulsión de más de cinco minutos, convulsiones repetidas sin recuperación o dificultad para respirar o despertar. Tras un desmayo con recuperación se comprueba si coinciden señales cardíacas, neurológicas o un golpe. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "unresponsive": {
+      "urgency": "immediate",
+      "text": "Avisar de inmediato al responsable médico a bordo y a la tripulación: tripulante que no responde. Seguir la ficha de emergencia de la misión y comprobar la respiración.",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    },
+    "seizure": {
+      "urgency": "immediate",
+      "text": "Avisar de inmediato al responsable médico a bordo: convulsión observada. Seguir la ficha de convulsiones de la misión y proteger de golpes sin sujetar a la persona.",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    },
+    "fainted_recovered": {
+      "urgency": "review_required",
+      "text": "Pedir valoración al responsable médico a bordo tras un desmayo con recuperación. Comprobar si hubo palpitaciones, dolor torácico, signos neurológicos o un golpe.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    },
+    "recovery_check": {
+      "urgency": "undetermined",
+      "text": "Desmayo reportado sin saber si ya hay recuperación: confirmar el estado de conciencia. Si no responde, avisar de inmediato.",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    }
+  },
+  "questions": {
+    "recovered": "¿La persona ya recuperó la conciencia y responde con normalidad?"
+  },
+  "candidates": [],
+  "sources": [
+    {
+      "id": "medlineplus_unconsciousness",
+      "title": "MedlinePlus: Unconsciousness - first aid",
+      "section": "Primeros auxilios",
+      "url": "https://medlineplus.gov/ency/article/000022.htm"
+    },
+    {
+      "id": "cdc_seizure_first_aid",
+      "title": "CDC: First Aid for Seizures",
+      "section": "Cuándo pedir ayuda de emergencia",
+      "url": "https://www.cdc.gov/epilepsy/first-aid-for-seizures/"
+    }
+  ],
+  "guide_topics": [
+    "fainting",
+    "seizures"
+  ]
+}

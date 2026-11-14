@@ -1,0 +1,84 @@
+{
+  "id": "palpitations",
+  "version": "1.0.0",
+  "title": "Palpitaciones o pulso llamativo",
+  "priority": 150,
+  "summary": "Palpitaciones o un pulso llamativo pueden corresponder a respuesta al esfuerzo si coinciden con actividad, a un artefacto si la señal es deficiente, o a una arritmia que requiere descarte si hay síntomas compatibles. El pulso del sensor no sustituye un ECG. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "immediate": {
+      "urgency": "immediate",
+      "text": "Avisar de inmediato al responsable médico a bordo: palpitaciones con dolor torácico, falta de aire importante o pérdida de conciencia.",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    },
+    "review": {
+      "urgency": "review_required",
+      "text": "Pedir valoración al responsable médico a bordo por palpitaciones nuevas, repetidas o persistentes.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    },
+    "reading_check": {
+      "urgency": "undetermined",
+      "text": "Lectura de pulso aislada sin síntomas conocidos: confirmar síntomas y repetir la medición antes de interpretarla.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    },
+    "reading_reference": {
+      "urgency": "informational",
+      "text": "La lectura de pulso está dentro de la referencia visual; si aparecen síntomas, comentarlos con el responsable médico a bordo.",
+      "notify": []
+    }
+  },
+  "questions": {
+    "symptoms_and_repeat": "¿Nota palpitaciones, mareo, dolor torácico o falta de aire ahora, y estaba haciendo ejercicio? Repita la medición en reposo con el sensor bien colocado."
+  },
+  "candidates": [
+    {
+      "id": "exertional_response",
+      "label": "Respuesta al esfuerzo",
+      "minimum_evidence": "Palpitaciones o pulso alto que coinciden con actividad física reportada.",
+      "source_ids": [
+        "medlineplus_palpitations"
+      ]
+    },
+    {
+      "id": "artifact",
+      "label": "Artefacto de medición",
+      "minimum_evidence": "Lectura de pulso con calidad sospechosa o mala.",
+      "source_ids": [
+        "medlineplus_palpitations"
+      ]
+    },
+    {
+      "id": "arrhythmia",
+      "label": "Arritmia (requiere descarte)",
+      "minimum_evidence": "Palpitaciones reportadas sin explicación por esfuerzo, persistentes o repetidas, o con mareo.",
+      "source_ids": [
+        "medlineplus_arrhythmia",
+        "medlineplus_palpitations"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "medlineplus_palpitations",
+      "title": "MedlinePlus: Heart palpitations",
+      "section": "Cuándo contactar al médico",
+      "url": "https://medlineplus.gov/ency/article/003081.htm"
+    },
+    {
+      "id": "medlineplus_arrhythmia",
+      "title": "MedlinePlus: Arrhythmia",
+      "section": "Resumen",
+      "url": "https://medlineplus.gov/arrhythmia.html"
+    }
+  ],
+  "guide_topics": [
+    "arrhythmia",
+    "pulse_oximetry"
+  ]
+}

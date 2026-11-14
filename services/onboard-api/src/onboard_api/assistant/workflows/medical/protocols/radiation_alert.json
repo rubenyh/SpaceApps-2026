@@ -1,0 +1,75 @@
+{
+  "id": "radiation_alert",
+  "version": "1.0.0",
+  "title": "Alerta de radiación",
+  "priority": 40,
+  "summary": "Evento de dosímetro o alerta de la nave, real o simulado y etiquetado. Se distingue entre evento confirmado por la nave, evento simulado y alerta reportada solo por texto. Sin evento ni dosimetría disponible no es posible estimar una exposición: se indica qué evidencia falta. Los síntomas aislados y el módulo de orina no aportan una estimación de exposición. Decisión de diseño: un evento simulado activo usa la misma urgencia inmediata que uno real para ejercitar el procedimiento, siempre etiquetado como SIMULADO. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "confirmed_event": {
+      "urgency": "immediate",
+      "text": "Alerta de radiación CONFIRMADA por la nave: avisar a la tripulación y al responsable médico a bordo y seguir el procedimiento de radiación de la misión.",
+      "notify": [
+        "tripulación",
+        "responsable médico a bordo"
+      ]
+    },
+    "simulated_event": {
+      "urgency": "immediate",
+      "text": "Evento de radiación SIMULADO (ejercicio etiquetado): ejecutar el procedimiento de radiación como en el ejercicio y avisar a la tripulación y al responsable médico a bordo. No es una exposición real confirmada.",
+      "notify": [
+        "tripulación",
+        "responsable médico a bordo"
+      ]
+    },
+    "reported_alert": {
+      "urgency": "immediate",
+      "text": "Alerta de radiación REPORTADA por texto, no confirmada: verificar el dosímetro y el panel de la nave, seguir el procedimiento de radiación y avisar a la tripulación y al responsable médico a bordo.",
+      "notify": [
+        "tripulación",
+        "responsable médico a bordo"
+      ]
+    },
+    "no_evidence": {
+      "urgency": "informational",
+      "text": "No hay evento de dosímetro ni alerta de la nave disponibles: no es posible estimar una exposición. El módulo de orina no aporta esa estimación. Consultar al responsable médico a bordo si hay preocupación.",
+      "notify": []
+    }
+  },
+  "questions": {},
+  "candidates": [
+    {
+      "id": "possible_exposure",
+      "label": "Posible exposición a radiación (requiere descarte)",
+      "minimum_evidence": "Evento de dosímetro o alerta de la nave confirmados.",
+      "source_ids": [
+        "nasa_artemis_ii_reference",
+        "cdc_ars"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "nasa_artemis_ii_reference",
+      "title": "NASA: Artemis II Reference Guide",
+      "section": "Sensores y dosímetros",
+      "url": "https://www.nasa.gov/wp-content/uploads/2026/01/a2-reference-guide-012825.pdf"
+    },
+    {
+      "id": "cdc_ars",
+      "title": "CDC: Acute Radiation Syndrome",
+      "section": "Signos y síntomas",
+      "url": "https://www.cdc.gov/radiation-emergencies/signs-symptoms/acute-radiation-syndrome.html"
+    },
+    {
+      "id": "cdc_urine_radionuclide",
+      "title": "CDC: Urine Radionuclide Screening",
+      "section": "Alcance de la prueba",
+      "url": "https://www.cdc.gov/radiation-emergencies/php/population-monitoring/urine-radionuclide-screening.html"
+    }
+  ],
+  "guide_topics": [
+    "radiation_ars",
+    "radiation_urine_testing",
+    "dosimetry"
+  ]
+}

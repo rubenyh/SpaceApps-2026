@@ -1,0 +1,68 @@
+{
+  "id": "injury_bleeding_or_burn",
+  "version": "1.0.0",
+  "title": "Lesión, sangrado o quemadura",
+  "priority": 80,
+  "summary": "Golpe, lesión, sangrado o quemadura reportados. Separar mecanismo, estado de conciencia y si el sangrado continúa. Contusión o conmoción son hipótesis que requieren evidencia del evento y síntomas pertinentes. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "immediate": {
+      "urgency": "immediate",
+      "text": "Avisar de inmediato al responsable médico a bordo: sangrado abundante que continúa, quemadura grave o señales de alarma tras un golpe en la cabeza. Seguir la ficha de atención de emergencia de la misión.",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    },
+    "review": {
+      "urgency": "review_required",
+      "text": "Pedir valoración al responsable médico a bordo por la lesión. Avisar de inmediato si el sangrado no se detiene o, tras un golpe en la cabeza, aparecen vómitos repetidos o confusión que empeora.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    }
+  },
+  "questions": {},
+  "candidates": [
+    {
+      "id": "contusion",
+      "label": "Contusión",
+      "minimum_evidence": "Golpe reportado con dolor localizado, hinchazón o hematoma.",
+      "source_ids": [
+        "who_icrc_basic_emergency_care"
+      ]
+    },
+    {
+      "id": "concussion",
+      "label": "Conmoción cerebral",
+      "minimum_evidence": "Golpe en la cabeza con dolor de cabeza, mareo, náuseas, vómitos o confusión.",
+      "source_ids": [
+        "cdc_heads_up_signs"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "who_icrc_basic_emergency_care",
+      "title": "OMS/ICRC: Basic Emergency Care",
+      "section": "Lesiones y sangrado",
+      "url": "https://www.who.int/publications/i/item/9789241513081"
+    },
+    {
+      "id": "cdc_heads_up_signs",
+      "title": "CDC HEADS UP: Signs and Symptoms",
+      "section": "Señales de alarma",
+      "url": "https://www.cdc.gov/heads-up/signs-symptoms/index.html"
+    },
+    {
+      "id": "medlineplus_burns",
+      "title": "MedlinePlus: Burns",
+      "section": "Resumen",
+      "url": "https://medlineplus.gov/burns.html"
+    }
+  ],
+  "guide_topics": [
+    "head_injury",
+    "bleeding",
+    "burns"
+  ]
+}

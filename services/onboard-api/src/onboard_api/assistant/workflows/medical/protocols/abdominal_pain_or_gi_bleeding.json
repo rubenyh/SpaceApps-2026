@@ -1,0 +1,60 @@
+{
+  "id": "abdominal_pain_or_gi_bleeding",
+  "version": "1.0.0",
+  "title": "Dolor abdominal o sangrado digestivo",
+  "priority": 90,
+  "summary": "Dolor abdominal, vómito con sangre o sangre en heces. El dolor localizado y el posible sangrado se muestran como hallazgos. Una causa digestiva solo se considera con evidencia suficiente. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "immediate": {
+      "urgency": "immediate",
+      "text": "Avisar de inmediato al responsable médico a bordo: dolor abdominal repentino e intenso, vómito con sangre o heces negras alquitranadas reportadas.",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    },
+    "prompt_review": {
+      "urgency": "review_required",
+      "text": "Pedir valoración pronta al responsable médico a bordo por dolor abdominal persistente, focal o que empeora, o sangre en heces.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    },
+    "review": {
+      "urgency": "review_required",
+      "text": "Pedir valoración al responsable médico a bordo por dolor abdominal. Avisar de inmediato si se vuelve repentino e intenso o aparece sangrado.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    }
+  },
+  "questions": {},
+  "candidates": [
+    {
+      "id": "digestive_cause",
+      "label": "Causa digestiva",
+      "minimum_evidence": "Dolor abdominal acompañado de náuseas, vómitos o diarrea.",
+      "source_ids": [
+        "medlineplus_abdominal_pain"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "medlineplus_abdominal_pain",
+      "title": "MedlinePlus: Abdominal Pain",
+      "section": "Resumen",
+      "url": "https://medlineplus.gov/abdominalpain.html"
+    },
+    {
+      "id": "medlineplus_bleeding",
+      "title": "MedlinePlus: Bleeding",
+      "section": "Resumen",
+      "url": "https://medlineplus.gov/bleeding.html"
+    }
+  ],
+  "guide_topics": [
+    "abdominal_pain",
+    "bleeding"
+  ]
+}

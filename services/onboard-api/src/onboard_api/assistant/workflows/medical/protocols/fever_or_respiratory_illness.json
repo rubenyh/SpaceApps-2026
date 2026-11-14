@@ -1,0 +1,53 @@
+{
+  "id": "fever_or_respiratory_illness",
+  "version": "1.0.0",
+  "title": "Fiebre o síntomas respiratorios",
+  "priority": 130,
+  "summary": "Fiebre reportada, tos o malestar. Una infección respiratoria es posible si el conjunto es compatible. La temperatura corporal debe medirse con una fuente independiente; la temperatura de la muestra de orina describe la muestra, no el cuerpo. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "immediate": {
+      "urgency": "immediate",
+      "text": "Avisar de inmediato al responsable médico a bordo: fiebre o síntomas respiratorios con señales de alarma (dificultad respiratoria intensa, confusión nueva o rigidez de cuello).",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    },
+    "review": {
+      "urgency": "review_required",
+      "text": "Pedir valoración al responsable médico a bordo si los síntomas persisten o empeoran. Anotar la temperatura corporal medida y la hora, si existen.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    }
+  },
+  "questions": {},
+  "candidates": [
+    {
+      "id": "respiratory_infection",
+      "label": "Infección respiratoria",
+      "minimum_evidence": "Fiebre o escalofríos junto con tos.",
+      "source_ids": [
+        "cdc_respiratory_viruses",
+        "medlineplus_fever"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "medlineplus_fever",
+      "title": "MedlinePlus: Fever",
+      "section": "Cuándo contactar al médico",
+      "url": "https://medlineplus.gov/ency/article/003090.htm"
+    },
+    {
+      "id": "cdc_respiratory_viruses",
+      "title": "CDC: About Respiratory Viruses",
+      "section": "Síntomas y señales de alarma",
+      "url": "https://www.cdc.gov/respiratory-viruses/about/"
+    }
+  ],
+  "guide_topics": [
+    "fever"
+  ]
+}

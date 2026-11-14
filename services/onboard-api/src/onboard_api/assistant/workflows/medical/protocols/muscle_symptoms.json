@@ -1,0 +1,60 @@
+{
+  "id": "muscle_symptoms",
+  "version": "1.0.0",
+  "title": "Síntomas musculares",
+  "priority": 120,
+  "summary": "Dolor muscular, calambres o debilidad. El sobreesfuerzo se considera si el contexto acompaña. Dolor muscular intenso, debilidad u orina color té o cola reportada después de esfuerzo o calor obliga a descartar rabdomiólisis. Una medición muscular con método pendiente o un valor RGB aislado nunca activa esa hipótesis. Debilidad focal súbita se maneja por la ruta neurológica. Decisión de diseño: la sospecha de rabdomiólisis usa urgencia review_required con la acción 'valoración médica inmediata', porque la fuente pide valoración y no un aviso de emergencia a bordo. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "suspected_rhabdo": {
+      "urgency": "review_required",
+      "text": "Pedir valoración médica inmediata al responsable médico a bordo: el patrón obliga a descartar rabdomiólisis. Suspender el esfuerzo mientras tanto.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    },
+    "review": {
+      "urgency": "review_required",
+      "text": "Pedir valoración al responsable médico a bordo si el dolor o los calambres persisten o empeoran. Avisar si aparece orina oscura o debilidad.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    }
+  },
+  "questions": {},
+  "candidates": [
+    {
+      "id": "overexertion",
+      "label": "Sobreesfuerzo",
+      "minimum_evidence": "Dolor muscular o calambres tras esfuerzo reportado.",
+      "source_ids": [
+        "medlineplus_muscle_cramps"
+      ]
+    },
+    {
+      "id": "rhabdomyolysis",
+      "label": "Rabdomiólisis (requiere descarte)",
+      "minimum_evidence": "Tras esfuerzo o calor: dolor muscular intenso, debilidad u orina color té o cola reportada.",
+      "source_ids": [
+        "niosh_rhabdomyolysis"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "niosh_rhabdomyolysis",
+      "title": "CDC/NIOSH: Rhabdomyolysis Signs and Symptoms",
+      "section": "Señales y síntomas",
+      "url": "https://www.cdc.gov/niosh/rhabdo/signs-symptoms/"
+    },
+    {
+      "id": "medlineplus_muscle_cramps",
+      "title": "MedlinePlus: Muscle Cramps",
+      "section": "Resumen",
+      "url": "https://medlineplus.gov/musclecramps.html"
+    }
+  ],
+  "guide_topics": [
+    "muscle_cramps",
+    "rhabdomyolysis"
+  ]
+}
