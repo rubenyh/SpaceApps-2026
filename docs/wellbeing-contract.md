@@ -834,6 +834,16 @@ export interface GroundPackageContent {
 
 ## Probarlo en local (PowerShell)
 
+**Demo en un paso.** Con la API arriba (desde `services\onboard-api`), en otra terminal de la misma carpeta:
+
+```powershell
+uv run python scripts/demo_reset.py
+```
+
+Respalda `data/wellbeing.db` en `data/backups/` y vacía sus tablas. Luego carga el historial SIMULADO (semilla 7) y el export de ejemplo del Watch para ast-01 (movido para que termine ayer), comprueba que ast-01 tenga su línea base de visión formada y sin bitácora hoy, e imprime el estado de los 4. Es idempotente; acepta `--perclos LOW HIGH` y `--base`. Después se graba la bitácora en vivo de ast-01.
+
+Paso a paso:
+
 ```powershell
 cd services\onboard-api
 uv sync --locked
