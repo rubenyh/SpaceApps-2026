@@ -1,16 +1,14 @@
 import type { AstronautStatus, Reading, SensorStatus } from "../api/types";
 import { listReadings } from "../api/readings";
 import { getAstronautStatus } from "../api/status";
-import { AgeLabel } from "../components/AgeLabel";
-import { ErrorNotice } from "../components/ErrorNotice";
-import { Panel } from "../components/Panel";
-import { ScopeChart } from "../components/ScopeChart";
-import { SegmentedBar } from "../components/SegmentedBar";
-import { StatusBadge } from "../components/StatusBadge";
+import { LineChart } from "../components/LineChart";
+import { SensorCard } from "../components/SensorCard";
+import { ServiceBanner } from "../components/ServiceBanner";
 import { useNow } from "../hooks/useNow";
 import { usePolling } from "../hooks/usePolling";
-import { chronological, rangeText, readingValueText, unitLabel } from "../lib/format";
-import { findSensor, liveAge, stateBoxClass } from "../lib/sensors";
+import { shownStatus } from "../lib/estado";
+import { chronological, rangeText } from "../lib/format";
+import { findSensor, liveAge } from "../lib/sensors";
 
 interface Props {
   astronautId: string;
@@ -36,71 +34,53 @@ async function fetchVitals(astronautId: string, signal: AbortSignal): Promise<Vi
   return { status, heart, spo2, fetchedAt };
 }
 
-interface VitalPanelProps {
+interface VitalProps {
   title: string;
+  organ: string;
   sensor: SensorStatus | null;
   readings: Reading[];
   age: number | null;
   windowEnd: number;
   loaded: boolean;
+  offline: boolean;
 }
 
-function VitalPanel({ title, sensor, readings, age, windowEnd, loaded }: VitalPanelProps) {
-  const status = sensor?.status ?? "no_data";
-  const latest = sensor?.latest ?? null;
+function Vital({ title, organ, sensor, readings, age, windowEnd, loaded, offline }: VitalProps) {
   const config = sensor?.config ?? null;
   const range = config ? rangeText(config) : null;
   // Only plot numeric readings in the configured unit (or any unit if none is configured).
   const points = chronological(readings)
     .filter((r) => r.value !== null && (!config?.unit || r.unit === config.unit))
     .map((r) => ({ t: Date.parse(r.recorded_at), v: r.value as number }));
-  const latestNumeric =
-    latest && latest.value !== null && status !== "stale" ? latest.value : null;
 
   return (
-    <Panel
+    <SensorCard
       title={title}
-      aside={loaded ? <StatusBadge status={status} /> : <span className="badge">[ … ]</span>}
-      className={`vital ${stateBoxClass(status)}`}
+      organ={organ}
+      sensor={sensor}
+      ageSeconds={age}
+      loaded={loaded}
+      offline={offline}
+      size="lg"
+      showSource
     >
-      <div className="vital__value">
-        <span className="value-lg">{status === "no_data" ? "---" : readingValueText(latest)}</span>
-        {latest && status !== "no_data" ? <span className="unit">{unitLabel(latest.unit)}</span> : null}
-        <AgeLabel seconds={status === "no_data" ? null : age} emphasis={status === "stale"} />
+      <div className="chart-block">
+        <span className="caption">Últimos 15 minutos · horas en UTC</span>
+        <LineChart
+          points={points}
+          start={windowEnd - WINDOW_MS}
+          end={windowEnd}
+          normalMin={config?.normal_min ?? null}
+          normalMax={config?.normal_max ?? null}
+          zoneLabel={range ? `Normal ${range}${config?.provisional ? " · PROV." : ""}` : undefined}
+          status={shownStatus(sensor, offline)}
+          width={572}
+          height={250}
+          label={`${title}, últimos 15 minutos`}
+          emptyText="Sin lecturas en los últimos 15 minutos"
+        />
       </div>
-      <ScopeChart
-        points={points}
-        windowStart={windowEnd - WINDOW_MS}
-        windowEnd={windowEnd}
-        normalMin={config?.normal_min ?? null}
-        normalMax={config?.normal_max ?? null}
-        label={title}
-        emptyText="SIN LECTURAS EN LOS ÚLTIMOS 15 MIN"
-      />
-      <div className="vital__caption muted">últimos 15 min · líneas discontinuas = rango</div>
-      <div className="vital__range">
-        {range ? (
-          <>
-            RANGO {range}
-            {config?.provisional ? (
-              <>
-                {" · "}
-                <span className="tag">PROV.</span>
-                {config.range_source ? ` (${config.range_source})` : ""}
-              </>
-            ) : null}
-          </>
-        ) : (
-          "SIN RANGO"
-        )}
-      </div>
-      <SegmentedBar
-        value={latestNumeric}
-        normalMin={config?.normal_min ?? null}
-        normalMax={config?.normal_max ?? null}
-        label={title}
-      />
-    </Panel>
+    </SensorCard>
   );
 }
 
@@ -111,8 +91,9 @@ export function VitalesScreen({ astronautId }: Props) {
     5000,
   );
   const now = useNow(1000);
-  const { data, error, updatedAt } = poll;
+  const { data, error, updatedAt, refresh } = poll;
   const loaded = data !== null;
+  const offline = error !== null;
   const heart = findSensor(data?.status, "heart_rate");
   const spo2 = findSensor(data?.status, "spo2");
   // Window ends at the fetch time so the trace matches the data that was fetched.
@@ -120,23 +101,27 @@ export function VitalesScreen({ astronautId }: Props) {
 
   return (
     <div className="screen">
-      <ErrorNotice error={error} hasData={loaded} />
-      <div className={`grid-2 ${error && loaded ? "dimmed" : ""}`}>
-        <VitalPanel
-          title="PULSO"
+      <ServiceBanner error={error} updatedAt={updatedAt} onRetry={refresh} />
+      <div className="vitales__grid">
+        <Vital
+          title="Pulso"
+          organ="Corazón"
           sensor={heart}
           readings={data?.heart ?? []}
           age={liveAge(heart, updatedAt, now)}
           windowEnd={windowEnd}
           loaded={loaded}
+          offline={offline}
         />
-        <VitalPanel
-          title="SpO₂"
+        <Vital
+          title="Oxígeno en sangre"
+          organ="SpO₂ · pulmones"
           sensor={spo2}
           readings={data?.spo2 ?? []}
           age={liveAge(spo2, updatedAt, now)}
           windowEnd={windowEnd}
           loaded={loaded}
+          offline={offline}
         />
       </div>
     </div>

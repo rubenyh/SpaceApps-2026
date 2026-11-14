@@ -1,12 +1,14 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ReactNode } from "react";
+import type { Astronaut, AstronautStatus } from "./api/types";
 import { listAstronauts } from "./api/astronauts";
-import { API_BASE_URL } from "./api/client";
-import { CrtFrame } from "./components/CrtFrame";
+import { getAstronautStatus } from "./api/status";
 import { Header } from "./components/Header";
-import { Panel } from "./components/Panel";
+import { STATE_LABELS, StateIcon } from "./components/StatusPill";
 import { TabBar, type TabDef } from "./components/TabBar";
 import { ConnectionContext, type ConnectionState } from "./hooks/connection";
 import { usePolling } from "./hooks/usePolling";
+import { tabFlags } from "./lib/estado";
+import { formatUtcSeconds } from "./lib/format";
 import { AsistenteScreen } from "./screens/AsistenteScreen";
 import { EstadoScreen } from "./screens/EstadoScreen";
 import { MusculoScreen } from "./screens/MusculoScreen";
@@ -17,14 +19,15 @@ import { VitalesScreen } from "./screens/VitalesScreen";
 type TabKey = "estado" | "vitales" | "musculo" | "orina" | "asistente" | "registros";
 
 const TABS: TabDef<TabKey>[] = [
-  { key: "estado", label: "ESTADO" },
-  { key: "vitales", label: "SIGNOS VITALES" },
-  { key: "musculo", label: "MÚSCULO" },
-  { key: "orina", label: "ORINA" },
-  { key: "asistente", label: "ASISTENTE" },
-  { key: "registros", label: "REGISTROS" },
+  { key: "estado", label: "Estado" },
+  { key: "vitales", label: "Signos vitales" },
+  { key: "musculo", label: "Músculo" },
+  { key: "orina", label: "Orina" },
+  { key: "asistente", label: "Asistente" },
+  { key: "registros", label: "Registros" },
 ];
 
+const LEGEND = ["alert", "stale", "no_data", "no_range", "normal"] as const;
 const STORAGE_KEY = "consola-medica.astronaut";
 
 function readStoredAstronaut(): string | null {
@@ -43,10 +46,19 @@ function storeAstronaut(id: string): void {
   }
 }
 
-function CrewScreen({ tab, astronautId }: { tab: TabKey; astronautId: string }) {
+interface CrewScreenProps {
+  tab: TabKey;
+  astronautId: string;
+  astronauts: Astronaut[];
+  onNavigate: (tab: TabKey) => void;
+  status: AstronautStatus | null;
+  statusUpdatedAt: number | null;
+}
+
+function CrewScreen({ tab, astronautId, astronauts, onNavigate, status, statusUpdatedAt }: CrewScreenProps) {
   switch (tab) {
     case "estado":
-      return <EstadoScreen astronautId={astronautId} />;
+      return <EstadoScreen astronautId={astronautId} onNavigate={onNavigate} />;
     case "vitales":
       return <VitalesScreen astronautId={astronautId} />;
     case "musculo":
@@ -54,34 +66,20 @@ function CrewScreen({ tab, astronautId }: { tab: TabKey; astronautId: string }) 
     case "orina":
       return <OrinaScreen astronautId={astronautId} />;
     case "asistente":
-      return <AsistenteScreen astronautId={astronautId} />;
+      return <AsistenteScreen astronautId={astronautId} astronauts={astronauts} status={status} statusUpdatedAt={statusUpdatedAt} />;
     case "registros":
       return <RegistrosScreen astronautId={astronautId} />;
   }
 }
 
-function NoCrew() {
-  const curl = `curl -X POST ${API_BASE_URL}/astronauts \\
-  -H "Content-Type: application/json" \\
-  -d '{"id":"ast-01","display_name":"Nombre Apellido"}'`;
+/** Centred message for the states with no crew member to show. */
+function EmptyState({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Panel title="SIN TRIPULACIÓN REGISTRADA" className="statebox statebox--no_data">
-      <p>No hay ningún tripulante dado de alta en el servicio onboard.</p>
-      <p>Para registrar uno:</p>
-      <pre className="code">{curl}</pre>
-      <p className="muted">La lista se actualiza cada 30 s.</p>
-    </Panel>
-  );
-}
-
-function WaitingForService() {
-  return (
-    <Panel title="ESPERANDO AL SERVICIO ONBOARD" className="statebox statebox--no_data">
-      <p>[-- SIN DATOS ] No se ha podido obtener la lista de tripulantes.</p>
-      <p className="muted">
-        Dirección configurada: {API_BASE_URL}. Se reintenta automáticamente cada 30 s.
-      </p>
-    </Panel>
+    <section className="empty">
+      <StateIcon state="no_data" size={96} />
+      <h2>{title}</h2>
+      {children}
+    </section>
   );
 }
 
@@ -108,44 +106,99 @@ function Console({ connection }: { connection: ConnectionState }) {
   const selected =
     list && list.length > 0 ? (list.find((a) => a.id === preferred)?.id ?? list[0].id) : null;
 
+  // Shell-level status: tab problem icons and the assistant's "what I can see" list.
+  const status = usePolling(
+    selected ? `shell:${selected}` : null,
+    (signal) => getAstronautStatus(selected as string, signal),
+    5000,
+  );
+
   const onSelect = (id: string) => {
     storeAstronaut(id);
     setPreferred(id);
   };
 
+  const recheck = (
+    <>
+      <button type="button" className="btn" onClick={astronauts.refresh}>
+        Volver a comprobar
+      </button>
+      <span className="empty__foot">
+        {astronauts.updatedAt
+          ? `Comprobado por última vez a las ${formatUtcSeconds(astronauts.updatedAt)} UTC. `
+          : ""}
+        Se comprueba cada 30 s.
+      </span>
+    </>
+  );
+
   let content;
   if (selected) {
-    content = <CrewScreen key={`${tab}:${selected}`} tab={tab} astronautId={selected} />;
-  } else if (tab === "asistente") {
-    // The assistant also works without a selected astronaut (astronaut_id: null).
-    content = <AsistenteScreen astronautId={null} />;
+    content = (
+      <CrewScreen
+        key={`${tab}:${selected}`}
+        tab={tab}
+        astronautId={selected}
+        astronauts={list ?? []}
+        onNavigate={setTab}
+        status={status.data}
+        statusUpdatedAt={status.updatedAt}
+      />
+    );
   } else if (list && list.length === 0) {
-    content = <NoCrew />;
+    content = (
+      <EmptyState title="No hay tripulantes registrados">
+        <p>
+          El servicio de a bordo está conectado, pero todavía no tiene ningún tripulante. Esta consola
+          solo muestra datos: los tripulantes se dan de alta en el servicio de a bordo.
+        </p>
+        {recheck}
+      </EmptyState>
+    );
   } else if (astronauts.error) {
-    content = <WaitingForService />;
+    content = (
+      <EmptyState title="SERVICIO ONBOARD NO DISPONIBLE">
+        <p>No se ha podido obtener la lista de tripulantes, así que no hay datos que mostrar.</p>
+        {recheck}
+      </EmptyState>
+    );
   } else {
-    content = <div className="muted">Cargando tripulación…</div>;
+    content = (
+      <EmptyState title="Cargando tripulación…">
+        <p>Conectando con el servicio de a bordo. Suele tardar unos segundos.</p>
+      </EmptyState>
+    );
   }
 
   return (
-    <CrtFrame>
-      <div className="app">
-        <Header
-          astronauts={list}
-          selectedId={selected}
-          onSelect={onSelect}
-          connection={connection}
-        />
-        {connection === "offline" ? (
-          <div className="banner" role="alert">
-            SERVICIO ONBOARD NO DISPONIBLE · {API_BASE_URL} · reintentando
-          </div>
-        ) : null}
-        <TabBar tabs={TABS} active={tab} onChange={setTab} />
-        <main id="screen" className="main" role="tabpanel" aria-labelledby={`tab-${tab}`}>
-          {content}
-        </main>
-      </div>
-    </CrtFrame>
+    <div className="app">
+      <Header astronauts={list} selectedId={selected} onSelect={onSelect} connection={connection} />
+      <TabBar
+        tabs={TABS}
+        active={tab}
+        onChange={setTab}
+        flags={tabFlags(status.data)}
+        disabled={!selected}
+      />
+      <main id="screen" className="main" role="tabpanel" aria-labelledby={`tab-${tab}`}>
+        {content}
+      </main>
+      <footer className="footer">
+        <div className="footer__legend">
+          <span>Estados:</span>
+          {LEGEND.map((s) => (
+            <span key={s} className={`footer__state footer__state--${s}`}>
+              <StateIcon state={s} size={15} />
+              {STATE_LABELS[s]}
+            </span>
+          ))}
+        </div>
+        <span>
+          {selected
+            ? "Los rangos marcados PROV. son provisionales"
+            : "Las pestañas se activan cuando haya un tripulante"}
+        </span>
+      </footer>
+    </div>
   );
 }
