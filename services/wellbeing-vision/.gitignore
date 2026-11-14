@@ -1,0 +1,6 @@
+data/
+models/
+outbox/
+.env
+__pycache__/
+.venv/
