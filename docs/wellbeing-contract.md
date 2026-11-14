@@ -204,6 +204,14 @@ Request:
 
 Response `201`: lo mismo más `"id": 17`, `"received_at": "..."` y `"simulated": false`. Errores: `404` si el astronauta no existe; `422` si la unidad no coincide con el `kind`.
 
+**Importador del Apple Watch** (`scripts/import_apple_health.py`): lee el `export.zip` (o `export.xml`) de la app Salud en streaming, sin descomprimir y con memoria constante, y manda cada señal a este endpoint para el `--astronaut` indicado.
+
+- HRV: `HKQuantityTypeIdentifierHeartRateVariabilitySDNN` en `ms`.
+- FC en reposo: `HKQuantityTypeIdentifierRestingHeartRate` en `count/min`, enviada como `bpm`.
+- Sueño: suma de las fases dormidas de `HKCategoryTypeIdentifierSleepAnalysis` (Core, Deep, REM, Unspecified), sin contar `InBed` ni `Awake`. Los traslapes del reloj y el iPhone cuentan una sola vez, y la noche se asigna al día UTC del despertar.
+
+Opciones: `--since YYYY-MM-DD`, `--dry-run`, `--base`. `--source` va por defecto en `apple_watch_export`; para el ejemplo sintético `samples/apple_health/export.xml` usa `--source simulated:apple_health_sample`, así se marca como SIMULADO.
+
 ## 6. `POST /wellbeing/vision-sessions`
 
 Métricas derivadas de cámara: **nunca imágenes ni plantillas faciales**. Se manda un registro por bitácora. En modo ambiente, uno por persona y por ventana.
