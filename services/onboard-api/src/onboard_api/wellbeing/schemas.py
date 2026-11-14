@@ -21,6 +21,8 @@ Trend = Literal["improving", "stable", "worsening", "unknown"]
 AdverseDirection = Literal["low", "high", "both"]
 SignalKind = Literal["hrv_sdnn", "resting_heart_rate", "sleep_hours"]
 VisionSessionType = Literal["bitacora", "ambiente"]
+# Where a value came from. "mixed": live and simulated data on the same day.
+Origin = Literal["live", "simulated", "mixed"]
 IdentityMethod = Literal["face", "wearable", "manual"]
 
 INDICATOR_KINDS: tuple[IndicatorKind, ...] = (
@@ -269,7 +271,8 @@ class CrewMemberSummary(BaseModel):
     display_name: str
     level: SupportLevel
     trend: Trend
-    simulated: bool
+    # Origin of the latest day with data: show EN VIVO for live/mixed.
+    latest_origin: Origin | None
 
 
 class CrewWellbeing(BaseModel):
@@ -291,6 +294,7 @@ class ComponentState(BaseModel):
     baseline_to: date | None
     baseline_ready: bool
     latest_day: date | None
+    latest_origin: Origin | None
 
 
 class IndicatorState(BaseModel):
@@ -300,6 +304,7 @@ class IndicatorState(BaseModel):
     deviant_since: date | None
     sources: list[WellbeingSource]
     latest_day: date | None
+    latest_origin: Origin | None
     provisional: bool = True
     components: list[ComponentState]
 
@@ -318,8 +323,11 @@ class WellbeingAssessment(BaseModel):
     indicators: list[IndicatorState]
     support_notes: list[str]
     data_notices: list[str]
-    simulated_days: int
+    latest_origin: Origin | None
+    # Disjoint day counts: only live data, only simulated data, or both.
     live_days: int
+    simulated_days: int
+    mixed_days: int
     provisional: bool = True
 
 
@@ -328,7 +336,7 @@ class TimelineDay(BaseModel):
     level: SupportLevel
     has_data: bool
     has_checkin: bool
-    simulated: bool
+    origin: Origin | None
     indicators: dict[IndicatorKind, float | None]
     sources: dict[WellbeingSource, float | None]
 

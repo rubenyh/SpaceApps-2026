@@ -32,14 +32,25 @@ El módulo `onboard_api.wellbeing` detecta **cambios sostenidos de cada astronau
 
 ## SIMULADO y PROVISIONAL
 
-**SIMULADO.** Cada dato de entrada lleva `source`. Es simulado si `source` es `"simulated"`, `"demo"` o empieza por `"simulated:"`. Las respuestas ya lo calculan:
+**EN VIVO / SIMULADO.** Cada dato de entrada lleva `source`. Es simulado si `source` es `"simulated"`, `"demo"` o empieza por `"simulated:"`; si no, es en vivo. El origen se calcula por valor, no por día, y las respuestas lo traen así (`Origin`):
 
-- Cada registro de entrada devuelto trae `simulated: boolean`.
-- `WellbeingAssessment.simulated_days` y `live_days`: cuántos días de la historia usan datos simulados o reales.
-- `CrewMemberSummary.simulated`: `true` si algún dato de los últimos 14 días es simulado.
-- `TimelineDay.simulated`: `true` si algún dato de ese día es simulado.
+| `Origin` | Significa | Mostrar como |
+|---|---|---|
+| `"live"` | Sólo datos reales | **EN VIVO** (resaltado) |
+| `"simulated"` | Sólo datos simulados | SIMULADO |
+| `"mixed"` | Ese día hay de los dos | MIXTO, o EN VIVO + SIMULADO |
 
-Regla de interfaz sugerida: mostrar la etiqueta `SIMULADO` en cualquier panel cuyo dato tenga `simulated: true`.
+- Cada registro de entrada devuelto (`Checkin`, `Signal`, `VisionSession`, `CoPresence`) trae `simulated: boolean`.
+- `ComponentState.latest_origin`: origen del último valor de ese componente. Es el nivel más fino: una bitácora en vivo de hoy sale `"live"` aunque el checklist de hoy sea simulado.
+- `IndicatorState.latest_origin`: origen del último día del indicador, juntando sus componentes.
+- `WellbeingAssessment.latest_origin` y `CrewMemberSummary.latest_origin`: origen del último día con datos de la persona.
+- `TimelineDay.origin`: origen de ese día (`null` si no hay datos).
+- `WellbeingAssessment.live_days`, `simulated_days` y `mixed_days`: días con datos, sin traslape (sólo en vivo, sólo simulados, o ambos).
+
+Regla de interfaz sugerida para la demo:
+- Resaltar como **EN VIVO** cualquier valor con origen `"live"`; en la lista de componentes, usar `latest_origin` de cada uno.
+- El historial con `"simulated"` lleva la etiqueta SIMULADO.
+- Un indicador o día `"mixed"` muestra las dos etiquetas, o marca EN VIVO sólo en los componentes que lo son.
 
 **PROVISIONAL.** Todos los umbrales de la fusión son parámetros de diseño, **sin validación clínica**. Por eso:
 
@@ -316,9 +327,9 @@ Una entrada por astronauta registrado, ordenados por `astronaut_id`. **Sin detal
   "generated_at": "2026-11-14T18:05:00.000000Z",
   "provisional": true,
   "members": [
-    {"astronaut_id": "ast-01", "display_name": "X", "level": "ok", "trend": "stable", "simulated": true},
-    {"astronaut_id": "ast-02", "display_name": "Y", "level": "needs_support", "trend": "worsening", "simulated": true},
-    {"astronaut_id": "ast-03", "display_name": "Z", "level": "baseline_pending", "trend": "unknown", "simulated": false}
+    {"astronaut_id": "ast-01", "display_name": "X", "level": "ok", "trend": "stable", "latest_origin": "mixed"},
+    {"astronaut_id": "ast-02", "display_name": "Y", "level": "needs_support", "trend": "worsening", "latest_origin": "simulated"},
+    {"astronaut_id": "ast-03", "display_name": "Z", "level": "baseline_pending", "trend": "unknown", "latest_origin": "live"}
   ]
 }
 ```
@@ -345,6 +356,7 @@ Una entrada por astronauta registrado, ordenados por `astronaut_id`. **Sin detal
       "deviant_since": "2026-11-07",
       "sources": ["checkin", "physiology"],
       "latest_day": "2026-11-14",
+      "latest_origin": "simulated",
       "provisional": true,
       "components": [
         {
@@ -359,7 +371,8 @@ Una entrada por astronauta registrado, ordenados por `astronaut_id`. **Sin detal
           "baseline_from": "2026-10-25",
           "baseline_to": "2026-10-31",
           "baseline_ready": true,
-          "latest_day": "2026-11-14"
+          "latest_day": "2026-11-14",
+          "latest_origin": "simulated"
         }
       ]
     }
@@ -369,10 +382,12 @@ Una entrada por astronauta registrado, ordenados por `astronaut_id`. **Sin detal
     "Si quieres, puedes enviar un resumen al psicólogo en Tierra. Sólo se envía con tu consentimiento."
   ],
   "data_notices": [
-    "Historial simulado: 21 de 21 días."
+    "Días con datos: 0 en vivo, 20 simulados, 1 mixtos (en vivo + simulados)."
   ],
-  "simulated_days": 21,
+  "latest_origin": "mixed",
   "live_days": 0,
+  "simulated_days": 20,
+  "mixed_days": 1,
   "provisional": true
 }
 ```
@@ -399,7 +414,7 @@ Una entrada por astronauta registrado, ordenados por `astronaut_id`. **Sin detal
       "level": "ok",
       "has_data": true,
       "has_checkin": true,
-      "simulated": true,
+      "origin": "simulated",
       "indicators": {"sleep": 0.3, "fatigue": 0.1, "stress": 0.4, "activation": null, "social": -0.2, "mood": 0.0},
       "sources": {"checkin": 0.4, "vision": null, "physiology": 0.2, "social": -0.2}
     },
@@ -408,7 +423,7 @@ Una entrada por astronauta registrado, ordenados por `astronaut_id`. **Sin detal
       "level": "ok",
       "has_data": true,
       "has_checkin": true,
-      "simulated": true,
+      "origin": "simulated",
       "indicators": {"sleep": 1.9, "fatigue": 1.2, "stress": 1.7, "activation": null, "social": 1.6, "mood": 1.1},
       "sources": {"checkin": 1.9, "vision": null, "physiology": 1.7, "social": 1.6}
     }
@@ -495,6 +510,8 @@ export type Trend = "improving" | "stable" | "worsening" | "unknown";
 export type AdverseDirection = "low" | "high" | "both";
 export type SignalKind = "hrv_sdnn" | "resting_heart_rate" | "sleep_hours";
 export type VisionSessionType = "bitacora" | "ambiente";
+/** Where a value came from. "mixed": live and simulated data on the same day. */
+export type Origin = "live" | "simulated" | "mixed";
 export type IdentityMethod = "face" | "wearable" | "manual";
 export type GroundRequester = "self" | "captain" | "ground_psychologist";
 export type GroundInclude = "assessment" | "timeline" | "checkins" | "comments";
@@ -685,8 +702,8 @@ export interface CrewMemberSummary {
   display_name: string;
   level: SupportLevel;
   trend: Trend;
-  /** True if any input in the last 14 days is simulated. */
-  simulated: boolean;
+  /** Origin of the latest day with data. Show EN VIVO for "live"/"mixed". */
+  latest_origin: Origin | null;
 }
 
 export interface CrewWellbeing {
@@ -709,6 +726,8 @@ export interface ComponentState {
   baseline_to: string | null;
   baseline_ready: boolean;
   latest_day: string | null;
+  /** Origin of this component's latest value: the finest EN VIVO / SIMULADO mark. */
+  latest_origin: Origin | null;
 }
 
 export interface IndicatorState {
@@ -718,6 +737,7 @@ export interface IndicatorState {
   deviant_since: string | null;
   sources: WellbeingSource[];
   latest_day: string | null;
+  latest_origin: Origin | null;
   provisional: boolean;
   components: ComponentState[];
 }
@@ -740,8 +760,11 @@ export interface WellbeingAssessment {
   /** Spanish, support language. Personal view only. */
   support_notes: string[];
   data_notices: string[];
-  simulated_days: number;
+  latest_origin: Origin | null;
+  /** Disjoint day counts: only live, only simulated, or both. */
   live_days: number;
+  simulated_days: number;
+  mixed_days: number;
   provisional: boolean;
 }
 
@@ -750,7 +773,8 @@ export interface TimelineDay {
   level: SupportLevel;
   has_data: boolean;
   has_checkin: boolean;
-  simulated: boolean;
+  /** null when the day has no data. */
+  origin: Origin | null;
   indicators: Record<IndicatorKind, number | null>;
   sources: Record<WellbeingSource, number | null>;
 }
@@ -803,6 +827,7 @@ export interface GroundPackageContent {
 ## Notas para la integración
 
 - El router está registrado en `main.py`: todos los endpoints viven en el mismo servidor onboard (`http://127.0.0.1:8000`) y aparecen en `/docs` bajo la etiqueta `wellbeing`.
+- **EN VIVO frente a SIMULADO (Cedric):** en la demo el historial es simulado y la bitácora de hoy es real. Resalta como **EN VIVO** todo valor con origen `"live"`, usando `ComponentState.latest_origin` en el detalle y `TimelineDay.origin` en la línea de tiempo, y marca SIMULADO el resto. Nunca etiquetes un día entero como SIMULADO si su origen es `"mixed"`.
 - Flujo sugerido para la pantalla de consentimiento: el astronauta revisa el periodo e `include` → `POST` con `astronaut_confirmed: true` → `GET …/content` para mostrar lo que va en cola → botón "retirar" con `POST …/withdraw`.
 - Simulador de historial: `uv run python scripts/simulate_wellbeing.py` (en `services/onboard-api`). Crea `ast-01`…`ast-04` vía `POST /astronauts` si no existen, y escribe en `wellbeing.db` con `source: "simulated"`: checklists, señales tipo Watch, co-presencia y bitácoras de visión. Las bitácoras simuladas llegan hasta ayer, así que una bitácora en vivo de hoy se evalúa sola contra una línea base ya formada. Los rangos de visión están en `VISION_REST` y `VISION_ALTERED` de `wellbeing/simulator.py`; los medidos y los supuestos están marcados ahí.
 - Configuración (variables de entorno): `WELLBEING_DB_PATH` (por defecto `data/wellbeing.db`), `ONBOARD_DB_PATH` (la base de Rubén, sólo lectura), `WELLBEING_Z_THRESHOLD`, `WELLBEING_SUSTAIN_DAYS`, etc. (ver `onboard_api/wellbeing/settings.py`).

@@ -186,7 +186,7 @@ def test_build_daily_inputs_quality_rates_and_onboard_heart_rate() -> None:
     d = t.date()
     assert inputs.values["signal.hrv_sdnn"] == {d: 50}  # suspect and bad excluded
     assert inputs.excluded_suspect == 1
-    assert d in inputs.simulated_days  # the bad simulated record still marks the day
+    assert inputs.origin(d) == "live"  # the bad simulated record is not used, so not counted
     assert inputs.values["vision.yawns_per_min"] == {d: 1.0}
     assert inputs.values["vision.perclos"] == {d: 0.1}
     # neutral_ok=False: metrics relative to the neutral are dropped.

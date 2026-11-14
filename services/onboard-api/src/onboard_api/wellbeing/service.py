@@ -145,7 +145,7 @@ def load_inputs(
     )
 
 
-def _component_state(ce: engine.ComponentEval) -> ComponentState:
+def _component_state(ce: engine.ComponentEval, inputs: engine.DailyInputs) -> ComponentState:
     return ComponentState(
         component=ce.definition.component,
         source=ce.definition.source,
@@ -159,6 +159,9 @@ def _component_state(ce: engine.ComponentEval) -> ComponentState:
         baseline_to=ce.baseline_days[-1] if ce.baseline_days else None,
         baseline_ready=ce.ready,
         latest_day=ce.latest_day,
+        latest_origin=(
+            inputs.origin(ce.latest_day, [ce.definition.component]) if ce.latest_day else None
+        ),
     )
 
 
@@ -177,8 +180,7 @@ def get_assessment(
     inputs = load_inputs(repo, reader, astronaut_id, settings)
     today = now.date()
     ev = engine.evaluate(inputs, today, settings)
-    days = {d for d in inputs.data_days if d <= today}
-    simulated = {d for d in inputs.simulated_days if d <= today} & days
+    counts = engine.origin_counts(inputs, today)
     return WellbeingAssessment(
         astronaut_id=astronaut_id,
         generated_at=now,
@@ -198,14 +200,21 @@ def get_assessment(
                 deviant_since=ind.run.start if ind.run else None,
                 sources=ind.sources,
                 latest_day=ind.latest_day,
-                components=[_component_state(ce) for ce in ind.components],
+                latest_origin=(
+                    inputs.origin(ind.latest_day, [ce.definition.component for ce in ind.components])
+                    if ind.latest_day
+                    else None
+                ),
+                components=[_component_state(ce, inputs) for ce in ind.components],
             )
             for ind in ev.indicators
         ],
         support_notes=engine.support_notes(ev, settings),
         data_notices=engine.data_notices(inputs, today),
-        simulated_days=len(simulated),
-        live_days=len(days - simulated),
+        latest_origin=inputs.origin(ev.latest_day) if ev.latest_day else None,
+        live_days=counts["live"],
+        simulated_days=counts["simulated"],
+        mixed_days=counts["mixed"],
     )
 
 
@@ -232,7 +241,7 @@ def get_timeline(
                 level=ev.level,
                 has_data=day in data_days,
                 has_checkin=day in inputs.checkin_days,
-                simulated=day in inputs.simulated_days,
+                origin=inputs.origin(day),
                 indicators={ind.kind: _round(ind.z_by_day.get(day)) for ind in ev.indicators},
                 sources={s: _round(ev.source_z_by_day[s].get(day)) for s in SOURCES},
             )
@@ -254,7 +263,6 @@ def get_crew(
     now: datetime,
 ) -> CrewWellbeing:
     today = now.date()
-    since = today - timedelta(days=settings.simulated_lookback_days - 1)
     members: list[CrewMemberSummary] = []
     for astronaut in reader.list_astronauts():
         inputs = load_inputs(repo, reader, astronaut.id, settings)
@@ -265,7 +273,7 @@ def get_crew(
                 display_name=astronaut.display_name,
                 level=ev.level,
                 trend=ev.trend,
-                simulated=any(since <= d <= today for d in inputs.simulated_days),
+                latest_origin=inputs.origin(ev.latest_day) if ev.latest_day else None,
             )
         )
     return CrewWellbeing(generated_at=now, members=members)

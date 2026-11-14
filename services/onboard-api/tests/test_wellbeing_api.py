@@ -120,9 +120,10 @@ def test_assessment_timeline_and_crew_after_a_derailment(wb_client: TestClient) 
     assert [i["kind"] for i in assessment["indicators"]] == [
         "sleep", "fatigue", "stress", "activation", "social", "mood"
     ]
-    assert assessment["simulated_days"] == 14 and assessment["live_days"] == 0
+    assert (assessment["simulated_days"], assessment["live_days"], assessment["mixed_days"]) == (14, 0, 0)
+    assert assessment["latest_origin"] == "simulated"
     assert assessment["provisional"] is True
-    assert "Historial simulado: 14 de 14 días." in assessment["data_notices"]
+    assert "Días con datos: 0 en vivo, 14 simulados, 0 mixtos (en vivo + simulados)." in assessment["data_notices"]
 
     timeline = wb_client.get("/astronauts/ast-01/wellbeing/timeline?days=14").json()
     levels = [d["level"] for d in timeline["days"]]
@@ -134,10 +135,10 @@ def test_assessment_timeline_and_crew_after_a_derailment(wb_client: TestClient) 
     crew = wb_client.get("/wellbeing/crew").json()
     members = {m["astronaut_id"]: m for m in crew["members"]}
     assert set(members) == {"ast-01", "ast-02", "ast-03"}
-    assert members["ast-01"]["level"] == "attention" and members["ast-01"]["simulated"] is True
+    assert members["ast-01"]["level"] == "attention" and members["ast-01"]["latest_origin"] == "simulated"
     assert members["ast-02"]["level"] == "no_data"
     # Crew view carries no detail.
-    assert set(members["ast-01"]) == {"astronaut_id", "display_name", "level", "trend", "simulated"}
+    assert set(members["ast-01"]) == {"astronaut_id", "display_name", "level", "trend", "latest_origin"}
 
 
 def test_onboard_heart_rate_is_read_only_input(
@@ -189,3 +190,26 @@ def test_numeric_series_filters_unit_and_text_values(wb_settings: WellbeingSetti
     series = ReadingRepository(conn).numeric_series("ast-01", "heart_rate", "bpm")
     conn.close()
     assert [r.value for r in series] == [70]
+
+
+def test_live_log_on_a_simulated_day_is_marked_live_and_mixed(wb_client: TestClient) -> None:
+    for i in range(8):
+        day = TODAY - timedelta(days=7 - i)
+        put_checkin(wb_client, day, source="simulated")
+    live = {**VISION, "started_at": NOW.replace(hour=9).isoformat(),
+            "ended_at": NOW.replace(hour=9, minute=1).isoformat()}
+    assert wb_client.post("/wellbeing/vision-sessions", json=live).status_code == 201
+
+    body = wb_client.get("/astronauts/ast-01/wellbeing").json()
+    assert (body["live_days"], body["simulated_days"], body["mixed_days"]) == (0, 7, 1)
+    assert body["latest_origin"] == "mixed"
+    fatigue = next(i for i in body["indicators"] if i["kind"] == "fatigue")
+    origins = {c["component"]: c["latest_origin"] for c in fatigue["components"]}
+    assert origins["vision.perclos"] == "live"
+    assert origins["checkin.energy"] == "simulated"
+    assert fatigue["latest_origin"] == "mixed"
+
+    days = wb_client.get("/astronauts/ast-01/wellbeing/timeline?days=9").json()["days"]
+    assert [d["origin"] for d in days] == [None] + ["simulated"] * 7 + ["mixed"]
+    crew = {m["astronaut_id"]: m for m in wb_client.get("/wellbeing/crew").json()["members"]}
+    assert crew["ast-01"]["latest_origin"] == "mixed"

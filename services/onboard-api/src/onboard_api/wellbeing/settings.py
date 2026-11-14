@@ -40,8 +40,6 @@ class WellbeingSettings(BaseSettings):
     z_cap: float = Field(default=5.0, gt=0)
     # Minimum good heart_rate readings in a day to derive the daily low.
     min_heart_rate_readings: int = Field(default=10, ge=1)
-    # Lookback for the crew "simulated" flag.
-    simulated_lookback_days: int = Field(default=14, ge=1)
 
 
 @lru_cache

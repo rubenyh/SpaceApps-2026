@@ -7,7 +7,7 @@ The method is described in docs/wellbeing-contract.md ("Cómo se calcula").
 
 import math
 import statistics
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -19,6 +19,7 @@ from onboard_api.wellbeing.schemas import (
     AdverseDirection,
     Checkin,
     CoPresence,
+    Origin,
     Confidence,
     IndicatorKind,
     IndicatorStatus,
@@ -99,18 +100,43 @@ SOURCE_LABELS: dict[WellbeingSource, str] = {
 # --- Daily inputs ---
 
 
+def _origin(kinds: Iterable[str]) -> Origin | None:
+    found = set(kinds)
+    if not found:
+        return None
+    return "mixed" if len(found) > 1 else found.pop()  # type: ignore[return-value]
+
+
+def _source_kind(source: str) -> str:
+    return "simulated" if is_simulated_source(source) else "live"
+
+
 @dataclass
 class DailyInputs:
     """One value per (component, day), plus bookkeeping for notices."""
 
     values: dict[str, dict[date, float]] = field(default_factory=lambda: defaultdict(dict))
-    simulated_days: set[date] = field(default_factory=set)
+    # Which kinds of data ("live", "simulated") produced each (component, day).
+    origins: dict[str, dict[date, set[str]]] = field(
+        default_factory=lambda: defaultdict(lambda: defaultdict(set))
+    )
     checkin_days: set[date] = field(default_factory=set)
     excluded_suspect: int = 0
 
     @property
     def data_days(self) -> set[date]:
         return {d for series in self.values.values() for d in series}
+
+    def origin(self, day: date, components: Iterable[str] | None = None) -> Origin | None:
+        """live / simulated / mixed for the values of `day` (all components by default).
+
+        A value with no recorded origin counts as live.
+        """
+        kinds: set[str] = set()
+        for name in self.values if components is None else components:
+            if day in self.values.get(name, {}):
+                kinds |= self.origins.get(name, {}).get(day) or {"live"}
+        return _origin(kinds)
 
 
 def _mean_by_day(pairs: Iterable[tuple[date, float]]) -> dict[date, float]:
@@ -143,32 +169,30 @@ def build_daily_inputs(
     """
     inputs = DailyInputs()
 
-    def usable(quality: str, source: str, day: date) -> bool:
-        if is_simulated_source(source):
-            inputs.simulated_days.add(day)
+    def usable(quality: str) -> bool:
         if quality == "suspect":
             inputs.excluded_suspect += 1
         return quality == "good"
 
     for c in checkins:
         inputs.checkin_days.add(c.day)
-        if c.simulated:
-            inputs.simulated_days.add(c.day)
         for item in _CHECKIN_ITEMS:
             inputs.values[f"checkin.{item}"][c.day] = float(getattr(c, item))
+            inputs.origins[f"checkin.{item}"][c.day].add(_source_kind(c.source))
 
     by_kind: dict[str, list[tuple[date, float]]] = defaultdict(list)
     for s in signals:
         day = s.recorded_at.date()
-        if usable(s.quality, s.source, day):
+        if usable(s.quality):
             by_kind[s.kind].append((day, s.value))
+            inputs.origins[f"signal.{s.kind}"][day].add(_source_kind(s.source))
     for kind, pairs in by_kind.items():
         inputs.values[f"signal.{kind}"].update(_mean_by_day(pairs))
 
     vision_pairs: dict[str, list[tuple[date, float]]] = defaultdict(list)
     for v in vision:
         day = v.started_at.date()
-        if not usable(v.quality, v.source, day):
+        if not usable(v.quality):
             continue
         minutes = (v.ended_at - v.started_at).total_seconds() / 60
         metrics: dict[str, float | None] = {}
@@ -188,6 +212,7 @@ def build_daily_inputs(
         for name, value in metrics.items():
             if value is not None:
                 vision_pairs[name].append((day, float(value)))
+                inputs.origins[f"vision.{name}"][day].add(_source_kind(v.source))
     for name, pairs in vision_pairs.items():
         inputs.values[f"vision.{name}"].update(_mean_by_day(pairs))
 
@@ -196,8 +221,9 @@ def build_daily_inputs(
         day = window.window_start.date()
         if not any(o.astronaut_id == astronaut_id for o in window.occupants):
             continue
-        if not usable(window.quality, window.source, day):
+        if not usable(window.quality):
             continue
+        inputs.origins["social.accompanied_minutes"][day].add(_source_kind(window.source))
         # Max over own pairs: a lower bound that avoids double counting groups.
         seconds = max(
             (p.seconds_together for p in window.pairs if astronaut_id in (p.a, p.b)),
@@ -209,8 +235,9 @@ def build_daily_inputs(
     hr_by_day: dict[date, list[float]] = defaultdict(list)
     for r in heart_rates:
         day = r.recorded_at.date()
-        if usable(r.quality, r.source, day):
+        if usable(r.quality):
             hr_by_day[day].append(r.value)
+            inputs.origins["onboard.heart_rate_low"][day].add(_source_kind(r.source))
     for day, vals in hr_by_day.items():
         if len(vals) >= settings.min_heart_rate_readings:
             inputs.values["onboard.heart_rate_low"][day] = _percentile_low(vals)
@@ -552,12 +579,19 @@ def support_notes(ev: Evaluation, settings: WellbeingSettings) -> list[str]:
     return notes
 
 
+def origin_counts(inputs: DailyInputs, as_of: date) -> Counter[str]:
+    """Days with data up to `as_of`, by origin: live, simulated or mixed (disjoint)."""
+    return Counter(inputs.origin(d) for d in inputs.data_days if d <= as_of)
+
+
 def data_notices(inputs: DailyInputs, as_of: date) -> list[str]:
     notices: list[str] = []
-    days = {d for d in inputs.data_days if d <= as_of}
-    simulated = {d for d in inputs.simulated_days if d <= as_of} & days
-    if simulated:
-        notices.append(f"Historial simulado: {len(simulated)} de {len(days)} días.")
+    counts = origin_counts(inputs, as_of)
+    if counts["simulated"] or counts["mixed"]:
+        notices.append(
+            f"Días con datos: {counts['live']} en vivo, {counts['simulated']} simulados, "
+            f"{counts['mixed']} mixtos (en vivo + simulados)."
+        )
     if inputs.excluded_suspect:
         notices.append(
             f"{inputs.excluded_suspect} dato(s) con calidad dudosa excluidos del análisis."
