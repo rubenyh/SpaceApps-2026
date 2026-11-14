@@ -1,0 +1,46 @@
+{
+  "projectId": "d8e72a82-8491-41d4-8c22-78a2d46cadd6",
+  "pkg": "spaceship-app",
+  "globalName": "SpaceshipConsole",
+  "shape": "package",
+  "srcDir": "src/components",
+  "tsconfig": "tsconfig.json",
+  "extraEntries": [
+    "./.design-sync/entry.ts"
+  ],
+  "buildCmd": "sh .design-sync/build-types.sh",
+  "overrides": {
+    "CrtFrame": {
+      "cardMode": "single",
+      "viewport": "900x420"
+    },
+    "BodyDiagram": {
+      "cardMode": "column"
+    },
+    "ReadingsTable": {
+      "cardMode": "column"
+    },
+    "Header": {
+      "cardMode": "column"
+    },
+    "TabBar": {
+      "cardMode": "column"
+    },
+    "TrendChart": {
+      "cardMode": "column"
+    },
+    "ScopeChart": {
+      "cardMode": "column"
+    },
+    "RadiationPanel": {
+      "cardMode": "column"
+    },
+    "StatusBadge": {
+      "cardMode": "column"
+    }
+  },
+  "dtsPropsFor": {
+    "TabBar": "tabs: { key: string; label: string }[]; /** key of the selected tab */ active: string; onChange: (key: string) => void;"
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}
