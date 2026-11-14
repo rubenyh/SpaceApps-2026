@@ -13,7 +13,6 @@ from onboard_api.assistant.workflows.medical.context import (
     load_events_file,
 )
 from onboard_api.config import Settings
-from onboard_api.dependencies import utc_now
 from onboard_api.repositories.database import init_db
 from onboard_api.routers import assistant, astronauts, readings, sensors, status
 
@@ -47,8 +46,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        # Creates the DB directory, schema and sensor configuration if missing.
-        init_db(settings.db_path, now=utc_now())
+        # Creates the DB directory and applies pending migrations (schema + seed).
+        init_db(settings.db_path, migrations_dir=settings.migrations_dir)
         app.state.settings = settings
         app.state.assistant_deps = build_assistant_deps(settings)
         yield

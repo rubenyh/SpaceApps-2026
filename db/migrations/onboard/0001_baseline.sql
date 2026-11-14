@@ -1,5 +1,4 @@
--- Schema version 1. Applied by onboard_api.repositories.database.init_db
--- inside one transaction when PRAGMA user_version is 0.
+-- 0001 baseline: onboard monitoring schema and provisional sensor configuration.
 -- All timestamps are UTC, fixed-width ISO 8601: YYYY-MM-DDTHH:MM:SS.ffffffZ
 
 CREATE TABLE astronauts (
@@ -37,4 +36,17 @@ CREATE TABLE readings (
 
 CREATE INDEX idx_readings_lookup ON readings (astronaut_id, kind, recorded_at DESC);
 
-PRAGMA user_version = 1;
+INSERT INTO sensor_config (kind, unit, stale_after_seconds, normal_min, normal_max,
+                           range_role, provisional, range_source, updated_at)
+SELECT column1, column2, column3, column4, column5, column6, 1, column7,
+       strftime('%Y-%m-%dT%H:%M:%S', 'now') || '.000000Z'
+FROM (VALUES
+  ('heart_rate',             'bpm',     300,    60,   100,  'health',          'AHA / Mayo Clinic'),
+  ('spo2',                   '%',       300,    95,   100,  'health',          'Mayo Clinic'),
+  ('muscle_density',         NULL,      604800, NULL, NULL, 'health',          NULL),
+  ('urine_ph',               'pH',      86400,  4.6,  8.0,  'health',          'MedlinePlus'),
+  ('urine_salinity',         NULL,      86400,  NULL, NULL, 'health',          NULL),
+  ('urine_color',            'rgb_hex', 86400,  NULL, NULL, 'health',          NULL),
+  ('urine_temperature',      '°C',      86400,  32,   38,   'sample_validity', '49 CFR 40.65'),
+  ('urine_radiation_marker', NULL,      86400,  NULL, NULL, 'health',          NULL)
+);

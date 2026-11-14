@@ -13,12 +13,14 @@ class Settings(BaseSettings):
     """Settings read from environment variables prefixed with ONBOARD_.
 
     ONBOARD_DB_PATH: SQLite file path (relative paths resolve from the cwd).
+    ONBOARD_MIGRATIONS_DIR: optional; defaults to <repo>/db/migrations/onboard.
     ONBOARD_CORS_ORIGINS: JSON list, e.g. '["http://localhost:1420"]'.
     """
 
     model_config = SettingsConfigDict(env_prefix="ONBOARD_")
 
     db_path: Path = Path("data/onboard.db")
+    migrations_dir: Path | None = None
     cors_origins: list[str] = DEFAULT_CORS_ORIGINS
 
     # Local assistant. Everything runs on this machine.
