@@ -38,9 +38,10 @@ NOTICE_DRAFT_REJECTED = (
 EXCERPT_CHARS = 600
 
 SYSTEM = """Eres el asistente médico informativo de una nave. Escribe SIEMPRE en español.
-Redacta una explicación breve (máximo 120 palabras) para la tripulación.
+Redacta una explicación breve (máximo 80 palabras, 2 a 4 frases) para la tripulación.
 Reglas obligatorias:
-1. Usa solo la información del contexto: ficha, hallazgos, avisos de datos y fragmentos numerados.
+1. Usa solo el texto de la ficha, los hallazgos, los avisos de datos y los fragmentos numerados. Si algo no está escrito ahí, no lo digas.
+   No añadas ejemplos, situaciones, objetos, vehículos ni comparaciones que no aparezcan en esos textos.
 2. No añadas causas, diagnósticos, tratamientos, dosis ni probabilidades.
 3. No escribas ningún número que no aparezca en el contexto.
 4. Cita los fragmentos como [n], solo con los números dados. Nunca inventes una cita.
@@ -57,7 +58,7 @@ def number_chunks(chunks: list[GuideChunk]) -> str:
 
 
 def build_user_prompt(
-    question: str,
+    topic: str | None,
     action: str | None,
     card_summary: str | None,
     findings: list[str],
@@ -68,7 +69,7 @@ def build_user_prompt(
         return "\n".join(f"- {x}" for x in items) or "- (ninguno)"
 
     return (
-        f"Mensaje de la tripulación:\n{question}\n\n"
+        f"Tema:\n{topic or '(consulta general de salud)'}\n\n"
         f"Acción indicada por la ficha:\n{action or '(ninguna; consulta informativa)'}\n\n"
         f"Resumen de la ficha:\n{card_summary or '(sin ficha)'}\n\n"
         f"Hallazgos:\n{bullets(findings)}\n\n"

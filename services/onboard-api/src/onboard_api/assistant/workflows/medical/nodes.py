@@ -18,6 +18,7 @@ from onboard_api.assistant.workflows.medical.state import (
     ReadingsProvider,
 )
 from onboard_api.assistant.workflows.medical.triage import (
+    GENERIC_CLARIFYING_QUESTION,
     decide,
     evaluate_alarms,
     evaluate_case,
@@ -27,6 +28,12 @@ from onboard_api.schemas.assistant import AssistantResponse, GuideSource, Urgenc
 
 _CITATION = re.compile(r"\[(\d+)\]")
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
+# ponytail: keyword screen, not a semantic check; the card action is shown first anyway.
+_UNSAFE = re.compile(
+    r"envi[aéó]|transmit|ya avis|notifiqu|no es urgente|no hace falta (avisar|valor)"
+    r"|no (es|hace) necesario (avisar|valor|consultar)",
+    re.IGNORECASE,
+)
 
 
 def _response(
@@ -115,7 +122,11 @@ def route_after_case(state: MedicalState) -> str:
 
 
 def respond_clarify(state: MedicalState) -> dict:
-    d = state["decision"]
+    d = state.get("decision")
+    if d is None:  # unclear report with no rule hit: ask the generic question
+        out = _response(state, GENERIC_CLARIFYING_QUESTION, urgency="undetermined", sources=[])
+        out["response"].clarifying_question = GENERIC_CLARIFYING_QUESTION
+        return out
     question = d.clarifying_question
     reply = d.summary if not question or question in d.summary else f"{d.summary}\n\n{question}"
     return _response(state, reply.strip(), d)
@@ -141,9 +152,10 @@ def _card(state: MedicalState):
 
 def retrieve_guides(state: MedicalState, retriever: Retriever) -> dict:
     card = _card(state)
-    # Assessments query by card topic (no personal text); educational requests
-    # use the question. Nothing is stored in ChromaDB.
-    query = card.title if card and state.get("decision") else state["request"].message
+    # Query by card title (topic), never by personal text. Only an educational
+    # question with no recognised topic falls back to the message itself.
+    # Nothing is stored in ChromaDB.
+    query = card.title if card else state["request"].message
     topics = list(card.guide_topics) if card and card.guide_topics else None
     notices = list(state.get("notices", []))
     try:
@@ -156,13 +168,16 @@ def retrieve_guides(state: MedicalState, retriever: Retriever) -> dict:
     return {"guides": guides, "notices": notices}
 
 
-def valid_draft(draft: str, chunks: list[GuideChunk], context: str) -> bool:
-    """Non-empty, cites only provided chunks, and every number appears in the context."""
-    if not draft.strip():
+def valid_draft(draft: str, chunks: list[GuideChunk], grounding: str) -> bool:
+    """Non-empty, cites only provided chunks, every number is one of the numbers in
+    the grounding text (card, findings, notices, chunks; not the system prompt),
+    and no transmission or de-escalation claim."""
+    if not draft.strip() or _UNSAFE.search(draft):
         return False
     if any(not 1 <= int(n) <= len(chunks) for n in _CITATION.findall(draft)):
         return False
-    return all(n in context for n in _NUMBER.findall(_CITATION.sub("", draft)))
+    allowed = set(_NUMBER.findall(grounding))
+    return set(_NUMBER.findall(_CITATION.sub("", draft))) <= allowed
 
 
 def _chunk_source(c: GuideChunk) -> GuideSource:
@@ -187,7 +202,7 @@ def compose_answer(state: MedicalState, llm: LLM) -> dict:
     if chunks:  # without chunks the card text already says everything we can back
         card = _card(state)
         user = prompts.build_user_prompt(
-            state["request"].message,
+            card.title if card else None,
             decision.action if decision else None,
             card.summary if card else None,
             [f.detail for f in decision.findings] if decision else [],
@@ -199,7 +214,7 @@ def compose_answer(state: MedicalState, llm: LLM) -> dict:
         except Exception:
             notices.append(prompts.NOTICE_LLM_FAILED)
         else:
-            if not valid_draft(draft, chunks, prompts.SYSTEM + user):
+            if not valid_draft(draft, chunks, user):
                 draft = None
                 notices.append(prompts.NOTICE_DRAFT_REJECTED)
 
