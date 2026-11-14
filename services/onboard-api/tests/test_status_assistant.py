@@ -3,7 +3,12 @@ from typing import get_args
 
 from fastapi.testclient import TestClient
 
+from assistant.fakes import FakeEvents, FakeReadings, FakeRetriever, Forbidden
 from conftest import T0, FakeClock, reading_payload
+from onboard_api.assistant.state import AssistantDeps
+from onboard_api.dependencies import get_assistant_deps
+from onboard_api.schemas.assistant import OperationalEvent
+from onboard_api.services.assistant import DISCLAIMER
 from onboard_api.schemas.sensors import SensorKind
 
 
@@ -121,20 +126,39 @@ def test_threshold_change_changes_status(client: TestClient, astronaut: str) -> 
     assert _status(client)["heart_rate"]["status"] == "no_range"
 
 
-def test_assistant_stub(client: TestClient) -> None:
+def _offline_assistant(client: TestClient, events=None) -> None:
+    """Fake integrations: the test app must never reach a real Ollama or ChromaDB."""
+    client.app.dependency_overrides[get_assistant_deps] = lambda: AssistantDeps(
+        llm=Forbidden("llm"),
+        retriever=FakeRetriever([]),
+        readings=FakeReadings(),
+        events=FakeEvents(events),
+    )
+
+
+def test_assistant_vague_message_clarifies(client: TestClient) -> None:
+    _offline_assistant(client)
     response = client.post("/assistant/messages", json={"message": "Hola", "astronaut_id": "ana"})
     assert response.status_code == 200
-    assert response.json() == {
-        "reply": "El asistente todavía no está conectado. Esta es una respuesta de prueba.",
-        "workflow": "unsupported",
-        "needs_clarification": False,
-        "sources": [],
-        "data_notices": ["Respuesta de prueba: el asistente aún no consulta lecturas ni guías."],
-        "disclaimer": (
-            "Soporte informativo únicamente. El diagnóstico y las decisiones de "
-            "tratamiento corresponden a personal cualificado."
-        ),
-    }
+    body = response.json()
+    assert body["workflow"] == "clarify"
+    assert body["needs_clarification"] is True
+    assert body["reply"].count("?") == 1
+    assert body["clarifying_question"] == body["reply"]
+
+
+def test_assistant_confirmed_cabin_event_is_immediate(client: TestClient) -> None:
+    event = OperationalEvent(
+        id="co2-1", type="cabin_co2", origin="ship:eclss", occurred_at=T0,
+        status="active", provenance="confirmed",
+    )
+    _offline_assistant(client, [event])
+    response = client.post("/assistant/messages", json={"message": "Hola", "astronaut_id": "ana"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["workflow"] == "medical"
+    assert body["urgency"] == "immediate"
+    assert body["disclaimer"] == DISCLAIMER
 
 
 def test_assistant_empty_message_is_422(client: TestClient) -> None:

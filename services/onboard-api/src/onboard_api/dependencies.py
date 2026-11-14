@@ -1,7 +1,7 @@
 """Shared FastAPI dependencies.
 
-Tests override get_clock (and, later, get_assistant_responder) through
-app.dependency_overrides. Settings come from create_app(settings=...).
+Tests override get_clock and get_assistant_deps (fake LLM, retriever,
+readings and events) through app.dependency_overrides. Settings come from create_app(settings=...).
 """
 
 import sqlite3
@@ -11,12 +11,14 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 
+from onboard_api.assistant.graph import build_assistant_graph, respond
+from onboard_api.assistant.state import AssistantDeps
 from onboard_api.config import Settings
 from onboard_api.repositories.astronauts import AstronautRepository
 from onboard_api.repositories.database import connect
 from onboard_api.repositories.readings import ReadingRepository
 from onboard_api.repositories.sensors import SensorConfigRepository
-from onboard_api.services.assistant import AssistantResponder, stub_responder
+from onboard_api.services.assistant import AssistantResponder
 
 Clock = Callable[[], datetime]
 
@@ -59,10 +61,17 @@ def get_reading_repository(conn: Connection) -> ReadingRepository:
     return ReadingRepository(conn)
 
 
-def get_assistant_responder() -> AssistantResponder:
-    # Today this returns the stub. The assistant owner swaps this dependency
-    # for the LangGraph responder; the router and schemas stay unchanged.
-    return stub_responder
+def get_assistant_deps(request: Request) -> AssistantDeps:
+    """Shared integration clients built once in the lifespan."""
+    return request.app.state.assistant_deps
+
+
+def get_assistant_responder(
+    deps: Annotated[AssistantDeps, Depends(get_assistant_deps)],
+    clock: Annotated[Clock, Depends(get_clock)],
+) -> AssistantResponder:
+    graph = build_assistant_graph(deps)  # cached per deps object
+    return lambda request: respond(graph, request, clock())
 
 
 ClockDep = Annotated[Clock, Depends(get_clock)]

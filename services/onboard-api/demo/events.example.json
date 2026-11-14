@@ -1,0 +1,20 @@
+[
+  {
+    "id": "demo-simulated-radiation-001",
+    "type": "radiation",
+    "origin": "dosimeter:demo-simulated",
+    "occurred_at": "2026-11-14T11:55:00Z",
+    "status": "active",
+    "provenance": "simulated",
+    "astronaut_ids": ["ana"]
+  },
+  {
+    "id": "demo-synthetic-co2-001",
+    "type": "cabin_co2",
+    "origin": "ship:eclss",
+    "occurred_at": "2026-11-14T11:58:00Z",
+    "status": "active",
+    "provenance": "confirmed",
+    "astronaut_ids": []
+  }
+]
