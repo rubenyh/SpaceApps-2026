@@ -1,0 +1,578 @@
+/* Rediseño de la consola biomédica (docs/diseno). Usa solo los tokens nuevos.
+   Las pantallas aún no migradas siguen en app.css. */
+
+@keyframes alert-pulse {
+  0%, 60%, 100% { opacity: 1; }
+  80% { opacity: 0.35; }
+}
+
+/* The token carries duration/timing only (and is `none` under reduced motion). */
+.alert-pulse {
+  animation: var(--alert-pulse);
+  animation-name: alert-pulse;
+}
+
+/* ---------- state icon and pill ---------- */
+
+.state-icon {
+  flex: none;
+}
+
+.state-icon__cut {
+  fill: var(--icon-cut, var(--color-bg));
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 11px 4px 9px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.pill--alert {
+  --icon-cut: var(--state-alert-fill);
+  background: var(--state-alert-fill);
+  border: 2px solid var(--state-alert-fill);
+  color: #ffffff;
+}
+
+.pill--normal {
+  border: 1.5px solid var(--state-normal);
+  color: var(--state-normal);
+}
+
+.pill--stale {
+  border: var(--border-stale);
+  color: var(--state-stale);
+}
+
+.pill--no_data {
+  border: var(--border-nodata);
+  color: var(--color-text-muted);
+}
+
+.pill--no_range {
+  border: var(--border-norange);
+  color: var(--state-norange);
+}
+
+.pill--doubtful {
+  border: var(--border-dubious);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+}
+
+.prov {
+  padding: 1px 6px;
+  border: 1px solid var(--color-text-faint);
+  border-radius: 4px;
+  color: var(--color-text);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.06em;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  padding: 0 18px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  white-space: nowrap;
+  text-shadow: none;
+  cursor: pointer;
+}
+
+.btn--on-alert {
+  background: #ffffff;
+  color: var(--state-alert-fill);
+}
+
+/* ---------- reading card ---------- */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  padding: var(--space-4) 18px;
+  border: var(--border-normal);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.card--alert {
+  border: var(--border-alert);
+  background: var(--state-alert-tint);
+}
+
+.card--stale {
+  border: var(--border-stale);
+}
+
+.card--no_data {
+  border: var(--border-nodata);
+}
+
+.card--no_range {
+  border: var(--border-norange);
+}
+
+.card--skeleton {
+  min-height: 220px;
+  background: var(--color-surface-2);
+}
+
+.card__head,
+.card__reading {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.card__head {
+  align-items: flex-start;
+}
+
+.card__reading {
+  align-items: flex-end;
+}
+
+.card__titles,
+.card__meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.card__titles {
+  gap: 2px;
+}
+
+.card__meta {
+  align-items: flex-end;
+  gap: var(--space-1);
+}
+
+.card__title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+.card__organ,
+.card__note {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.card__value {
+  font-size: var(--value-md);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: var(--numeric);
+  white-space: nowrap;
+}
+
+.card--stale .card__value,
+.card--no_data .card__value {
+  color: var(--color-text-faint);
+}
+
+.card__unit {
+  margin-left: 6px;
+  font-size: 18px;
+  font-weight: var(--weight-regular);
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+}
+
+.card__age {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.card--stale .card__age {
+  color: var(--state-stale);
+  font-weight: var(--weight-bold);
+}
+
+.card__quality {
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+}
+
+.card__explain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-muted);
+}
+
+.card--alert .card__explain {
+  color: var(--state-alert);
+}
+
+.card--stale .card__explain {
+  color: var(--state-stale);
+}
+
+.card__bottom {
+  margin-top: auto;
+}
+
+/* ---------- range track ---------- */
+
+.track {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.track__bar {
+  position: relative;
+  height: 26px;
+}
+
+.track__rail {
+  position: absolute;
+  inset: 9px 0 auto;
+  height: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface-2);
+}
+
+.track__zone {
+  position: absolute;
+  top: 5px;
+  height: 16px;
+  border-left: 2px solid var(--state-normal);
+  border-right: 2px solid var(--state-normal);
+  border-radius: 3px;
+  background: var(--range-zone);
+}
+
+.track__marker {
+  position: absolute;
+  top: 2px;
+  width: 14px;
+  height: 22px;
+  border: 2px solid var(--color-bg);
+  border-radius: 4px;
+  background: var(--state-normal);
+}
+
+.track__marker--alert {
+  background: var(--state-alert);
+}
+
+.track__marker--no_range {
+  background: var(--state-norange);
+}
+
+.track__marker--stale {
+  border: 2px dashed var(--color-text-faint);
+  background: var(--color-bg);
+}
+
+.track__scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+  font-variant-numeric: var(--numeric);
+}
+
+.track__range {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* ---------- body map ---------- */
+
+.bodymap {
+  display: block;
+  width: 100%;
+  max-width: 468px;
+  height: auto;
+  min-height: 0;
+  font-family: inherit;
+}
+
+.bodymap path,
+.bodymap ellipse {
+  vector-effect: non-scaling-stroke;
+}
+
+.bodymap__figure {
+  fill: var(--color-surface-2);
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.bodymap__neck {
+  fill: var(--color-surface-2);
+  stroke: none;
+}
+
+.bodymap__organ {
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.bodymap__organ--loading {
+  stroke: var(--color-border);
+}
+
+.bodymap__organ--normal {
+  stroke: var(--state-normal);
+  stroke-width: 2;
+  fill: var(--state-normal);
+  fill-opacity: 0.15;
+}
+
+.bodymap__organ--alert {
+  stroke: var(--state-alert);
+  stroke-width: 3;
+  fill: var(--state-alert);
+  fill-opacity: 0.45;
+  animation: var(--alert-pulse);
+  animation-name: alert-pulse;
+}
+
+.bodymap__organ--stale {
+  stroke: var(--state-stale);
+  stroke-dasharray: 5 4;
+  stroke-linecap: butt;
+}
+
+.bodymap__organ--no_data {
+  stroke: var(--state-nodata);
+  stroke-dasharray: 1.5 4;
+}
+
+/* SVG has no double stroke: dash-dot stands in for the "sin rango" double border. */
+.bodymap__organ--no_range {
+  stroke: var(--state-norange);
+  stroke-dasharray: 9 3 2 3;
+  stroke-linecap: butt;
+}
+
+.bodymap__leaders {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+}
+
+.bodymap__label rect {
+  fill: var(--color-surface);
+  stroke: var(--color-border);
+}
+
+.bodymap__label text {
+  fill: var(--color-text-muted);
+  font-size: 14px;
+}
+
+/* ---------- line chart ---------- */
+
+.linechart {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: var(--font-sans);
+}
+
+.linechart__grid {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.linechart__tick,
+.linechart__empty {
+  fill: var(--color-text-faint);
+  font-size: 14px;
+  font-variant-numeric: var(--numeric);
+}
+
+.linechart__zone {
+  fill: var(--state-normal);
+  fill-opacity: 0.12;
+}
+
+.linechart__zone-edge {
+  stroke: var(--state-normal);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+
+.linechart__zone-label {
+  fill: var(--state-normal);
+  font-size: 14px;
+}
+
+.linechart__line {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.linechart__point {
+  fill: var(--color-bg);
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+
+.linechart__end {
+  fill: var(--state-normal);
+  stroke: var(--color-bg);
+  stroke-width: 2;
+}
+
+.linechart__end--alert {
+  fill: var(--state-alert);
+}
+
+.linechart__end--no_range {
+  fill: var(--state-norange);
+}
+
+.linechart__end--stale {
+  fill: var(--color-bg);
+  stroke: var(--state-stale);
+  stroke-dasharray: 3 2;
+}
+
+/* ---------- Estado screen ---------- */
+
+/* Resets the CRT look inherited from the old shell (mono font, green glow). */
+.estado {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-height: 100%;
+  padding: var(--page-pad);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  text-shadow: none;
+}
+
+.estado :focus-visible {
+  outline-color: var(--color-accent);
+}
+
+.estado-banner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 76px;
+  padding: var(--space-3) 18px var(--space-3) var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.estado-banner--alert {
+  --icon-cut: var(--state-alert-fill);
+  border-color: var(--state-alert-fill);
+  background: var(--state-alert-fill);
+  color: #ffffff;
+}
+
+.estado-banner--error {
+  border: var(--border-alert);
+  background: var(--color-surface-2);
+}
+
+.estado-banner--error > .state-icon {
+  color: var(--state-alert);
+}
+
+.estado-banner__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.estado-banner__title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+
+.estado__grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 370px minmax(0, 1fr) 370px;
+  gap: var(--gap);
+  min-height: 0;
+}
+
+.estado__col {
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: var(--gap);
+  min-height: 0;
+}
+
+.estado__center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 0;
+}
+
+.estado__radiation {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: var(--border-nodata);
+  border-radius: 10px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.estado__radiation--flag {
+  border: var(--border-dubious);
+}
+
+.estado__radiation strong {
+  color: var(--color-text);
+}
+
+/* Minimum window (1024 px): narrower side columns so the body map keeps some room. */
+@media (max-width: 1150px) {
+  .estado__grid {
+    grid-template-columns: 300px minmax(0, 1fr) 300px;
+  }
+}

@@ -14,9 +14,6 @@
       "cardMode": "single",
       "viewport": "900x420"
     },
-    "BodyDiagram": {
-      "cardMode": "column"
-    },
     "ReadingsTable": {
       "cardMode": "column"
     },

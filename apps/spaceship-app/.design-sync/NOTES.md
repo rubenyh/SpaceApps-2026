@@ -16,7 +16,6 @@ Run everything from `apps/spaceship-app`. Target project: "Spaceship Console".
 - `RadiationPanel`'s real title starts with "⚠", which the render check reads as a crashed cell. Its previews prepend `<span hidden>` text to dodge that. Remove it if the checker changes.
 - `TabBar` is generic (`TabDef<K>`); the extractor leaves `K` unresolved, so its props are hand-written in `dtsPropsFor`.
 - The capture harness freezes the clock, so `Header` shows 2024-05-15 12:00:00Z in screenshots.
-- `BodyDiagram` callouts are app glue ported from `src/screens/EstadoScreen.tsx`, not a component.
 
 ## Known render warns
 
@@ -25,7 +24,6 @@ Run everything from `apps/spaceship-app`. Target project: "Spaceship Console".
 ## Re-sync risks
 
 - `dtsPropsFor.TabBar` is a hand copy: update it if `TabBar`'s props change.
-- `BodyDiagram.tsx` preview duplicates the `Callout` markup from `EstadoScreen.tsx`; it will not follow changes there.
 - Chart x-axis end labels ("ahora", last date) clip at the right edge of the SVG. That is the component's own behavior, also in the app, not a preview bug.
 - A new file in `src/components/*.tsx` is picked up automatically as a component and ships a floor card until a preview is authored.
 - `conventions.md` enumerates class and token names from `src/styles/`; re-validate it against `ds-bundle/_ds_bundle.css` after style changes.

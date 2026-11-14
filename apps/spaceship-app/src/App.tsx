@@ -43,10 +43,18 @@ function storeAstronaut(id: string): void {
   }
 }
 
-function CrewScreen({ tab, astronautId }: { tab: TabKey; astronautId: string }) {
+function CrewScreen({
+  tab,
+  astronautId,
+  onNavigate,
+}: {
+  tab: TabKey;
+  astronautId: string;
+  onNavigate: (tab: TabKey) => void;
+}) {
   switch (tab) {
     case "estado":
-      return <EstadoScreen astronautId={astronautId} />;
+      return <EstadoScreen astronautId={astronautId} onNavigate={onNavigate} />;
     case "vitales":
       return <VitalesScreen astronautId={astronautId} />;
     case "musculo":
@@ -115,7 +123,7 @@ function Console({ connection }: { connection: ConnectionState }) {
 
   let content;
   if (selected) {
-    content = <CrewScreen key={`${tab}:${selected}`} tab={tab} astronautId={selected} />;
+    content = <CrewScreen key={`${tab}:${selected}`} tab={tab} astronautId={selected} onNavigate={setTab} />;
   } else if (tab === "asistente") {
     // The assistant also works without a selected astronaut (astronaut_id: null).
     content = <AsistenteScreen astronautId={null} />;
