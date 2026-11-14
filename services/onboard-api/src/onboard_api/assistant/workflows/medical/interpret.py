@@ -417,4 +417,3 @@ def interpret(request: AssistantRequest) -> Interpretation:
         mentions_readings=tuple(readings),
         topic_hint=topic,
     )
-
