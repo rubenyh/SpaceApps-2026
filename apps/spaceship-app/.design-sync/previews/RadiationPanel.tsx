@@ -28,22 +28,16 @@ const sensor = (status: string, withReading: boolean, age: number | null) =>
 
 export const WithReading = () => (
   <S>
-    {/* The render check reads a cell whose text starts with "⚠" as a crashed preview; the panel title really starts with it. */}
-    <span hidden>RadiationPanel </span>
     <RadiationPanel sensor={sensor("no_range", true, 9000)} ageSeconds={9000} />
   </S>
 );
 export const StaleReading = () => (
   <S>
-    {/* The render check reads a cell whose text starts with "⚠" as a crashed preview; the panel title really starts with it. */}
-    <span hidden>RadiationPanel </span>
     <RadiationPanel sensor={sensor("stale", true, 190_000)} ageSeconds={190_000} />
   </S>
 );
 export const NoData = () => (
   <S>
-    {/* The render check reads a cell whose text starts with "⚠" as a crashed preview; the panel title really starts with it. */}
-    <span hidden>RadiationPanel </span>
     <RadiationPanel sensor={sensor("no_data", false, null)} ageSeconds={null} />
   </S>
 );

@@ -1,4 +1,5 @@
 import type { AstronautStatus, ReadingStatus, SensorKind, SensorStatus } from "../api/types";
+import { URINE_KINDS, aggregateUrine, findSensor } from "./sensors.ts";
 
 /**
  * Display axis of the range bar per sensor (from the design mockups).
@@ -64,4 +65,22 @@ export function explain(s: SensorStatus | null, offline: boolean): string {
     return "Fuera de lo normal";
   }
   return "Dentro de lo normal";
+}
+
+/** State a tab should flag: only problems (alert beats stale), never "all fine". */
+export type TabFlag = "alert" | "stale" | null;
+
+function flag(statuses: ReadingStatus[]): TabFlag {
+  if (statuses.includes("alert")) return "alert";
+  return statuses.includes("stale") ? "stale" : null;
+}
+
+/** Worst state behind each detail tab. Sample-validity alerts are not health alerts. */
+export function tabFlags(status: AstronautStatus | null): Record<"vitales" | "musculo" | "orina", TabFlag> {
+  const of = (kind: SensorKind) => findSensor(status, kind)?.status ?? "no_data";
+  return {
+    vitales: flag([of("heart_rate"), of("spo2")]),
+    musculo: flag([of("muscle_density")]),
+    orina: flag([aggregateUrine(URINE_KINDS.map((k) => findSensor(status, k)))]),
+  };
 }

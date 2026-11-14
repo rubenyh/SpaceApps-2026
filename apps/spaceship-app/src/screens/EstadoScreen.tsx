@@ -1,15 +1,13 @@
-import type { ReactNode } from "react";
-import { HttpError } from "../api/client";
 import type { SensorKind, SensorStatus } from "../api/types";
 import { getAstronautStatus } from "../api/status";
 import { BodyMap } from "../components/BodyMap";
-import { RangeTrack } from "../components/RangeTrack";
-import { ReadingCard } from "../components/ReadingCard";
+import { SensorCard } from "../components/SensorCard";
+import { ServiceBanner } from "../components/ServiceBanner";
 import { StateIcon, StatusPill } from "../components/StatusPill";
 import { useNow } from "../hooks/useNow";
 import { usePolling } from "../hooks/usePolling";
-import { TRACK_SCALE, explain, healthAlerts, rangeSide, shownStatus } from "../lib/estado";
-import { formatAge, formatUtcDateTime, rangeText, readingValueText, unitLabel } from "../lib/format";
+import { healthAlerts, rangeSide, shownStatus } from "../lib/estado";
+import { formatAge, rangeText, readingValueText, unitLabel } from "../lib/format";
 import { findSensor, liveAge } from "../lib/sensors";
 
 type DetailTab = "vitales" | "musculo" | "orina";
@@ -50,10 +48,10 @@ function AlertBanner({
   const unit = unitLabel(first.latest?.unit);
   const others = alerts.length - 1;
   return (
-    <div className="estado-banner estado-banner--alert" role="alert">
+    <div className="banner banner--alert" role="alert">
       <StateIcon state="alert" size={30} pulse />
-      <div className="estado-banner__text">
-        <span className="estado-banner__title">
+      <div className="banner__text">
+        <span className="banner__title">
           Necesita tu atención: {copy?.name ?? "una lectura"} {how}
         </span>
         <span>
@@ -82,10 +80,10 @@ function SummaryBanner({ sensors }: { sensors: (SensorStatus | null)[] }) {
     count("no_range") > 0 ? `${count("no_range")} sin rango` : "",
   ].filter(Boolean);
   return (
-    <div className="estado-banner" role="status">
+    <div className="banner" role="status">
       <StateIcon state={notes.length > 0 ? "no_range" : "normal"} size={30} />
-      <div className="estado-banner__text">
-        <span className="estado-banner__title">Sin alertas activas</span>
+      <div className="banner__text">
+        <span className="banner__title">Sin alertas activas</span>
         <span>
           {notes.length > 0
             ? `De estas 4 lecturas: ${notes.join(", ")}. Esas no se pueden evaluar.`
@@ -116,60 +114,26 @@ export function EstadoScreen({ astronautId, onNavigate }: Props) {
   const alerts = healthAlerts(data);
   const doubtfulSample = temp?.status === "alert" && temp.config.range_role === "sample_validity";
 
-  const card = (title: string, organ: string, s: SensorStatus | null, tag?: ReactNode) => {
-    if (!loaded) return <section className="card card--skeleton" aria-hidden="true" />;
-    const status = shownStatus(s, offline);
-    const scale = s ? TRACK_SCALE[s.kind] : undefined;
-    const hasRange = s !== null && rangeText(s.config) !== null;
-    return (
-      <ReadingCard
-        title={title}
-        organ={organ}
-        status={status}
-        value={readingValueText(s?.latest)}
-        unit={unitLabel(s?.latest?.unit)}
-        ageSeconds={liveAge(s, updatedAt, now)}
-        quality={s?.latest?.quality}
-        explanation={explain(s, offline)}
-        tag={tag}
-      >
-        {s && scale && hasRange ? (
-          <RangeTrack value={s.latest?.value ?? null} scale={scale} config={s.config} status={status} />
-        ) : (
-          <span className="card__note">
-            Aún no hay un rango de referencia definido.
-          </span>
-        )}
-      </ReadingCard>
-    );
-  };
+  const card = (title: string, organ: string, s: SensorStatus | null, doubtful = false) => (
+    <SensorCard
+      title={title}
+      organ={organ}
+      sensor={s}
+      ageSeconds={liveAge(s, updatedAt, now)}
+      loaded={loaded}
+      offline={offline}
+      tag={doubtful ? <StatusPill state="doubtful" /> : undefined}
+    />
+  );
 
   return (
-    <div className="estado">
+    <div className="screen">
       {offline ? (
-        <div className="estado-banner estado-banner--error" role="alert">
-          <StateIcon state="alert" size={30} />
-          <div className="estado-banner__text">
-            <span className="estado-banner__title">
-              {error instanceof HttpError
-                ? `Error ${error.status}: ${error.detail}`
-                : "SERVICIO ONBOARD NO DISPONIBLE"}
-            </span>
-            <span>
-              {updatedAt !== null
-                ? `No llegan lecturas nuevas desde ${formatUtcDateTime(new Date(updatedAt).toISOString())} UTC. Abajo ves los últimos valores recibidos. `
-                : "Todavía no se ha recibido ninguna lectura. "}
-              Se reintenta cada {POLL_MS / 1000} s.
-            </span>
-          </div>
-          <button type="button" className="btn" onClick={refresh}>
-            Reintentar ahora
-          </button>
-        </div>
+        <ServiceBanner error={error} updatedAt={updatedAt} onRetry={refresh} />
       ) : !loaded ? (
-        <div className="estado-banner" role="status">
-          <div className="estado-banner__text">
-            <span className="estado-banner__title">Cargando lecturas…</span>
+        <div className="banner" role="status">
+          <div className="banner__text">
+            <span className="banner__title">Cargando lecturas…</span>
             <span>Conectando con el servicio de a bordo. Suele tardar unos segundos.</span>
           </div>
         </div>
@@ -208,7 +172,7 @@ export function EstadoScreen({ astronautId, onNavigate }: Props) {
         </div>
         <div className="estado__col">
           {card("Pulso", "Corazón", heart)}
-          {card("Orina · pH", "Riñones", ph, doubtfulSample ? <StatusPill state="doubtful" /> : undefined)}
+          {card("Orina · pH", "Riñones", ph, doubtfulSample)}
         </div>
       </div>
     </div>

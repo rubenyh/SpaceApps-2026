@@ -1,6 +1,6 @@
 // Self-check for lib/estado.ts. Run: node src/lib/estado.check.ts
 import type { AstronautStatus, ReadingStatus, SensorKind, SensorStatus } from "../api/types";
-import { explain, healthAlerts, rangeSide, shownStatus, trackPercent } from "./estado.ts";
+import { explain, healthAlerts, rangeSide, shownStatus, tabFlags, trackPercent } from "./estado.ts";
 
 function eq(actual: unknown, expected: unknown, what: string): void {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
@@ -86,5 +86,14 @@ eq(explain(low, false), "Por debajo de lo normal", "explain low");
 eq(explain(ok, false), "Dentro de lo normal", "explain normal");
 eq(explain(none, true), "Todavía no hay lecturas", "explain no data");
 eq(explain(high, true), "Último valor recibido: estaba alto", "explain offline");
+
+// Tabs flag problems only; a doubtful sample (temperature) is not a health alert.
+eq(tabFlags(status), { vitales: "alert", musculo: null, orina: null }, "tab flags");
+eq(
+  tabFlags({ ...status, sensors: [sensor("urine_ph", "stale", 6.1, 4.6, 8), ok] }).orina,
+  "stale",
+  "stale tab",
+);
+eq(tabFlags(null), { vitales: null, musculo: null, orina: null }, "no status flags");
 
 console.log("estado.check: ok");

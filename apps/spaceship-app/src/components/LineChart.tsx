@@ -15,15 +15,16 @@ interface Props {
   status?: ReadingStatus;
   /** Draw every point (sparse series over days or weeks). */
   showPoints?: boolean;
+  /** Dotted reference line at this value, e.g. the first reading. */
+  baseline?: number | null;
+  /** viewBox size in px. The chart scales to its container width. */
+  width?: number;
+  height?: number;
   label: string;
   emptyText: string;
 }
 
-const W = 564;
-const H = 200;
 const X0 = 46;
-const X1 = 550;
-const Y0 = 170;
 const Y1 = 12;
 const DAY = 86_400_000;
 const X_TICKS = 4;
@@ -52,13 +53,18 @@ export function LineChart({
   zoneLabel,
   status,
   showPoints = false,
+  baseline = null,
+  width: W = 564,
+  height: H = 200,
   label,
   emptyText,
 }: Props) {
+  const X1 = W - 14;
+  const Y0 = H - 30;
   const visible = points.filter((p) => p.t >= start && p.t <= end);
   const [lo, hi] = yDomain(
     visible.map((p) => p.v),
-    [normalMin, normalMax],
+    [normalMin, normalMax, baseline],
   );
   const x = linear(start, end, X0, X1);
   const y = linear(lo, hi, Y0, Y1);
@@ -114,6 +120,9 @@ export function LineChart({
           {tickText(t)}
         </text>
       ))}
+      {baseline !== null && visible.length > 0 ? (
+        <line className="linechart__baseline" x1={X0} x2={X1} y1={y(baseline)} y2={y(baseline)} />
+      ) : null}
       {visible.length > 1 ? (
         <polyline
           className="linechart__line"

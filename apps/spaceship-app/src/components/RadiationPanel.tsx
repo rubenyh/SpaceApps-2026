@@ -1,6 +1,6 @@
 import type { SensorStatus } from "../api/types";
-import { formatAge, readingValueText, unitLabel } from "../lib/format";
-import { Panel } from "./Panel";
+import { formatAge } from "../lib/format";
+import { StateIcon, StatusPill } from "./StatusPill";
 
 interface Props {
   sensor: SensorStatus | null;
@@ -8,41 +8,39 @@ interface Props {
 }
 
 /**
- * Urine radiation marker. An indirect marker, NOT dosimetry: never shown as a
- * dose, never as [ OK ]. With a reading it is only ever presented as
- * «POSIBLE EXPOSICIÓN, REQUIERE CONFIRMACIÓN» plus the raw value.
+ * Urine radiation marker. An indirect marker, NOT dosimetry: never a dose, a dose unit
+ * or a "normal" look. Any reading is only ever shown as
+ * «Posible exposición, requiere confirmación».
  */
 export function RadiationPanel({ sensor, ageSeconds }: Props) {
   const reading = sensor?.latest ?? null;
   return (
-    <Panel title="⚠ RADIACIÓN · INDICADOR INDIRECTO" className="radiation">
-      {reading ? (
-        <div className="statebox statebox--exposure radiation__box">
-          <div className="radiation__headline">POSIBLE EXPOSICIÓN, REQUIERE CONFIRMACIÓN</div>
-          <div className="radiation__raw">
-            valor bruto del marcador: <strong>{readingValueText(reading)}</strong>
-            {reading.unit ? ` ${unitLabel(reading.unit)}` : ""}
-          </div>
-          <div className="radiation__age">
-            {formatAge(ageSeconds)}
-            {sensor?.status === "stale" ? " · [~ VIEJO ]" : ""}
-          </div>
-        </div>
-      ) : (
-        <div className="statebox statebox--no_data radiation__box">
-          <div className="badge badge--no_data">[-- SIN DATOS ]</div>
-          <div>SIN DATOS – marcador no definido.</div>
-        </div>
-      )}
-      <div className="radiation__warning">
-        <p>
-          Marcador indirecto en orina. <strong>No es una dosimetría ni una dosis medida.</strong>
-        </p>
-        <p>
-          Cualquier lectura se mostrará solo como POSIBLE EXPOSICIÓN, REQUIERE CONFIRMACIÓN por
-          personal cualificado con instrumentación adecuada.
-        </p>
+    <section className={`radiation${reading ? " radiation--flag" : ""}`}>
+      <div className="radiation__head">
+        <strong>Marcador de radiación</strong>
+        {reading ? (
+          <span className="pill pill--doubtful">
+            <StateIcon state="doubtful" />
+            Posible exposición, requiere confirmación
+          </span>
+        ) : (
+          <StatusPill state="no_data" />
+        )}
       </div>
-    </Panel>
+      {reading ? (
+        <span className="radiation__age">
+          Último dato {formatAge(ageSeconds)}
+          {sensor?.status === "stale" ? " · dato viejo" : ""}
+        </span>
+      ) : null}
+      <div className="radiation__warning">
+        <StateIcon state="doubtful" size={18} />
+        <span>
+          Es un <strong>indicador indirecto</strong>, no una dosimetría: no mide dosis. Cualquier
+          dato se muestra solo como «Posible exposición, requiere confirmación» por personal
+          cualificado.
+        </span>
+      </div>
+    </section>
   );
 }

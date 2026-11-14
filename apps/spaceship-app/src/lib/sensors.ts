@@ -21,11 +21,6 @@ export function liveAge(
   return sensor.age_seconds + elapsed;
 }
 
-/** Border/inverse treatment class for a state box. */
-export function stateBoxClass(status: ReadingStatus | "doubtful"): string {
-  return `statebox statebox--${status}`;
-}
-
 export const URINE_KINDS: SensorKind[] = [
   "urine_ph",
   "urine_salinity",

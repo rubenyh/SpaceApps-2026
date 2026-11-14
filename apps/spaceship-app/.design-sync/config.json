@@ -10,10 +10,6 @@
   ],
   "buildCmd": "sh .design-sync/build-types.sh",
   "overrides": {
-    "CrtFrame": {
-      "cardMode": "single",
-      "viewport": "900x420"
-    },
     "ReadingsTable": {
       "cardMode": "column"
     },
@@ -23,21 +19,27 @@
     "TabBar": {
       "cardMode": "column"
     },
-    "TrendChart": {
-      "cardMode": "column"
-    },
-    "ScopeChart": {
-      "cardMode": "column"
-    },
     "RadiationPanel": {
       "cardMode": "column"
     },
-    "StatusBadge": {
+    "LineChart": {
+      "cardMode": "column"
+    },
+    "BodyMap": {
+      "cardMode": "column"
+    },
+    "SensorCard": {
+      "cardMode": "column"
+    },
+    "ReadingCard": {
+      "cardMode": "column"
+    },
+    "ServiceBanner": {
       "cardMode": "column"
     }
   },
   "dtsPropsFor": {
-    "TabBar": "tabs: { key: string; label: string }[]; /** key of the selected tab */ active: string; onChange: (key: string) => void;"
+    "TabBar": "tabs: { key: string; label: string }[]; /** key of the selected tab */ active: string; onChange: (key: string) => void; /** problem icon per tab key */ flags?: Record<string, \"alert\" | \"stale\" | null>; /** disable every tab (no crew member) */ disabled?: boolean;"
   },
   "readmeHeader": ".design-sync/conventions.md"
 }

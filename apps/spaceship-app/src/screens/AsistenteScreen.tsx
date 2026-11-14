@@ -1,49 +1,105 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { AssistantResponse } from "../api/types";
+import type { AssistantResponse, AstronautStatus, ReadingStatus } from "../api/types";
 import { sendAssistantMessage } from "../api/assistant";
 import { HttpError, NetworkError, toApiError } from "../api/client";
+import { Panel } from "../components/Panel";
+import { StateIcon, type VisualState } from "../components/StatusPill";
+import { useNow } from "../hooks/useNow";
+import { formatAge, formatUtcTime } from "../lib/format";
+import { URINE_KINDS, aggregateUrine, findSensor, liveAge } from "../lib/sensors";
 
 interface Props {
   astronautId: string | null;
+  /** Latest status of the selected crew member, for the "what the assistant can see" list. */
+  status: AstronautStatus | null;
+  statusUpdatedAt: number | null;
 }
 
 type Entry =
-  | { id: number; role: "user"; text: string }
-  | { id: number; role: "assistant"; response: AssistantResponse }
-  | { id: number; role: "error"; text: string };
+  | { id: number; at: number; role: "user"; text: string }
+  | { id: number; at: number; role: "assistant"; response: AssistantResponse }
+  | { id: number; at: number; role: "error"; text: string };
 
-type WithoutId<T> = T extends unknown ? Omit<T, "id"> : never;
-type NewEntry = WithoutId<Entry>;
+type WithoutMeta<T> = T extends unknown ? Omit<T, "id" | "at"> : never;
+type NewEntry = WithoutMeta<Entry>;
 
-function AssistantReply({ response }: { response: AssistantResponse }) {
+const DISCLAIMER = "Información de apoyo, no es un diagnóstico.";
+const SUGGESTIONS = ["Resume mi estado de hoy", "¿Qué datos me faltan por medir?"];
+
+function AssistantReply({ response, at }: { response: AssistantResponse; at: number }) {
+  const clarification = response.needs_clarification;
   return (
-    <div className="chat__entry chat__entry--assistant">
-      <div className="chat__who">
-        {response.needs_clarification ? "< PREGUNTA DEL ASISTENTE" : "< ASISTENTE"}
-      </div>
-      <div className="chat__text">{response.reply}</div>
+    <article className={clarification ? "msg msg--clarification" : "msg msg--answer"}>
+      <span className="msg__who">
+        {clarification ? "Pregunta de aclaración" : "Asistente"} · {formatUtcTime(at)} UTC
+      </span>
+      <p className="msg__text">{response.reply}</p>
       {response.data_notices.length > 0 ? (
-        <div className="notices" role="note">
-          <div className="notices__title">AVISOS DE DATOS</div>
-          <ul>
-            {response.data_notices.map((n, i) => (
-              <li key={i}>! {n}</li>
-            ))}
-          </ul>
-        </div>
+        <ul className="msg__notices" aria-label="Avisos de datos">
+          {response.data_notices.map((n, i) => (
+            <li key={i}>
+              <StateIcon state="stale" size={15} />
+              {n}
+            </li>
+          ))}
+        </ul>
       ) : null}
-      <div className="chat__sources">
-        FUENTES:{" "}
-        {response.sources.length > 0
-          ? response.sources.map((s) => s.title).join(" · ")
-          : "(ninguna)"}
+      {response.sources.length > 0 ? (
+        <span className="msg__sources">
+          <strong>Fuentes:</strong> {response.sources.map((s) => s.title).join(" · ")}
+        </span>
+      ) : null}
+      <div className="msg__disclaimer">
+        <StateIcon state="doubtful" />
+        {response.disclaimer ?? DISCLAIMER}
       </div>
-      {response.disclaimer ? <div className="disclaimer">{response.disclaimer}</div> : null}
-    </div>
+    </article>
   );
 }
 
-export function AsistenteScreen({ astronautId }: Props) {
+/** What the assistant works from: each reading with its state icon and age. */
+function VisibleData({ status, updatedAt }: { status: AstronautStatus | null; updatedAt: number | null }) {
+  const now = useNow(1000);
+  const urine = URINE_KINDS.map((k) => findSensor(status, k));
+  const urineAges = urine.map((s) => liveAge(s, updatedAt, now)).filter((a): a is number => a !== null);
+  const one = (kind: "heart_rate" | "spo2" | "muscle_density") => {
+    const s = findSensor(status, kind);
+    return { state: (s?.status ?? "no_data") as ReadingStatus, age: liveAge(s, updatedAt, now) };
+  };
+  const radiation = findSensor(status, "urine_radiation_marker");
+  const rows: { label: string; state: VisualState; age: number | null }[] = [
+    { label: "Pulso", ...one("heart_rate") },
+    { label: "Oxígeno (SpO₂)", ...one("spo2") },
+    {
+      label: "Orina",
+      state: aggregateUrine(urine),
+      age: urineAges.length > 0 ? Math.min(...urineAges) : null,
+    },
+    { label: "Músculo", ...one("muscle_density") },
+    {
+      label: "Radiación",
+      state: radiation?.latest ? "doubtful" : "no_data",
+      age: liveAge(radiation, updatedAt, now),
+    },
+  ];
+  return (
+    <ul className="visible">
+      {rows.map((r) => (
+        <li key={r.label}>
+          <span className={`visible__name visible__name--${r.state}`}>
+            <StateIcon state={r.state} />
+            {r.label}
+          </span>
+          <span className={r.state === "stale" ? "visible__age visible__age--stale" : "visible__age"}>
+            {status === null ? "…" : r.age === null ? "nunca medido" : formatAge(r.age)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function AsistenteScreen({ astronautId, status, statusUpdatedAt }: Props) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -64,12 +120,11 @@ export function AsistenteScreen({ astronautId }: Props) {
 
   const push = (entry: NewEntry) => {
     const id = nextId.current++;
-    setEntries((prev) => [...prev, { ...entry, id } as Entry]);
+    setEntries((prev) => [...prev, { ...entry, id, at: Date.now() } as Entry]);
   };
 
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    const message = draft.trim();
+  const send = async (text: string) => {
+    const message = text.trim();
     if (!message || sending) return;
     push({ role: "user", text: message });
     setDraft("");
@@ -85,13 +140,13 @@ export function AsistenteScreen({ astronautId }: Props) {
     } catch (err) {
       if (controller.signal.aborted) return;
       const apiError = toApiError(err);
-      const text =
+      const errorText =
         apiError instanceof HttpError
-          ? `ERROR ${apiError.status}: ${apiError.detail}`
+          ? `Error ${apiError.status}: ${apiError.detail}`
           : apiError instanceof NetworkError
-            ? "SERVICIO ONBOARD NO DISPONIBLE · el mensaje no se ha enviado."
+            ? "SERVICIO ONBOARD NO DISPONIBLE: el mensaje no se ha enviado."
             : String(apiError);
-      push({ role: "error", text });
+      push({ role: "error", text: errorText });
     } finally {
       if (!controller.signal.aborted) {
         setSending(false);
@@ -101,46 +156,67 @@ export function AsistenteScreen({ astronautId }: Props) {
     }
   };
 
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    void send(draft);
+  };
+
   return (
-    <div className="screen chat">
-      <div className="chat__log" ref={logRef} aria-live="polite">
-        {entries.length === 0 ? (
-          <p className="muted">
-            Escriba una consulta sobre las lecturas del tripulante
-            {astronautId ? ` ${astronautId}` : " (ninguno seleccionado)"}. El historial se borra al
-            salir de esta pestaña.
-          </p>
-        ) : null}
-        {entries.map((entry) =>
-          entry.role === "user" ? (
-            <div key={entry.id} className="chat__entry chat__entry--user">
-              <span className="chat__who">&gt; TÚ</span> <span className="chat__text">{entry.text}</span>
-            </div>
-          ) : entry.role === "assistant" ? (
-            <AssistantReply key={entry.id} response={entry.response} />
-          ) : (
-            <div key={entry.id} className="notice notice--error" role="alert">
-              {entry.text}
-            </div>
-          ),
-        )}
-        {sending ? <div className="chat__sending">TRANSMITIENDO…</div> : null}
-      </div>
-      <form className="chat__form" onSubmit={onSubmit}>
-        <span aria-hidden="true">&gt;</span>
-        <input
-          ref={inputRef}
-          type="text"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Escriba su mensaje"
-          aria-label="Mensaje para el asistente"
-          autoComplete="off"
-        />
-        <button type="submit" className="btn" disabled={sending || draft.trim() === ""}>
-          {sending ? "[ENVIANDO…]" : "[ENVIAR]"}
-        </button>
-      </form>
+    <div className="asistente__grid">
+      <section className="chat">
+        <div className="chat__log" ref={logRef} aria-live="polite">
+          {entries.length === 0 ? (
+            <p className="chat__hint">
+              Escribe una pregunta sobre tus lecturas. El historial se borra al salir de esta pestaña.
+            </p>
+          ) : null}
+          {entries.map((entry) =>
+            entry.role === "user" ? (
+              <div key={entry.id} className="msg msg--user">
+                <div className="msg__bubble">{entry.text}</div>
+                <span className="msg__when">Tú · {formatUtcTime(entry.at)} UTC</span>
+              </div>
+            ) : entry.role === "assistant" ? (
+              <AssistantReply key={entry.id} response={entry.response} at={entry.at} />
+            ) : (
+              <div key={entry.id} className="msg msg--error" role="alert">
+                <StateIcon state="alert" />
+                {entry.text}
+              </div>
+            ),
+          )}
+          {sending ? <div className="chat__hint">Enviando…</div> : null}
+        </div>
+        <form className="chat__form" onSubmit={onSubmit}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Escribe tu pregunta…"
+            aria-label="Escribe tu pregunta"
+            autoComplete="off"
+          />
+          <button type="submit" className="btn" disabled={sending || draft.trim() === ""}>
+            {sending ? "Enviando…" : "Enviar"}
+          </button>
+        </form>
+      </section>
+      <Panel title="Lo que el asistente puede ver">
+        <VisibleData status={status} updatedAt={statusUpdatedAt} />
+        <p className="caption">
+          El asistente solo usa las lecturas de esta consola. Avisa cuando un dato falta o es viejo y
+          nunca diagnostica.
+        </p>
+        <div className="suggestions">
+          <span className="caption">Prueba a preguntar</span>
+          {SUGGESTIONS.map((s) => (
+            <button key={s} type="button" className="btn btn--ghost" disabled={sending} onClick={() => void send(s)}>
+              {s}
+            </button>
+          ))}
+        </div>
+      </Panel>
     </div>
   );
 }

@@ -3,12 +3,12 @@ import { useState } from "react";
 import { TabBar } from "spaceship-app";
 
 const TABS = [
-  { key: "estado", label: "ESTADO" },
-  { key: "vitales", label: "SIGNOS VITALES" },
-  { key: "musculo", label: "MÚSCULO" },
-  { key: "orina", label: "ORINA" },
-  { key: "asistente", label: "ASISTENTE" },
-  { key: "registros", label: "REGISTROS" },
+  { key: "estado", label: "Estado" },
+  { key: "vitales", label: "Signos vitales" },
+  { key: "musculo", label: "Músculo" },
+  { key: "orina", label: "Orina" },
+  { key: "asistente", label: "Asistente" },
+  { key: "registros", label: "Registros" },
 ];
 
 function Stateful({ initial }: { initial: string }) {
@@ -36,7 +36,7 @@ export const TwoTabs = () => {
     <S>
       <TabBar
         tabs={[
-          { key: "salinidad", label: "SALINIDAD" },
+          { key: "salinidad", label: "Salinidad" },
           { key: "ph", label: "pH" },
         ]}
         active={active}

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import type { Quality, ReadingStatus } from "../api/types";
+import type { Quality } from "../api/types";
 import { formatAge } from "../lib/format";
-import { StateIcon, StatusPill } from "./StatusPill";
+import { StateIcon, StatusPill, type VisualState } from "./StatusPill";
 
 const QUALITY_TEXT: Record<Quality, string> = {
   good: "Calidad buena",
@@ -13,12 +13,17 @@ interface Props {
   title: string;
   /** Organ or body area the reading belongs to. */
   organ: string;
-  status: ReadingStatus;
-  /** Value as text, already formatted. Ignored when there is no data. */
-  value: string;
+  /** "doubtful" is for a sample-validity range out of bounds: never drawn as an alert. */
+  status: VisualState;
+  /** Formatted value. Ignored when there is no data. */
+  value: ReactNode;
   unit?: string;
   ageSeconds: number | null;
   quality?: Quality | null;
+  /** Where the reading came from, shown after the quality. */
+  source?: string | null;
+  /** Value size: "sm" in dense grids, "lg" on detail screens. */
+  size?: "sm" | "md" | "lg";
   /** One plain sentence about the reading. */
   explanation: string;
   /** Extra label next to the explanation, e.g. a "Muestra dudosa" pill. */
@@ -36,6 +41,8 @@ export function ReadingCard({
   unit,
   ageSeconds,
   quality,
+  source,
+  size = "md",
   explanation,
   tag,
   children,
@@ -43,7 +50,7 @@ export function ReadingCard({
   const noData = status === "no_data";
   const age = formatAge(ageSeconds);
   return (
-    <section className={`card card--${status}`}>
+    <section className={`card card--${status} card--${size}`}>
       <div className="card__head">
         <div className="card__titles">
           <span className="card__title">{title}</span>
@@ -61,7 +68,12 @@ export function ReadingCard({
             {status === "stale" ? <StateIcon state="stale" size={15} /> : null}
             {noData || !age ? "Nunca medido" : age.charAt(0).toUpperCase() + age.slice(1)}
           </span>
-          {!noData && quality ? <span className="card__quality">{QUALITY_TEXT[quality]}</span> : null}
+          {!noData && quality ? (
+            <span className="card__quality">
+              {QUALITY_TEXT[quality]}
+              {source ? ` · ${source}` : ""}
+            </span>
+          ) : null}
         </div>
       </div>
       <div className="card__explain">

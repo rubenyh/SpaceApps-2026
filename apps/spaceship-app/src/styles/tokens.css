@@ -1,4 +1,6 @@
 :root {
+  color-scheme: dark;
+
   /* Superficies */
   --color-bg: #0A1020;
   --color-surface: #111A2E;
@@ -78,29 +80,4 @@
 
 @media (prefers-reduced-motion: reduce) {
   :root { --alert-pulse: none; }
-}
-
-/* Heredado (consola CRT): lo usan crt.css, app.css y las pantallas aún no rediseñadas.
-   Borrar este bloque cuando se migren. */
-:root {
-  --bg: #050a06;
-  --bg-panel: #08130b;
-  --fg: #33ff66;
-  --fg-bright: #b6ffc9;
-  --fg-dim: #1f9e45;
-  --line: #0f4d22;
-  /* CRT vignette and scanlines. */
-  --overlay: #000000;
-
-  --font: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
-  --fs-small: 14px;
-  --fs-base: 16px;
-  --fs-title: 22px;
-  --fs-value: 40px;
-
-  --glow: 0 0 6px color-mix(in srgb, var(--fg) 45%, transparent);
-  --glow-svg: drop-shadow(0 0 2px color-mix(in srgb, var(--fg) 50%, transparent));
-  --scanline-opacity: 0.15;
-
-  color-scheme: dark;
 }
