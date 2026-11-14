@@ -1,51 +1,151 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { useCallback, useState } from "react";
+import { listAstronauts } from "./api/astronauts";
+import { API_BASE_URL } from "./api/client";
+import { CrtFrame } from "./components/CrtFrame";
+import { Header } from "./components/Header";
+import { Panel } from "./components/Panel";
+import { TabBar, type TabDef } from "./components/TabBar";
+import { ConnectionContext, type ConnectionState } from "./hooks/connection";
+import { usePolling } from "./hooks/usePolling";
+import { AsistenteScreen } from "./screens/AsistenteScreen";
+import { EstadoScreen } from "./screens/EstadoScreen";
+import { MusculoScreen } from "./screens/MusculoScreen";
+import { OrinaScreen } from "./screens/OrinaScreen";
+import { RegistrosScreen } from "./screens/RegistrosScreen";
+import { VitalesScreen } from "./screens/VitalesScreen";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+type TabKey = "estado" | "vitales" | "musculo" | "orina" | "asistente" | "registros";
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+const TABS: TabDef<TabKey>[] = [
+  { key: "estado", label: "ESTADO" },
+  { key: "vitales", label: "SIGNOS VITALES" },
+  { key: "musculo", label: "MÚSCULO" },
+  { key: "orina", label: "ORINA" },
+  { key: "asistente", label: "ASISTENTE" },
+  { key: "registros", label: "REGISTROS" },
+];
+
+const STORAGE_KEY = "consola-medica.astronaut";
+
+function readStoredAstronaut(): string | null {
+  try {
+    return window.localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
   }
+}
 
+function storeAstronaut(id: string): void {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, id);
+  } catch {
+    // Storage unavailable: the choice is simply not remembered.
+  }
+}
+
+function CrewScreen({ tab, astronautId }: { tab: TabKey; astronautId: string }) {
+  switch (tab) {
+    case "estado":
+      return <EstadoScreen astronautId={astronautId} />;
+    case "vitales":
+      return <VitalesScreen astronautId={astronautId} />;
+    case "musculo":
+      return <MusculoScreen astronautId={astronautId} />;
+    case "orina":
+      return <OrinaScreen astronautId={astronautId} />;
+    case "asistente":
+      return <AsistenteScreen astronautId={astronautId} />;
+    case "registros":
+      return <RegistrosScreen astronautId={astronautId} />;
+  }
+}
+
+function NoCrew() {
+  const curl = `curl -X POST ${API_BASE_URL}/astronauts \\
+  -H "Content-Type: application/json" \\
+  -d '{"id":"ast-01","display_name":"Nombre Apellido"}'`;
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+    <Panel title="SIN TRIPULACIÓN REGISTRADA" className="statebox statebox--no_data">
+      <p>No hay ningún tripulante dado de alta en el servicio onboard.</p>
+      <p>Para registrar uno:</p>
+      <pre className="code">{curl}</pre>
+      <p className="muted">La lista se actualiza cada 30 s.</p>
+    </Panel>
   );
 }
 
-export default App;
+function WaitingForService() {
+  return (
+    <Panel title="ESPERANDO AL SERVICIO ONBOARD" className="statebox statebox--no_data">
+      <p>[-- SIN DATOS ] No se ha podido obtener la lista de tripulantes.</p>
+      <p className="muted">
+        Dirección configurada: {API_BASE_URL}. Se reintenta automáticamente cada 30 s.
+      </p>
+    </Panel>
+  );
+}
+
+export default function App() {
+  const [connection, setConnection] = useState<ConnectionState>("unknown");
+  const report = useCallback((reachable: boolean) => {
+    setConnection(reachable ? "online" : "offline");
+  }, []);
+
+  return (
+    <ConnectionContext.Provider value={report}>
+      <Console connection={connection} />
+    </ConnectionContext.Provider>
+  );
+}
+
+/** Lives inside the provider so the astronaut poll also reports connectivity. */
+function Console({ connection }: { connection: ConnectionState }) {
+  const [tab, setTab] = useState<TabKey>("estado");
+  const [preferred, setPreferred] = useState<string | null>(readStoredAstronaut);
+  const astronauts = usePolling("astronauts", (signal) => listAstronauts(signal), 30_000);
+
+  const list = astronauts.data;
+  const selected =
+    list && list.length > 0 ? (list.find((a) => a.id === preferred)?.id ?? list[0].id) : null;
+
+  const onSelect = (id: string) => {
+    storeAstronaut(id);
+    setPreferred(id);
+  };
+
+  let content;
+  if (selected) {
+    content = <CrewScreen key={`${tab}:${selected}`} tab={tab} astronautId={selected} />;
+  } else if (tab === "asistente") {
+    // The assistant also works without a selected astronaut (astronaut_id: null).
+    content = <AsistenteScreen astronautId={null} />;
+  } else if (list && list.length === 0) {
+    content = <NoCrew />;
+  } else if (astronauts.error) {
+    content = <WaitingForService />;
+  } else {
+    content = <div className="muted">Cargando tripulación…</div>;
+  }
+
+  return (
+    <CrtFrame>
+      <div className="app">
+        <Header
+          astronauts={list}
+          selectedId={selected}
+          onSelect={onSelect}
+          connection={connection}
+        />
+        {connection === "offline" ? (
+          <div className="banner" role="alert">
+            SERVICIO ONBOARD NO DISPONIBLE · {API_BASE_URL} · reintentando
+          </div>
+        ) : null}
+        <TabBar tabs={TABS} active={tab} onChange={setTab} />
+        <main id="screen" className="main" role="tabpanel" aria-labelledby={`tab-${tab}`}>
+          {content}
+        </main>
+      </div>
+    </CrtFrame>
+  );
+}
