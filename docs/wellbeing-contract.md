@@ -813,3 +813,43 @@ Start-Process http://127.0.0.1:8000/docs
 ```
 
 Resultado esperado del historial simulado: `ast-01` y `ast-04` en `ok`, `ast-02` en `needs_support` desde el día 14 del historial, `ast-03` en `needs_support` con `discrepancy: true`.
+
+Flujo del envío a Tierra (con el servidor arriba y el historial simulado cargado):
+
+```powershell
+$B = "http://127.0.0.1:8000"
+$today = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
+$from = (Get-Date).ToUniversalTime().AddDays(-20).ToString("yyyy-MM-dd")
+function New-Package($who, $consent) {
+  @{ astronaut_id = "ast-02"; requested_by = $who; requested_by_name = "Demo"
+     consent = @{ astronaut_confirmed = $consent; statement_version = "v1" }
+     period_from = $from; period_to = $today
+     include = @("assessment", "timeline", "checkins") } | ConvertTo-Json -Depth 3
+}
+function Send-Package($who, $consent) {
+  Invoke-RestMethod -Method Post "$B/wellbeing/ground-packages" -ContentType "application/json" -Body (New-Package $who $consent)
+}
+
+# 1) Sin consentimiento: 422
+try { Send-Package "captain" $false } catch { "Sin consentimiento -> HTTP " + [int]$_.Exception.Response.StatusCode }
+
+# 2) Con consentimiento: self, captain y ground_psychologist quedan en cola
+$self    = Send-Package "self" $true
+$captain = Send-Package "captain" $true
+$psych   = Send-Package "ground_psychologist" $true
+$self, $captain, $psych | Select-Object requested_by, status, id | Format-Table
+
+# 3) Lo que se enviaria (comentarios privados ocultos)
+$c = Invoke-RestMethod "$B/wellbeing/ground-packages/$($captain.id)/content"
+"Contenido: nivel {0}, inicio {1}, {2} dias, {3} checklists" -f $c.assessment.level, $c.assessment.onset_date, $c.timeline.days.Count, $c.checkins.Count
+
+# 4) Retirar el consentimiento y comprobar que ya no se puede ver
+(Invoke-RestMethod -Method Post "$B/wellbeing/ground-packages/$($captain.id)/withdraw").status
+try { Invoke-RestMethod "$B/wellbeing/ground-packages/$($captain.id)/content" } catch { "Contenido tras retirar -> HTTP " + [int]$_.Exception.Response.StatusCode }
+
+# 5) Lista de paquetes (en PowerShell 5.1 el arreglo se guarda primero en una variable)
+$list = Invoke-RestMethod "$B/wellbeing/ground-packages?astronaut_id=ast-02"
+$list | Select-Object requested_by, status, created_at | Format-Table
+```
+
+Resultado esperado: `422` sin consentimiento; tres paquetes `queued`; contenido con nivel `needs_support`; `withdrawn` y `409` al pedir el contenido después de retirar el consentimiento.
