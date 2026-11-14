@@ -40,12 +40,26 @@ On Windows, set `PYTHONUTF8=1` if `fastapi` CLI output fails with `UnicodeEncode
 
 ## Delegation
 
-- Small or single-module changes: do them in the main session.
-- Delegate to a subagent when work is deep inside one area:
-  - `onboard-backend`: FastAPI routes, config, lifespan, SQLite repository.
-  - `hardware-ingestion`: serial, camera, OpenCV, MediaPipe, collectors.
-  - `local-assistant`: LangGraph graphs, routing, workflows, prompts, Ollama, ChromaDB.
-  - `console-frontend`: Tauri, Rust, React, Vite, console API clients.
-  - `telemetry-integration`: onboard publisher, ground receiver, telemetry contract.
+Small or single-module changes: do them in the main session. Delegate when work is deep inside one area:
+
+| Subagent | Delegate when |
+|---|---|
+| `onboard-backend` | FastAPI routes, config, lifespan, SQLite repository |
+| `hardware-ingestion` | Serial, camera, OpenCV, MediaPipe, collectors |
+| `local-assistant` | LangGraph graphs, routing, workflows, prompts, Ollama, ChromaDB |
+| `console-frontend` | Tauri, Rust, React, Vite, console API clients |
+| `telemetry-integration` | Onboard publisher, ground receiver, telemetry contract |
+| `documentation-maintainer` | A change affects setup commands, architecture, API or telemetry contracts, or the demo. Owns README, diagrams, `docs/`. Writes docs only. |
+
 - Cross-module work: first agree on the shared interface (Pydantic model, route, JSON schema) in the main session. Then give each subagent a distinct write scope. Then verify the integrated result in the main session.
 - Procedures live in `.claude/skills/<name>/SKILL.md`. Keep this file short.
+
+## Git workflow (parallel sessions)
+
+Several Claude Code accounts and sessions work in parallel. Git and `origin` are the coordination channel.
+
+1. **Fetch before starting.** Run `git status` and `git fetch origin`. Check remote branches and open PRs for overlapping work. Start each independent task on a new branch from `origin/main` named `agent/<owner>/<task>`. Concurrent sessions sharing one checkout use separate worktrees (`git worktree add --no-track -b agent/<owner>/<task> ../<dir> origin/main`). Use `--no-track` (or `git switch --no-track -c ...`) so the branch never tracks `main`.
+2. **Keep ownership clear.** One writer per branch. Parallel agents get distinct file scopes. Agree on shared interfaces before parallel changes. Preserve other sessions' commits and local edits. If remote changes overlap yours, inspect the diff and coordinate with the owner before resolving. Never force-push shared branches.
+3. **Use Conventional Commits:** `<type>(<scope>): <description>`, scope optional. Examples: `chore(claude): add documentation maintainer`, `docs(architecture): describe onboard workflows`, `fix(telemetry): validate capture timestamps`. Use the same format for PR titles when the repo squash-merges. Spec: https://www.conventionalcommits.org/en/v1.0.0/
+4. **Push checkpoints and hand off in the PR.** Push the task branch early (`git push -u origin <branch>`). Use a draft PR while work is in progress. Keep the PR description current: scope, checks run, remaining work. Before requesting merge, fetch again, review `git diff origin/main...HEAD`, and run the relevant checks.
+5. **Only merging into `main` needs the user's explicit approval.** Without asking you may create branches and worktrees, commit, push task branches, and open or update PRs. When a PR is ready, send the user its link and check results, then wait for approval before merging. All changes to `main` go through an approved PR. Keep auto-merge off and respect branch protection.
