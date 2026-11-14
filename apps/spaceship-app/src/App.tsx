@@ -1,5 +1,5 @@
 import { useCallback, useState, type ReactNode } from "react";
-import type { AstronautStatus } from "./api/types";
+import type { Astronaut, AstronautStatus } from "./api/types";
 import { listAstronauts } from "./api/astronauts";
 import { getAstronautStatus } from "./api/status";
 import { Header } from "./components/Header";
@@ -49,12 +49,13 @@ function storeAstronaut(id: string): void {
 interface CrewScreenProps {
   tab: TabKey;
   astronautId: string;
+  astronauts: Astronaut[];
   onNavigate: (tab: TabKey) => void;
   status: AstronautStatus | null;
   statusUpdatedAt: number | null;
 }
 
-function CrewScreen({ tab, astronautId, onNavigate, status, statusUpdatedAt }: CrewScreenProps) {
+function CrewScreen({ tab, astronautId, astronauts, onNavigate, status, statusUpdatedAt }: CrewScreenProps) {
   switch (tab) {
     case "estado":
       return <EstadoScreen astronautId={astronautId} onNavigate={onNavigate} />;
@@ -65,7 +66,7 @@ function CrewScreen({ tab, astronautId, onNavigate, status, statusUpdatedAt }: C
     case "orina":
       return <OrinaScreen astronautId={astronautId} />;
     case "asistente":
-      return <AsistenteScreen astronautId={astronautId} status={status} statusUpdatedAt={statusUpdatedAt} />;
+      return <AsistenteScreen astronautId={astronautId} astronauts={astronauts} status={status} statusUpdatedAt={statusUpdatedAt} />;
     case "registros":
       return <RegistrosScreen astronautId={astronautId} />;
   }
@@ -138,6 +139,7 @@ function Console({ connection }: { connection: ConnectionState }) {
         key={`${tab}:${selected}`}
         tab={tab}
         astronautId={selected}
+        astronauts={list ?? []}
         onNavigate={setTab}
         status={status.data}
         statusUpdatedAt={status.updatedAt}
