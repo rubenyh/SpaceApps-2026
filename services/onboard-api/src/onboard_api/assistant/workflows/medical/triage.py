@@ -4,7 +4,7 @@ evaluate_alarms -> immediate hits only (cards, request and events; never reading
 evaluate_case   -> review_required / undetermined / informational hits, incl. readings.
 Negated, historical and hypothetical observations never trigger a rule. Resolved
 acute signs trigger only where the card says so (neurologic signs, seizure,
-blood in vomit, fainting review). Readings never cancel a symptom or event alarm.
+blood in vomit, severe/sudden breathlessness, chest pain pattern, fainting review). Readings never cancel a symptom or event alarm.
 """
 
 from collections.abc import Iterable
@@ -222,9 +222,11 @@ def evaluate_alarms(
     if o := g("abnormal_breathing"):
         add(BR, "abnormal_breathing", "immediate", [o])
     sob = g("shortness_of_breath")
-    severe_sob = sob if sob and (sob.severity == "severe" or sob.onset == "sudden") else None
+    # The card alarms on intensity/suddenness, so an episode that already eased still counts.
+    sob_any = g("shortness_of_breath", True)
+    severe_sob = sob_any if sob_any and (sob_any.severity == "severe" or sob_any.onset == "sudden") else None
     if severe_sob:
-        add(BR, "severe_or_sudden", "immediate", [sob])
+        add(BR, "severe_or_sudden", "immediate", [severe_sob])
 
     # 3-4. Ship events (confirmed or labelled simulated), then text-reported alerts.
     for e in _relevant_events(events, astronaut_id):
@@ -263,8 +265,8 @@ def evaluate_alarms(
         if dz := g("dizziness", True):
             add(DIZ, "with_neurologic_signs", "with_neurologic_signs", [dz])
 
-    # 7. Chest pain with a concerning pattern.
-    cp = g("chest_pain")
+    # 7. Chest pain with a concerning pattern, current or already eased (card: pressure that "reaparece").
+    cp = g("chest_pain", True)
     if cp:
         companions = _any(interp, "shortness_of_breath", "cold_sweat", "dizziness")
         if (cp.context == "pressure" or cp.severity == "severe" or cp.onset == "sudden"
@@ -303,7 +305,9 @@ def evaluate_alarms(
     # 11. Urinary: sudden inability to urinate (unknown onset is treated as sudden).
     utu = g("unable_to_urinate")
     if utu and utu.onset != "gradual":
-        add(URI, "acute_retention", "immediate", [utu], candidates=[_cand("acute_retention", "compatible", [utu])])
+        cand = (_cand("acute_retention", "compatible", [utu]) if utu.onset == "sudden" else
+                _cand("acute_retention", "insufficient_evidence", [utu], ["inicio súbito"]))
+        add(URI, "acute_retention", "immediate", [utu], candidates=[cand])
 
     # 13. Fever with red flags.
     fever = g("fever")

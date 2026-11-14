@@ -136,14 +136,95 @@ def test_accent_insensitive():
 
 
 def test_structured_overrides_text():
-    interp, o = obs("Me falta el aire", reported_symptoms=[{"symptom": "shortness_of_breath", "status": "absent"}])
-    assert o["shortness_of_breath"].status == "absent"
-    assert o["shortness_of_breath"].origin == "structured"
-    assert not evaluate_alarms(interp, [], "ana")
+    interp, o = obs("Tengo tos", reported_symptoms=[{"symptom": "cough", "severity": "severe"}])
+    assert (o["cough"].origin, o["cough"].severity) == ("structured", "severe")
+    interp, o = obs("No me falta el aire", reported_symptoms=[{"symptom": "shortness_of_breath"}])
+    assert o["shortness_of_breath"].status == "present"
     interp, o = obs("Tengo un problema",
                     reported_symptoms=[{"symptom": "speech_change", "persistence": "resolved"}])
     assert o["speech_change"].temporality == "resolved"
     assert evaluate_alarms(interp, [], "ana")[0].protocol_id == "neurologic_red_flags"
+
+
+def test_review_1_educational_marker_is_clause_scoped():
+    interp, o = obs("No sé qué es, me duele el pecho y me falta el aire")
+    assert o["chest_pain"].temporality == o["shortness_of_breath"].temporality == "current"
+    assert interp.request_kind == "report"
+    assert [h.protocol_id for h in evaluate_alarms(interp, [], "ana")] == ["chest_pain"]
+    _, o = obs("¿Qué hago si me falta el aire y tengo dolor de pecho?")
+    assert o["shortness_of_breath"].temporality == o["chest_pain"].temporality == "hypothetical"
+
+
+def test_review_2_resolved_is_segment_scoped_and_severe_sob_alarms_when_resolved():
+    interp, o = obs("Ya estoy bien, pero me falta el aire mucho")
+    assert o["shortness_of_breath"].temporality == "current"
+    assert evaluate_alarms(interp, [], "ana")[0].rule_id == "breathing_difficulty.severe_or_sudden"
+    _, o = obs("Me desmayé hace un rato, pero ya estoy bien")
+    assert o["fainting"].temporality == "resolved"
+    interp, o = obs("De repente me faltó el aire, ya se me pasó")
+    assert o["shortness_of_breath"].temporality == "resolved"
+    assert evaluate_alarms(interp, [], "ana")[0].rule_id == "breathing_difficulty.severe_or_sudden"
+
+
+def test_review_3_sin_embargo_is_not_a_negator():
+    interp, o = obs("Sin embargo me duele mucho el pecho")
+    assert o["chest_pain"].status == "present"
+    assert evaluate_alarms(interp, [], "ana")[0].protocol_id == "chest_pain"
+    _, o = obs("Sin duda tengo fiebre")
+    assert o["fever"].status == "present"
+
+
+def test_review_4_resolved_chest_pressure_still_alarms():
+    interp, o = obs("Ya se me pasó la presión en el pecho")
+    assert o["chest_pain"].temporality == "resolved"
+    assert evaluate_alarms(interp, [], "ana")[0].rule_id == "chest_pain.concerning_pattern"
+    route, _ = run({"message": "Tuve un dolor de pecho leve, ya se me pasó", "astronaut_id": "ana"})
+    assert route == "assessment"  # resolved, no concerning pattern: review, not alarm
+
+
+def test_review_5_hace_tiempo_que_is_ongoing():
+    _, o = obs("Hace tiempo que me falta el aire")
+    sob = o["shortness_of_breath"]
+    assert (sob.temporality, sob.persistence) == ("current", "ongoing")
+    _, o = obs("Hace una semana que tengo tos")
+    assert o["cough"].temporality == "current"
+    _, o = obs("Hace mucho tiempo tuve dolor de pecho")
+    assert o["chest_pain"].temporality == "historical"
+    _, o = obs("Hace tiempo que tuve una convulsión")
+    assert o["seizure"].temporality == "historical"
+
+
+def test_review_6_structured_absent_does_not_hide_text_present():
+    interp, o = obs("Me falta muchísimo el aire",
+                    reported_symptoms=[{"symptom": "shortness_of_breath", "status": "absent"}])
+    assert (o["shortness_of_breath"].status, o["shortness_of_breath"].origin) == ("present", "text")
+    assert evaluate_alarms(interp, [], "ana")
+    _, o = obs("Ya se me pasó la presión en el pecho",
+               reported_symptoms=[{"symptom": "chest_pain", "status": "unknown"}])
+    assert o["chest_pain"].status == "present"
+    # structured present still wins over text (modifiers and unknown -> present).
+    _, o = obs("No sé si tengo fiebre", reported_symptoms=[{"symptom": "fever", "onset": "sudden"}])
+    assert (o["fever"].status, o["fever"].origin, o["fever"].onset) == ("present", "structured", "sudden")
+
+
+def test_review_7_headache_clarification_round_trip_by_text():
+    msg = "Me duele la cabeza. Empezó poco a poco y es leve; no tengo problemas del habla ni de visión."
+    _, o = obs(msg)
+    assert (o["headache"].onset, o["headache"].severity) == ("gradual", "mild")
+    route, d = run({"message": msg, "astronaut_id": "ana"})
+    assert route in ("out_of_coverage", "assessment")
+    assert d is None or d.protocol_id != "neurologic_red_flags"
+    for text in ("Me duele la cabeza de a poco, es poco intenso", "Dolor de cabeza ligero que empezó lentamente"):
+        _, o = obs(text)
+        assert (o["headache"].onset, o["headache"].severity) == ("gradual", "mild"), text
+
+
+def test_review_8_acute_retention_candidate_needs_sudden_onset():
+    def cand(message):
+        [hit] = evaluate_alarms(interpret(AssistantRequest(message=message)), [], None)
+        return hit.candidates[0].status
+    assert cand("De repente no puedo orinar") == "compatible"
+    assert cand("No puedo orinar") == "insufficient_evidence"
 
 
 def test_request_kinds_and_hints():

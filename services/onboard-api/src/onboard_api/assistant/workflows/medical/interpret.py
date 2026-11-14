@@ -1,8 +1,11 @@
 """Spanish report -> Interpretation. Pure, deterministic, no I/O.
 
 Text is lowercased and accent-stripped. Scopes:
-- sentence (split on . ; ! ? and newlines): hypothetical/educational, resolved, onset/severity fallback.
-- segment (sentence split before pero/aunque/ahora/hoy): historical, "still happening" markers.
+- sentence (split on . ; ! ? and newlines): onset/severity fallback; a symptom-free sentence
+  ("Ya se me pasó.") refers back to the previous one.
+- segment (sentence split before pero/aunque/ahora/hoy): historical, resolved, "still happening".
+- comma part: a hypothetical/educational marker governs its own clause and the later clauses
+  of the same comma-delimited part ("No sé qué es, me duele el pecho" stays current).
 - clause (segment split on commas, "y", and before "ni"): negation, "no sé si".
 ponytail: phrase patterns cover the demo scenarios, not all Spanish; Ollama-assisted
 extraction can be added later and validated against these observations.
@@ -23,7 +26,7 @@ def normalize(text: str) -> str:
 
 # (code, pattern, defaults). Patterns are written lowercase without accents.
 _P = [
-    ("shortness_of_breath", r"\b(me |le |te )?falta(ba)? (mucho |muchisimo |bastante |un poco )?(el |de )?aire|\b(me|le) cuesta respirar|dificultad (para|al) respirar|respir\w+ con dificultad|disnea|sin aliento|no me entra (el )?aire|me quedo sin aire", {}),
+    ("shortness_of_breath", r"\b(me |le |te )?falt(a|aba|o) (mucho |muchisimo |bastante |un poco )?(el |de )?aire|\b(me|le) cuesta respirar|dificultad (para|al) respirar|respir\w+ con dificultad|disnea|sin aliento|no me entra (el )?aire|me quedo sin aire", {}),
     ("shortness_of_breath", r"\bno (puedo|puede|podia) respirar|\b(me|se) ahog\w*", {"severity": "severe"}),
     ("abnormal_breathing", r"\bno respira|respira (raro|mal|entrecortad\w*|de forma anormal)|respiracion (anormal|irregular|agonica)|\bjadea", {}),
     ("chest_pain", r"dolor (de|en el) pecho|dolor toracico|(me|le) duele (el|mucho el) pecho|molestia en el pecho", {}),
@@ -32,7 +35,7 @@ _P = [
     ("palpitations", r"palpitacion\w*|el corazon (me |le )?(late|va) (muy )?(rapido|fuerte|acelerado|irregular)|corazon acelerado|taquicardi\w*|se (me|le) acelera el corazon|latidos (rapidos|irregulares|fuertes)", {}),
     ("speech_change", r"\bno (puedo|puede|podia|pude|pudo) hablar|(me|le) cuesta hablar|habla (rara|raro|arrastrad\w*|trabad\w*|confus\w*)|hablo (raro|arrastrado|trabado)|se (me|le) trab\w* (la lengua|el habla)|arrastr\w+ las palabras|dificultad para hablar|alteracion del habla|no (me|le) salen las palabras|lengua trabada", {}),
     ("facial_droop", r"(cara|boca|rostro) (caida|torcida|desviada|chueca)|se (me|le) cae (la cara|un lado de la cara|la boca)|asimetria facial|paralisis facial", {}),
-    ("one_sided_weakness", r"debilidad (en|de) (un|el|la|medio) (brazo|pierna|lado|mano|cuerpo)|debil de un lado|no (puedo|puede|podia) mover (el|la|un|una) (brazo|pierna|mano)|(brazo|pierna|mano) (dormid[oa]|sin fuerza|entumid[oa])|perd\w+ fuerza en (el|la|un|una)|se (me|le) durmio (el|la|un|una|medio|media) (brazo|pierna|mano|cara|lado|cuerpo)", {}),
+    ("one_sided_weakness", r"debilidad (\w+ )?(en|de) (un|el|la|medio) (brazo|pierna|lado|mano|cuerpo)|debil de un lado|no (puedo|puede|podia) mover (el|la|un|una) (brazo|pierna|mano)|(brazo|pierna|mano) (dormid[oa]|sin fuerza|entumid[oa])|perd\w+ fuerza en (el|la|un|una)|se (me|le) durmio (el|la|un|una|medio|media) (brazo|pierna|mano|cara|lado|cuerpo)", {}),
     ("vision_loss", r"perd\w+ (la )?(vista|vision)|perdida (subita )?de (la )?vision|dej\w+ de ver|no (veo|ve) (de|por|con) un ojo|me quede ciego", {}),
     ("sudden_severe_headache", r"peor dolor de cabeza de (mi|su) vida|cefalea en trueno", {"onset": "sudden", "severity": "severe"}),
     ("headache", r"dolor de cabeza|(me|le) duele (mucho )?la cabeza|cefalea|migran\w*|jaqueca", {}),
@@ -91,6 +94,7 @@ _NEGATOR = re.compile(r"\b(no|sin|ni|nunca|tampoco|jamas|niego|nada de)\b")
 _NEUTRAL_NO = re.compile(
     r"\bno (se|sabe|sabemos) (que|por que|como|cuando|donde|cual)\b"
     r"|\bno (se me |se le |se )?(quita|pasa|para|cede|mejora)\b"
+    r"|\bsin (embargo|duda)\b"
 )
 _UNKNOWN = re.compile(r"\bno (se|sabe|sabemos|estoy segur[oa]( de)?) si\b")
 
@@ -104,10 +108,14 @@ _HYPOTHETICAL = re.compile(
     r"|si alguien|si alguna vez|si alguno|si un tripulante|si tuviera|si tuviese|si llegara|en caso de"
     r"|supongamos|hipotetic\w*)\b"
 )
+# "hace <duración>" is historical, except "hace <duración> que" + non-past verb, which is
+# ongoing persistence ("Hace tiempo que me falta el aire"; "hace tiempo que tuve..." stays historical).
+_AGO = (r"hace ((\d+|un|una|unos|unas|dos|tres|cuatro|cinco|seis|varios|varias|muchos|muchas)"
+        r" (anos?|mes|meses|semanas?)|(mucho )?tiempo)")
 _HISTORICAL = re.compile(
-    r"\bhace (\d+|un|una|unos|unas|dos|tres|cuatro|cinco|seis|varios|varias|muchos|muchas) (anos?|mes|meses|semanas?)\b"
+    rf"\b{_AGO}\b(?! que\b)|\b{_AGO} que (me |le |se )?(tuve|tuvo|sufri|sufrio|dio|paso|desmaye|desmayo)\b"
     r"|\b(el|este) (ano|mes) pasado\b|\bla (semana|mision) pasada\b|\bantes tenia\b|\bde nin[oa]\b"
-    r"|\ben el pasado\b|\bhace (mucho )?tiempo\b|\ben otra mision\b|\bantes de la mision\b|\bantecedente"
+    r"|\ben el pasado\b|\ben otra mision\b|\bantes de la mision\b|\bantecedente"
 )
 _RESOLVED = re.compile(
     r"\bya (se me|se le|se) (paso|quito|fue|resolvio)\b|\bya (paso|cedio|desaparecio|se recupero|desperto"
@@ -133,14 +141,15 @@ _NAMED_OTHER = re.compile(
 )
 
 _SUDDEN = re.compile(r"\b(de repente|repentin\w*|subit\w*|de golpe|de pronto|sin aviso)\b")
-_GRADUAL = re.compile(r"\b(poco a poco|gradual\w*|progresiv\w*|lentamente)\b")
+_GRADUAL = re.compile(r"\b(poco a poco|de a poco|gradual\w*|progresiv\w*|lentamente)\b")
 _SEVERE = re.compile(
-    r"\b(intens\w*|much[oa]s?|muchisim\w*|grave|muy fuerte|insoportable|sever[oa]|terrible|horrible"
+    r"\b((?<!poco )intens\w*|much[oa]s?|muchisim\w*|grave|muy fuerte|insoportable|sever[oa]|terrible|horrible"
     r"|el peor|la peor)\b"
 )
-_MODERATE = re.compile(r"\b(fuerte|moderad[oa]|bastante)\b")
-_MILD = re.compile(r"\b(leve|un poco|poquito|liger[oa]|algo de|suave)\b")
+_MODERATE = re.compile(r"\b((?<!poco )fuerte|moderad[oa]|bastante)\b")
+_MILD = re.compile(r"\b(leve|un poco|poquito|liger[oa]|algo de|suave|es poco(?! a poco)|poco (intens\w*|fuerte|dolor\w*))\b")
 _ONGOING = re.compile(
+    rf"\b{_AGO} que\b|"
     r"\b(sigue|sigo|todavia|aun|persiste|no se (me |le )?(quita|pasa)|desde (hace|ayer|anoche|esta manana|la manana|hoy)"
     r"|llevo|lleva|cada vez (peor|mas)|empeora\w*|constante|continu\w*|todo el dia)\b"
 )
@@ -261,14 +270,20 @@ def _text_observations(message: str, other_message: bool) -> list[Observation]:
     for sentence in _SENTENCE.split(normalize(message)):
         if not sentence.strip():
             continue
-        hypothetical = bool(_HYPOTHETICAL.search(sentence) or _EDUCATIONAL.search(sentence))
-        resolved = bool(_RESOLVED.search(sentence))
         start = len(found)
+        seg_previous: list[int] = []
         for segment in _SEGMENT.split(sentence):
             historical = bool(_HISTORICAL.search(segment))
-            still = bool(_STILL.search(segment))
+            resolved = bool(_RESOLVED.search(segment)) and not _STILL.search(segment)
             other = other_message or bool(_OTHER.search(segment) or _OTHER.search(sentence))
-            for clause in _CLAUSE.split(segment):
+            seg_start = len(found)
+            clauses = []
+            for part in segment.split(","):
+                governed = False
+                for clause in _CLAUSE.split(part):
+                    governed = governed or bool(_HYPOTHETICAL.search(clause) or _EDUCATIONAL.search(clause))
+                    clauses.append((clause, governed))
+            for clause, hypothetical in clauses:
                 for code, rx, extra in _PATTERNS:
                     m = rx.search(clause)
                     if not m:
@@ -284,7 +299,7 @@ def _text_observations(message: str, other_message: bool) -> list[Observation]:
                         temporality = "hypothetical"
                     elif historical:
                         temporality = "historical"
-                    elif resolved and not still:
+                    elif resolved:
                         temporality = "resolved"
                     else:
                         temporality = "current"
@@ -308,12 +323,26 @@ def _text_observations(message: str, other_message: bool) -> list[Observation]:
                         persistence=persistence,
                         context=extra.get("context") or context,
                     ))
-        if len(found) == start and resolved and previous:
-            # "Ya se me pasó." alone refers back to the previous sentence.
+            if len(found) == seg_start and resolved:
+                # "Me desmayé, pero ya estoy bien": refers back to the previous segment.
+                for i in seg_previous:
+                    if found[i].status == "present" and found[i].temporality == "current":
+                        found[i] = _replace(found[i], temporality="resolved", persistence="resolved")
+            elif len(found) > seg_start:
+                seg_previous = list(range(seg_start, len(found)))
+        resolved = bool(_RESOLVED.search(sentence))
+        if len(found) == start and previous:
+            # "Ya se me pasó." / "Empezó poco a poco y es leve." alone refer back
+            # to the previous sentence's present symptoms.
+            onset, severity = _onset(sentence), _severity(sentence)
             for i in previous:
                 o = found[i]
-                if o.status == "present" and o.temporality == "current":
-                    found[i] = _replace(o, temporality="resolved", persistence="resolved")
+                if o.status != "present":
+                    continue
+                o = _replace(o, onset=o.onset or onset, severity=o.severity or severity)
+                if resolved and o.temporality == "current":
+                    o = _replace(o, temporality="resolved", persistence="resolved")
+                found[i] = o
         elif len(found) > start:
             previous = list(range(start, len(found)))
     return found
@@ -332,8 +361,17 @@ def interpret(request: AssistantRequest) -> Interpretation:
         if o.symptom == "headache" and o.onset == "sudden" and o.severity == "severe":
             observations.append(_replace(o, symptom="sudden_severe_headache"))
 
-    structured = {s.symptom for s in request.reported_symptoms}
-    observations = [o for o in observations if o.symptom not in structured]
+    # Structured entries override text of the same code (status and onset/severity/persistence),
+    # except for safety: text reporting the symptom present (current or resolved) is kept when the
+    # structured entry says absent/unknown, and the dedupe below keeps the present one. Applied to
+    # every code (a superset of the alarm-capable ones).
+    structured = {s.symptom: s.status for s in request.reported_symptoms}
+    observations = [
+        o for o in observations
+        if o.symptom not in structured
+        or (structured[o.symptom] != "present" and o.status == "present"
+            and o.temporality in ("current", "resolved"))
+    ]
     for s in request.reported_symptoms:
         context = s.context
         if context and s.symptom in ("dizziness", "nausea", "vomiting") and _ADAPTATION.search(normalize(context)):
