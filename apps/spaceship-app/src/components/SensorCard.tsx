@@ -49,16 +49,16 @@ export function SensorCard({
 
   let bottom: ReactNode;
   if (sensor?.kind === "urine_color") {
-    bottom = <span className="card__note">Se muestra el color tal como lo midió el sensor.</span>;
+    bottom = <span className="card__note">Color shown as measured by the sensor.</span>;
   } else if (sensor && validity && range) {
     bottom = (
       <span className="card__note card__note--icon">
         {judged ? <StateIcon state={sensor.status === "alert" ? "doubtful" : "normal"} /> : null}
         {sensor.status === "alert"
-          ? `Muestra dudosa: fuera de ${range}`
+          ? `Doubtful sample: outside ${range}`
           : sensor.status === "normal"
-            ? `Muestra válida (${range})`
-            : `La muestra es válida entre ${range}`}
+            ? `Valid sample (${range})`
+            : `The sample is valid within ${range}`}
       </span>
     );
   } else if (sensor && scale && range) {
@@ -69,11 +69,11 @@ export function SensorCard({
     bottom = (
       <span className="card__note card__note--icon">
         {sensor.config.provisional ? <span className="prov">PROV.</span> : null}
-        Rango: {range}
+        Range: {range}
       </span>
     );
   } else {
-    bottom = <span className="card__note">Aún no hay un rango de referencia definido.</span>;
+    bottom = <span className="card__note">No reference range defined yet.</span>;
   }
 
   return (
@@ -93,7 +93,7 @@ export function SensorCard({
       quality={sensor?.latest?.quality}
       source={showSource ? sensor?.latest?.source : null}
       size={size}
-      explanation={validity && judged && !offline ? "No es un dato de salud" : explain(sensor, offline)}
+      explanation={validity && judged && !offline ? "Not a health reading" : explain(sensor, offline)}
       tag={tag}
     >
       {bottom}

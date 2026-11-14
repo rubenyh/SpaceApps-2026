@@ -42,7 +42,7 @@ export function RangeTrack({ value, scale, config, status }: Props) {
               {config.range_source ? ` · ${config.range_source}` : ""}
             </>
           ) : (
-            "Sin rango definido"
+            "No range defined"
           )}
         </span>
         <span>{formatNumber(scale[1])}</span>

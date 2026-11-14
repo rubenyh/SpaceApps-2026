@@ -12,9 +12,9 @@ interface Props {
 }
 
 const CONNECTION: Record<ConnectionState, { icon: VisualState; text: string }> = {
-  unknown: { icon: "no_data", text: "Conectando con el servicio…" },
-  online: { icon: "normal", text: "Conectado al servicio de a bordo" },
-  offline: { icon: "alert", text: "Sin conexión con el servicio" },
+  unknown: { icon: "no_data", text: "Connecting to the service…" },
+  online: { icon: "normal", text: "Connected to the onboard service" },
+  offline: { icon: "alert", text: "No connection to the service" },
 };
 
 /** Top band: brand, crew selector, UTC clock and connection indicator. */
@@ -31,17 +31,17 @@ export function Header({ astronauts, selectedId, onSelect, connection }: Props) 
             <circle cx="15" cy="15" r="7" fill="none" stroke="currentColor" strokeWidth="2" />
             <ellipse className="header__orbit" cx="15" cy="15" rx="13.5" ry="5.5" transform="rotate(-24 15 15)" />
           </svg>
-          <h1>Consola biomédica</h1>
+          <h1>Biomedical console</h1>
         </div>
         <span className="header__rule" aria-hidden="true" />
         <label className="header__crew">
-          <span>Tripulante</span>
+          <span>Crew member</span>
           <select
             value={selectedId ?? ""}
             onChange={(e) => onSelect(e.target.value)}
             disabled={list.length === 0}
           >
-            {list.length === 0 ? <option value="">Ninguno</option> : null}
+            {list.length === 0 ? <option value="">None</option> : null}
             {list.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.id} · {a.display_name}

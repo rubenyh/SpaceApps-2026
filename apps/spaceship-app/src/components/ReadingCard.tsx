@@ -4,9 +4,9 @@ import { formatAge } from "../lib/format";
 import { StateIcon, StatusPill, type VisualState } from "./StatusPill";
 
 const QUALITY_TEXT: Record<Quality, string> = {
-  good: "Calidad buena",
-  suspect: "Calidad dudosa",
-  bad: "Calidad mala",
+  good: "Good quality",
+  suspect: "Suspect quality",
+  bad: "Bad quality",
 };
 
 interface Props {
@@ -26,7 +26,7 @@ interface Props {
   size?: "sm" | "md" | "lg";
   /** One plain sentence about the reading. */
   explanation: string;
-  /** Extra label next to the explanation, e.g. a "Muestra dudosa" pill. */
+  /** Extra label next to the explanation, e.g. a "Doubtful sample" pill. */
   tag?: ReactNode;
   /** Bottom area, e.g. a RangeTrack. */
   children?: ReactNode;
@@ -66,7 +66,7 @@ export function ReadingCard({
         <div className="card__meta">
           <span className="card__age">
             {status === "stale" ? <StateIcon state="stale" size={15} /> : null}
-            {noData || !age ? "Nunca medido" : age.charAt(0).toUpperCase() + age.slice(1)}
+            {noData || !age ? "Never measured" : age.charAt(0).toUpperCase() + age.slice(1)}
           </span>
           {!noData && quality ? (
             <span className="card__quality">

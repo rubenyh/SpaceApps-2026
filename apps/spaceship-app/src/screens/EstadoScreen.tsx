@@ -22,11 +22,11 @@ const POLL_MS = 5000;
 
 /** How the top notice names a reading, and where its detail lives. */
 const ALERT_COPY: Partial<Record<SensorKind, { name: string; tab: DetailTab; link: string }>> = {
-  heart_rate: { name: "tu pulso", tab: "vitales", link: "Ver signos vitales" },
-  spo2: { name: "tu oxígeno en sangre", tab: "vitales", link: "Ver signos vitales" },
-  muscle_density: { name: "el valor de densidad muscular", tab: "musculo", link: "Ver músculo" },
-  urine_ph: { name: "el pH de tu orina", tab: "orina", link: "Ver orina" },
-  urine_salinity: { name: "el valor de salinidad de tu orina", tab: "orina", link: "Ver orina" },
+  heart_rate: { name: "your heart rate", tab: "vitales", link: "View vital signs" },
+  spo2: { name: "your blood oxygen", tab: "vitales", link: "View vital signs" },
+  muscle_density: { name: "your muscle density value", tab: "musculo", link: "View muscle" },
+  urine_ph: { name: "your urine pH", tab: "orina", link: "View urine" },
+  urine_salinity: { name: "your urine salinity value", tab: "orina", link: "View urine" },
 };
 
 function AlertBanner({
@@ -41,9 +41,9 @@ function AlertBanner({
   const first = alerts[0];
   const copy = ALERT_COPY[first.kind];
   const side = rangeSide(first);
-  const how = side === "high" ? "está alto" : side === "low" ? "está bajo" : "está fuera de lo normal";
+  const how = side === "high" ? "is high" : side === "low" ? "is low" : "is outside normal";
   const where =
-    side === "high" ? "por encima de lo normal" : side === "low" ? "por debajo de lo normal" : "fuera de lo normal";
+    side === "high" ? "above normal" : side === "low" ? "below normal" : "outside normal";
   const range = rangeText(first.config);
   const unit = unitLabel(first.latest?.unit);
   const others = alerts.length - 1;
@@ -52,14 +52,14 @@ function AlertBanner({
       <StateIcon state="alert" size={30} pulse />
       <div className="banner__text">
         <span className="banner__title">
-          Necesita tu atención: {copy?.name ?? "una lectura"} {how}
+          Needs your attention: {copy?.name ?? "a reading"} {how}
         </span>
         <span>
           {readingValueText(first.latest)}
           {unit ? ` ${unit}` : ""}, {where}
           {range ? ` (${range}${first.config.provisional ? ", provisional" : ""})` : ""}.
-          {ageSeconds !== null ? ` Medido ${formatAge(ageSeconds)}.` : ""}
-          {others > 0 ? ` Hay ${others} ${others === 1 ? "alerta más" : "alertas más"} abajo.` : ""}
+          {ageSeconds !== null ? ` Measured ${formatAge(ageSeconds)}.` : ""}
+          {others > 0 ? ` ${others} more ${others === 1 ? "alert" : "alerts"} below.` : ""}
         </span>
       </div>
       {copy ? (
@@ -75,19 +75,19 @@ function AlertBanner({
 function SummaryBanner({ sensors }: { sensors: (SensorStatus | null)[] }) {
   const count = (st: string) => sensors.filter((s) => (s?.status ?? "no_data") === st).length;
   const notes = [
-    count("stale") > 0 ? `${count("stale")} con dato viejo` : "",
-    count("no_data") > 0 ? `${count("no_data")} sin datos` : "",
-    count("no_range") > 0 ? `${count("no_range")} sin rango` : "",
+    count("stale") > 0 ? `${count("stale")} with old data` : "",
+    count("no_data") > 0 ? `${count("no_data")} with no data` : "",
+    count("no_range") > 0 ? `${count("no_range")} with no range` : "",
   ].filter(Boolean);
   return (
     <div className="banner" role="status">
       <StateIcon state={notes.length > 0 ? "no_range" : "normal"} size={30} />
       <div className="banner__text">
-        <span className="banner__title">Sin alertas activas</span>
+        <span className="banner__title">No active alerts</span>
         <span>
           {notes.length > 0
-            ? `De estas 4 lecturas: ${notes.join(", ")}. Esas no se pueden evaluar.`
-            : "Las 4 lecturas están dentro de lo normal."}
+            ? `Of these 4 readings: ${notes.join(", ")}. Those cannot be evaluated.`
+            : "All 4 readings are within normal."}
         </span>
       </div>
     </div>
@@ -133,8 +133,8 @@ export function EstadoScreen({ astronautId, onNavigate }: Props) {
       ) : !loaded ? (
         <div className="banner" role="status">
           <div className="banner__text">
-            <span className="banner__title">Cargando lecturas…</span>
-            <span>Conectando con el servicio de a bordo. Suele tardar unos segundos.</span>
+            <span className="banner__title">Loading readings…</span>
+            <span>Connecting to the onboard service. This usually takes a few seconds.</span>
           </div>
         </div>
       ) : alerts.length > 0 ? (
@@ -148,8 +148,8 @@ export function EstadoScreen({ astronautId, onNavigate }: Props) {
       )}
       <div className="estado__grid">
         <div className="estado__col">
-          {card("Oxígeno en sangre", "SpO₂ · pulmones", spo2)}
-          {card("Densidad muscular", "Extremidades", muscle)}
+          {card("Blood oxygen", "SpO₂ · lungs", spo2)}
+          {card("Muscle density", "Limbs", muscle)}
         </div>
         <div className="estado__center">
           <BodyMap
@@ -163,16 +163,16 @@ export function EstadoScreen({ astronautId, onNavigate }: Props) {
             <div className={`estado__radiation${radiation?.latest ? " estado__radiation--flag" : ""}`}>
               <StateIcon state={radiation?.latest ? "doubtful" : "no_data"} />
               <span>
-                <strong>Radiación:</strong>{" "}
-                {radiation?.latest ? "posible exposición, requiere confirmación." : "sin datos."} Es un
-                indicador indirecto, no mide dosis.
+                <strong>Radiation:</strong>{" "}
+                {radiation?.latest ? "possible exposure, needs confirmation." : "no data."} It is an
+                indirect indicator and does not measure dose.
               </span>
             </div>
           ) : null}
         </div>
         <div className="estado__col">
-          {card("Pulso", "Corazón", heart)}
-          {card("Orina · pH", "Riñones", ph, doubtfulSample)}
+          {card("Heart rate", "Heart", heart)}
+          {card("Urine · pH", "Kidneys", ph, doubtfulSample)}
         </div>
       </div>
     </div>

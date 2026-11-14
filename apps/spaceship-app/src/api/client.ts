@@ -114,7 +114,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       signal: controller.signal,
     });
   } catch (err) {
-    if (timedOut) throw new NetworkError("tiempo de espera agotado");
+    if (timedOut) throw new NetworkError("request timed out");
     if (signal?.aborted) throw new AbortedError();
     throw new NetworkError(err instanceof Error ? err.message : String(err));
   } finally {
@@ -135,6 +135,6 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   try {
     return (await response.json()) as T;
   } catch {
-    throw new HttpError(response.status, "respuesta no es JSON válido");
+    throw new HttpError(response.status, "response is not valid JSON");
   }
 }

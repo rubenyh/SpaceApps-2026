@@ -1,56 +1,56 @@
 :root {
   color-scheme: dark;
 
-  /* Superficies */
+  /* Surfaces */
   --color-bg: #0A1020;
   --color-surface: #111A2E;
   --color-surface-2: #17223A;
   --color-border: #2A3854;
-  --color-brand: #0B3D91;        /* banda de cabecera */
-  --color-brand-rule: #C8301A;   /* línea bajo la cabecera */
+  --color-brand: #0B3D91;        /* header band */
+  --color-brand-rule: #C8301A;   /* rule under the header */
 
-  /* Texto */
+  /* Text */
   --color-text: #F1F4F9;
   --color-text-muted: #A7B2C6;
   --color-text-faint: #8592AA;
-  --color-accent: #6EA2FF;       /* interactivo, pestaña activa, aclaraciones */
+  --color-accent: #6EA2FF;       /* interactive, active tab, clarifications */
 
-  /* Estados de lectura (siempre con icono + texto + borde) */
-  --state-alert: #FF6A4D;        /* ALERTA: texto, borde, marcador */
-  --state-alert-fill: #C8301A;   /* ALERTA: fondo de etiqueta y aviso (texto blanco) */
+  /* Reading states (always icon + text + border) */
+  --state-alert: #FF6A4D;        /* ALERT: text, border, marker */
+  --state-alert-fill: #C8301A;   /* ALERT: pill and notice background (white text) */
   --state-alert-tint: rgba(255, 106, 77, 0.08);
   --state-normal: #3DD68C;
-  --state-stale: #F5B841;        /* DATO VIEJO */
-  --state-nodata: #8592AA;       /* SIN DATOS */
-  --state-norange: #8AB4FF;      /* SIN RANGO */
+  --state-stale: #F5B841;        /* OLD DATA */
+  --state-nodata: #8592AA;       /* NO DATA */
+  --state-norange: #8AB4FF;      /* NO RANGE */
   --range-zone: rgba(61, 214, 140, 0.18);
 
-  /* Bordes por estado */
+  /* Borders per state */
   --border-alert: 2px solid var(--state-alert);
   --border-normal: 1px solid var(--color-border);
   --border-stale: 2px dashed var(--state-stale);
   --border-nodata: 2px dotted var(--state-nodata);
   --border-norange: 3px double var(--state-norange);
-  --border-dubious: 2px solid var(--color-text-muted); /* MUESTRA DUDOSA */
+  --border-dubious: 2px solid var(--color-text-muted); /* DOUBTFUL SAMPLE */
 
-  /* Tipografía (sin fuentes empaquetadas) */
+  /* Typography (no bundled fonts) */
   --font-sans: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
-  --text-xs: 14px;     /* mínimo: etiquetas, ejes, notas */
-  --text-sm: 15px;     /* cuerpo */
-  --text-md: 16px;     /* pestañas, chat */
-  --text-lg: 19px;     /* títulos de tarjeta */
-  --text-xl: 22px;     /* título de aviso */
-  --text-2xl: 28px;    /* estados vacíos */
-  --value-sm: 40px;    /* valor en listas */
-  --value-md: 56px;    /* valor en tarjeta */
-  --value-lg: 72px;    /* valor en Signos vitales */
+  --text-xs: 14px;     /* minimum: labels, axes, notes */
+  --text-sm: 15px;     /* body */
+  --text-md: 16px;     /* tabs, chat */
+  --text-lg: 19px;     /* card titles */
+  --text-xl: 22px;     /* notice title */
+  --text-2xl: 28px;    /* empty states */
+  --value-sm: 40px;    /* value in lists */
+  --value-md: 56px;    /* value in card */
+  --value-lg: 72px;    /* value on Vital signs */
   --weight-regular: 400;
   --weight-bold: 700;
   --leading-body: 1.5;
   --numeric: tabular-nums;
 
-  /* Espaciado (base 4) */
+  /* Spacing (base 4) */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -60,22 +60,22 @@
   --space-8: 32px;
   --space-10: 40px;
 
-  /* Forma */
+  /* Shape */
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-pill: 999px;
   --target-min: 44px;
 
-  /* Estructura de la ventana (1280×800, mínimo 1024×700) */
+  /* Window layout (1280×800, minimum 1024×700) */
   --header-h: 60px;
   --tabs-h: 52px;
   --footer-h: 40px;
   --page-pad: 20px;
   --gap: 16px;
 
-  /* Movimiento */
-  --alert-pulse: 1.4s ease-in-out infinite;  /* solo el icono de alerta */
+  /* Motion */
+  --alert-pulse: 1.4s ease-in-out infinite;  /* alert icon only */
 }
 
 @media (prefers-reduced-motion: reduce) {

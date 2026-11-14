@@ -23,7 +23,7 @@ type RangeKey = "7d" | "30d" | "all";
 const RANGES: { key: RangeKey; label: string }[] = [
   { key: "7d", label: "7 D" },
   { key: "30d", label: "30 D" },
-  { key: "all", label: "Todo" },
+  { key: "all", label: "All" },
 ];
 const DAY = 86_400_000;
 
@@ -89,8 +89,8 @@ export function MusculoScreen({ astronautId }: Props) {
       <div className="musculo__grid">
         <div className="musculo__side">
           <SensorCard
-            title="Densidad muscular"
-            organ="Extremidades"
+            title="Muscle density"
+            organ="Limbs"
             sensor={sensor}
             ageSeconds={age}
             loaded={loaded}
@@ -98,11 +98,11 @@ export function MusculoScreen({ astronautId }: Props) {
           >
             <div className="stats">
               <div className="stat">
-                <span>Desde la primera lectura</span>
+                <span>Since first reading</span>
                 <strong>{delta(first)}</strong>
               </div>
               <div className="stat">
-                <span>En los últimos 30 días</span>
+                <span>In the last 30 days</span>
                 <strong>{delta(first30)}</strong>
               </div>
             </div>
@@ -111,10 +111,10 @@ export function MusculoScreen({ astronautId }: Props) {
             <div className="infobox infobox--no_range">
               <StateIcon state="no_range" size={18} />
               <div>
-                <strong>Rango de referencia aún sin definir</strong>
+                <strong>Reference range not defined yet</strong>
                 <span>
-                  Usa esta pantalla para ver si el valor baja con las semanas, no para juzgar una
-                  lectura aislada.
+                  Use this screen to see whether the value drops over the weeks, not to judge a
+                  single reading.
                 </span>
               </div>
             </div>
@@ -123,24 +123,24 @@ export function MusculoScreen({ astronautId }: Props) {
             <div className="infobox">
               <StateIcon state="stale" />
               <span>
-                Pasará a <strong>dato viejo</strong> en {formatDuration(ttl - age)} (vigencia:{" "}
+                Becomes <strong>old data</strong> in {formatDuration(ttl - age)} (valid for:{" "}
                 {formatDuration(ttl)})
               </span>
             </div>
           ) : null}
         </div>
         <Panel
-          title="Tendencia"
-          aside={<SegmentedControl label="Periodo" options={RANGES} value={range} onChange={setRange} />}
+          title="Trend"
+          aside={<SegmentedControl label="Period" options={RANGES} value={range} onChange={setRange} />}
         >
           <div className="panel__caption">
             <span className="caption">
-              {unit ? `Valor en ${unitLabel(unit)}` : "Valor"} · {sameUnit.length} lecturas · fechas en UTC
-              {excluded > 0 ? ` · ${excluded} con otra unidad no se representan ni se comparan` : ""}
+              {unit ? `Value in ${unitLabel(unit)}` : "Value"} · {sameUnit.length} readings · dates in UTC
+              {excluded > 0 ? ` · ${excluded} in another unit are not plotted or compared` : ""}
             </span>
             <span className="caption caption--legend">
               <span className="legend-line" aria-hidden="true" />
-              Primera lectura
+              First reading
             </span>
           </div>
           <LineChart
@@ -152,8 +152,8 @@ export function MusculoScreen({ astronautId }: Props) {
             baseline={first?.v ?? null}
             width={790}
             height={410}
-            label="Densidad muscular"
-            emptyText="Sin lecturas en este periodo"
+            label="Muscle density"
+            emptyText="No readings in this period"
           />
         </Panel>
       </div>

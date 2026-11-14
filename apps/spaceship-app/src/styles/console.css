@@ -1,4 +1,4 @@
-/* Consola biomédica. Referencia visual: docs/diseno. Usa solo los tokens de tokens.css. */
+/* Biomedical console. Referencia visual: docs/diseno. Usa solo los tokens de tokens.css. */
 
 /* ---------- base ---------- */
 
@@ -1101,7 +1101,7 @@ input {
   color: var(--color-text);
 }
 
-/* ---------- Signos vitales, Músculo, Orina ---------- */
+/* ---------- Vital signs, Muscle, Urine ---------- */
 
 .vitales__grid {
   flex: 1;

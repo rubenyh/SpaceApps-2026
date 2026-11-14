@@ -20,7 +20,7 @@ interface Props {
 
 type TrendKind = "urine_salinity" | "urine_ph";
 const TREND_OPTIONS: { key: TrendKind; label: string }[] = [
-  { key: "urine_salinity", label: "Salinidad" },
+  { key: "urine_salinity", label: "Salinity" },
   { key: "urine_ph", label: "pH" },
 ];
 const TREND_DAYS = 14;
@@ -47,10 +47,10 @@ async function fetchUrine(astronautId: string, signal: AbortSignal): Promise<Uri
 
 // Same order as URINE_KINDS.
 const CARDS = [
-  { title: "pH", organ: "Acidez de la orina" },
-  { title: "Salinidad", organ: "Concentración de sales" },
-  { title: "Color", organ: "Muestra en su color real" },
-  { title: "Temperatura", organ: "Validez de la muestra" },
+  { title: "pH", organ: "Urine acidity" },
+  { title: "Salinity", organ: "Salt concentration" },
+  { title: "Color", organ: "Sample in its real color" },
+  { title: "Temperature", organ: "Sample validity" },
 ];
 
 export function OrinaScreen({ astronautId }: Props) {
@@ -91,8 +91,8 @@ export function OrinaScreen({ astronautId }: Props) {
         <div className="banner banner--stale" role="status">
           <StateIcon state="stale" size={22} />
           <span>
-            <strong>Última muestra {formatAge(lastSample)}.</strong> Los valores pueden haber cambiado:
-            toma una muestra nueva para tener datos actuales.
+            <strong>Last sample {formatAge(lastSample)}.</strong> Values may have changed:
+            take a new sample to get current data.
           </span>
         </div>
       ) : null}
@@ -113,13 +113,13 @@ export function OrinaScreen({ astronautId }: Props) {
         </div>
         <div className="orina__side">
           <Panel
-            title="Tendencia"
-            aside={<SegmentedControl label="Serie" options={TREND_OPTIONS} value={trend} onChange={setTrend} />}
+            title="Trend"
+            aside={<SegmentedControl label="Series" options={TREND_OPTIONS} value={trend} onChange={setTrend} />}
           >
             <span className="caption">
               {trendLabel}
-              {trendUnit ? ` (${unitLabel(trendUnit)})` : ""} · {TREND_DAYS} días · fechas en UTC
-              {trendExcluded > 0 ? ` · ${trendExcluded} lecturas con otra unidad no se muestran` : ""}
+              {trendUnit ? ` (${unitLabel(trendUnit)})` : ""} · {TREND_DAYS} days · dates in UTC
+              {trendExcluded > 0 ? ` · ${trendExcluded} readings in another unit are not shown` : ""}
             </span>
             <LineChart
               points={trendSame.map((r) => ({ t: Date.parse(r.recorded_at), v: r.value as number }))}
@@ -135,8 +135,8 @@ export function OrinaScreen({ astronautId }: Props) {
               showPoints
               width={560}
               height={250}
-              label={`${trendLabel}, ${TREND_DAYS} días`}
-              emptyText="Sin lecturas en 14 días"
+              label={`${trendLabel}, ${TREND_DAYS} days`}
+              emptyText="No readings in 14 days"
             />
           </Panel>
           <RadiationPanel sensor={radiation} ageSeconds={liveAge(radiation, updatedAt, now)} />
