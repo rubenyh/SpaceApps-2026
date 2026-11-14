@@ -125,7 +125,7 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
     session = VisionSession(
         astronaut_id=astronaut_id,
         session_type="bitacora",
-        module_id=settings.cameras.get(camera),
+        module_id=settings.cameras.get(camera, f"cam{camera}"),
         source=f"vision:cam{camera}",
         started_at=started_at,
         ended_at=datetime.now(UTC),
