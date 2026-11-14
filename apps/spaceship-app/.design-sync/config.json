@@ -1,0 +1,45 @@
+{
+  "projectId": "d8e72a82-8491-41d4-8c22-78a2d46cadd6",
+  "pkg": "spaceship-app",
+  "globalName": "SpaceshipConsole",
+  "shape": "package",
+  "srcDir": "src/components",
+  "tsconfig": "tsconfig.json",
+  "extraEntries": [
+    "./.design-sync/entry.ts"
+  ],
+  "buildCmd": "sh .design-sync/build-types.sh",
+  "overrides": {
+    "ReadingsTable": {
+      "cardMode": "column"
+    },
+    "Header": {
+      "cardMode": "column"
+    },
+    "TabBar": {
+      "cardMode": "column"
+    },
+    "RadiationPanel": {
+      "cardMode": "column"
+    },
+    "LineChart": {
+      "cardMode": "column"
+    },
+    "BodyMap": {
+      "cardMode": "column"
+    },
+    "SensorCard": {
+      "cardMode": "column"
+    },
+    "ReadingCard": {
+      "cardMode": "column"
+    },
+    "ServiceBanner": {
+      "cardMode": "column"
+    }
+  },
+  "dtsPropsFor": {
+    "TabBar": "tabs: { key: string; label: string }[]; /** key of the selected tab */ active: string; onChange: (key: string) => void; /** problem icon per tab key */ flags?: Record<string, \"alert\" | \"stale\" | null>; /** disable every tab (no crew member) */ disabled?: boolean;"
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}

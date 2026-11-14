@@ -4,7 +4,7 @@ interface Props {
   value: string | null | undefined;
 }
 
-/** The only non-green element: the urine colour painted with its real hex value. */
+/** Urine colour painted with its real hex value, next to the hex text. */
 export function ColorSwatch({ value }: Props) {
   if (!isHexColor(value)) {
     return <span className="swatch-text">{value ?? "---"}</span>;

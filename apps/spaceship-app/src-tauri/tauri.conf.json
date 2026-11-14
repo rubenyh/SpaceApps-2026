@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Consola médica",
+        "title": "Consola biomédica",
         "width": 1280,
         "height": 800,
         "minWidth": 1024,
