@@ -38,7 +38,7 @@ VISION_REST = {
     "yawn_count": (0, 2),  # measured
     "nod_count": (0, 2),  # measured
     "tension_mean": (0.0, 0.05),  # measured (brow_lower / lip_press deltas)
-    "perclos": (0.02, 0.08),  # assumed
+    "perclos": (0.10, 0.20),  # measured 0.12-0.22 (3 logs, build before eye-closure debounce)
     "tension_peak_1s": (0.05, 0.15),  # assumed
 }
 # Altered days (more fatigue and tension). Assumed, for the demo story only.
@@ -48,7 +48,7 @@ VISION_ALTERED = {
     "yawn_count": (2, 4),
     "nod_count": (2, 4),
     "tension_mean": (0.08, 0.12),
-    "perclos": (0.15, 0.25),
+    "perclos": (0.30, 0.40),
     "tension_peak_1s": (0.30, 0.50),
 }
 
