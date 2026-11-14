@@ -1,0 +1,121 @@
+{
+  "collection": "medical_guides",
+  "embedding_model": "bge-m3",
+  "curated_file": "curated.json",
+  "medlineplus": {
+    "index_url": "https://medlineplus.gov/xml.html",
+    "reuse_basis": "MedlinePlus.gov health topic summary; see https://medlineplus.gov/about/using/usingcontent/",
+    "topics": [
+      {
+        "source_id": "medlineplus-breathingproblems",
+        "english_url": "https://medlineplus.gov/breathingproblems.html",
+        "topic": "breathing_problems"
+      },
+      {
+        "source_id": "medlineplus-chestpain",
+        "english_url": "https://medlineplus.gov/chestpain.html",
+        "topic": "chest_pain"
+      },
+      {
+        "source_id": "medlineplus-arrhythmia",
+        "english_url": "https://medlineplus.gov/arrhythmia.html",
+        "topic": "arrhythmia"
+      },
+      {
+        "source_id": "medlineplus-stroke",
+        "english_url": "https://medlineplus.gov/stroke.html",
+        "topic": "stroke"
+      },
+      {
+        "source_id": "medlineplus-headache",
+        "english_url": "https://medlineplus.gov/headache.html",
+        "topic": "headache"
+      },
+      {
+        "source_id": "medlineplus-fainting",
+        "english_url": "https://medlineplus.gov/fainting.html",
+        "topic": "fainting"
+      },
+      {
+        "source_id": "medlineplus-seizures",
+        "english_url": "https://medlineplus.gov/seizures.html",
+        "topic": "seizures"
+      },
+      {
+        "source_id": "medlineplus-anaphylaxis",
+        "english_url": "https://medlineplus.gov/anaphylaxis.html",
+        "topic": "anaphylaxis"
+      },
+      {
+        "source_id": "medlineplus-fever",
+        "english_url": "https://medlineplus.gov/fever.html",
+        "topic": "fever"
+      },
+      {
+        "source_id": "medlineplus-dizzinessandvertigo",
+        "english_url": "https://medlineplus.gov/dizzinessandvertigo.html",
+        "topic": "dizziness_vertigo"
+      },
+      {
+        "source_id": "medlineplus-motionsickness",
+        "english_url": "https://medlineplus.gov/motionsickness.html",
+        "topic": "motion_sickness"
+      },
+      {
+        "source_id": "medlineplus-dehydration",
+        "english_url": "https://medlineplus.gov/dehydration.html",
+        "topic": "dehydration"
+      },
+      {
+        "source_id": "medlineplus-nauseaandvomiting",
+        "english_url": "https://medlineplus.gov/nauseaandvomiting.html",
+        "topic": "nausea_vomiting"
+      },
+      {
+        "source_id": "medlineplus-diarrhea",
+        "english_url": "https://medlineplus.gov/diarrhea.html",
+        "topic": "diarrhea"
+      },
+      {
+        "source_id": "medlineplus-abdominalpain",
+        "english_url": "https://medlineplus.gov/abdominalpain.html",
+        "topic": "abdominal_pain"
+      },
+      {
+        "source_id": "medlineplus-urinarytractinfections",
+        "english_url": "https://medlineplus.gov/urinarytractinfections.html",
+        "topic": "urinary_tract_infections"
+      },
+      {
+        "source_id": "medlineplus-kidneystones",
+        "english_url": "https://medlineplus.gov/kidneystones.html",
+        "topic": "kidney_stones"
+      },
+      {
+        "source_id": "medlineplus-musclecramps",
+        "english_url": "https://medlineplus.gov/musclecramps.html",
+        "topic": "muscle_cramps"
+      },
+      {
+        "source_id": "medlineplus-headinjuries",
+        "english_url": "https://medlineplus.gov/headinjuries.html",
+        "topic": "head_injury"
+      },
+      {
+        "source_id": "medlineplus-bleeding",
+        "english_url": "https://medlineplus.gov/bleeding.html",
+        "topic": "bleeding"
+      },
+      {
+        "source_id": "medlineplus-burns",
+        "english_url": "https://medlineplus.gov/burns.html",
+        "topic": "burns"
+      },
+      {
+        "source_id": "medlineplus-carbonmonoxidepoisoning",
+        "english_url": "https://medlineplus.gov/carbonmonoxidepoisoning.html",
+        "topic": "carbon_monoxide"
+      }
+    ]
+  }
+}

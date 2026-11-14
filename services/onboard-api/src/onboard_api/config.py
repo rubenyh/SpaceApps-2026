@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     ollama_timeout_seconds: float = 20.0
     chroma_path: Path = Path("data/chroma")
     guides_collection: str = "medical_guides"
-    # Cosine distance above which a retrieved chunk is dropped.
-    retrieval_max_distance: float = 0.45
+    # Cosine distance above which a retrieved chunk is dropped (tuned on bge-m3 eval).
+    retrieval_max_distance: float = 0.50
     # Optional JSON list of OperationalEvent used as the demo event source.
     demo_events_path: Path | None = None
