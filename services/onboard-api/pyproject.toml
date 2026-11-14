@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.163.0",
+    "pydantic-settings>=2.16.3",
 ]
 
 [project.scripts]
@@ -20,3 +21,8 @@ build-backend = "uv_build"
 
 [tool.fastapi]
 entrypoint = "onboard_api.main:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
