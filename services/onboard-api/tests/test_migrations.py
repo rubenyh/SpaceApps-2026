@@ -14,7 +14,8 @@ from onboard_api.repositories.database import (
 
 BASELINE = MIGRATIONS_DIR / "0001_baseline.sql"
 REPO_ROOT = MIGRATIONS_DIR.parents[2]
-OLD_SCHEMA_REF = "origin/main:services/onboard-api/src/onboard_api/repositories/schema.sql"
+# Last main commit before the move to db/migrations.
+OLD_SCHEMA_REF = "2d157f7:services/onboard-api/src/onboard_api/repositories/schema.sql"
 OLD_SEED = [
     ("heart_rate", "bpm", 300, 60, 100, "health", "AHA / Mayo Clinic"),
     ("spo2", "%", 300, 95, 100, "health", "Mayo Clinic"),
@@ -94,7 +95,7 @@ def test_baseline_matches_old_schema_sql_on_main() -> None:
             check=True, encoding="utf-8",
         ).stdout
     except (OSError, subprocess.CalledProcessError):
-        pytest.skip("origin/main schema.sql not available")
+        pytest.skip("old schema.sql at 2d157f7 not available")
     assert schema_of(old) == schema_of(BASELINE.read_text("utf-8"))
 
 
