@@ -1,6 +1,6 @@
 # Contrato de bienestar (salud mental) · onboard-api
 
-Estado: **borrador v1** · Dueño: Hiram · Consumidores: consola (Cedric), proceso de visión (`wellbeing-vision`).
+Estado: **borrador v1** · Dueño: Hiram · Consumidores: consola (Cedric), proceso de visión (`wellbeing-vision`, endpoints 6 y 7 según su borrador).
 
 El módulo `onboard_api.wellbeing` detecta **cambios sostenidos de cada astronauta respecto a su propia línea base**. No diagnostica: sus salidas son de apoyo ("necesita apoyo"), nunca etiquetas clínicas.
 
@@ -206,74 +206,95 @@ Response `201`: lo mismo más `"id": 17`, `"received_at": "..."` y `"simulated":
 
 ## 6. `POST /wellbeing/vision-sessions`
 
-Resumen de una sesión de cámara. **Sólo métricas derivadas, nunca imágenes.** Todas las métricas son opcionales (`null` = no medida), pero debe venir al menos una.
+Métricas derivadas de cámara: **nunca imágenes ni plantillas faciales**. Se manda un registro por bitácora. En modo ambiente, uno por persona y por ventana.
 
-| Campo | Rango | Significado | Indicador |
-|---|---|---|---|
-| `eye_closure_ratio` | 0–1 | Fracción del tiempo con ojos casi cerrados (tipo PERCLOS) | fatigue ↑ |
-| `blink_rate_per_min` | ≥0 | Parpadeos por minuto (se guarda; no entra en la fusión v1 porque su dirección es ambigua) | — |
-| `yawn_count` | ≥0 entero | Bostezos en la sesión (se normaliza por minuto) | fatigue ↑ |
-| `head_nod_count` | ≥0 entero | Cabeceos en la sesión (se normaliza por minuto) | fatigue ↑ |
-| `brow_tension` | 0–1 | Activación media de ceño fruncido **respecto al neutral del día** | stress ↑ |
-| `lip_press` | 0–1 | Activación media de labios apretados respecto al neutral del día | stress ↑ |
-| `movement_index` | ≥0 | Cantidad de movimiento (cámaras de la nave) | activation ↕ |
-| `fidget_index` | ≥0 | Movimiento repetitivo de manos y pies | activation ↑ |
-| `face_visible_ratio` | 0–1 | Fracción de cuadros con cara visible (calidad) | — |
-| `identity_confidence` | 0–1 | Confianza de la identificación | — |
-
-Request:
+Request (bitácora):
 
 ```json
 {
   "astronaut_id": "ast-01",
-  "session_kind": "daily_log",
+  "session_type": "bitacora",
+  "module_id": "modulo-a",
+  "source": "vision:cam0",
   "started_at": "2026-11-14T08:00:00Z",
   "ended_at": "2026-11-14T08:01:30Z",
-  "identity_method": "face",
-  "identity_confidence": 0.93,
-  "face_visible_ratio": 0.98,
-  "eye_closure_ratio": 0.07,
-  "blink_rate_per_min": 17,
-  "yawn_count": 1,
-  "head_nod_count": 0,
-  "brow_tension": 0.12,
-  "lip_press": 0.08,
-  "movement_index": null,
-  "fidget_index": null,
   "quality": "good",
-  "source": "vision:daily_log"
+  "valid_frame_ratio": 0.94,
+  "identity": {"method": "face", "match_score": 0.71},
+  "neutral_ok": true,
+  "fatigue": {"blink_rate_per_min": 18.2, "perclos": 0.07, "eye_openness_vs_neutral": 0.88, "yawn_count": 1, "nod_count": 0},
+  "tension": {"brow_lower_delta": 0.12, "lip_press_delta": 0.05},
+  "motion": null,
+  "provisional": true
 }
 ```
 
-- `session_kind`: `"daily_log"` (bitácora frontal con neutral de 3 s) o `"ambient"` (cámaras de la nave).
-- `identity_method`: `"face"`, `"wearable"` o `"manual"`.
-- El día de la sesión es el de `started_at`. Si hay varias sesiones el mismo día, se promedian.
+En modo ambiente (`"session_type": "ambiente"`), `motion` lleva:
 
-Response `201`: lo mismo más `id`, `received_at` y `simulated`. Errores: `404`; `422` si `ended_at < started_at`, si no viene ninguna métrica o si algo está fuera de rango.
+```json
+"motion": {"speed": 0.35, "stationary_ratio": 0.6, "fidget_index": 0.12, "torso_angle_dev": 14.0}
+```
+
+| Campo | Tipo | Rango | Uso en la fusión |
+|---|---|---|---|
+| `session_type` | `"bitacora"` \| `"ambiente"` | | — |
+| `module_id` | string | 1–32 | — |
+| `valid_frame_ratio` | número | 0–1 | calidad (se guarda) |
+| `identity.method` | `"face"` \| `"wearable"` \| `"manual"` | | — |
+| `identity.match_score` | número \| null | 0–1 | — |
+| `neutral_ok` | boolean | | si es `false`, se ignoran las métricas relativas al neutral (`eye_openness_vs_neutral`, `tension.*`) |
+| `fatigue.blink_rate_per_min` | número \| null | ≥0 | se guarda; no entra en v1 (su dirección es ambigua) |
+| `fatigue.perclos` | número \| null | 0–1 | fatigue ↑ |
+| `fatigue.eye_openness_vs_neutral` | número \| null | ≥0 (1 = igual al neutral) | fatigue ↓ |
+| `fatigue.yawn_count` | entero \| null | ≥0 | fatigue ↑ (por minuto de sesión) |
+| `fatigue.nod_count` | entero \| null | ≥0 | fatigue ↑ (por minuto de sesión) |
+| `tension.brow_lower_delta` | número \| null | 0–1 | stress ↑ |
+| `tension.lip_press_delta` | número \| null | 0–1 | stress ↑ |
+| `motion.speed` | número \| null | ≥0 (aprox., anchos de hombro/s) | activation ↕ |
+| `motion.stationary_ratio` | número \| null | 0–1 | activation ↕ |
+| `motion.fidget_index` | número \| null | ≥0 | activation ↑ |
+| `motion.torso_angle_dev` | número \| null | ≥0 (grados frente a la postura neutral) | activation ↑ |
+| `provisional` | boolean | | se guarda; las salidas siempre son provisionales en v1 |
+
+- `fatigue`, `tension` y `motion` pueden ser `null`, pero debe venir al menos uno.
+- El día de la sesión es el de `started_at`. Varias sesiones del mismo día se promedian.
+- `astronaut_id` puede ser `"unknown-<track>"` (persona no identificada). Se acepta y se guarda, pero **nunca entra en ninguna línea base** ni en la fusión.
+
+Response `201`: lo mismo más `id`, `received_at` y `simulated`. Errores: `404` si el astronauta no existe (y no es `unknown-*`); `422` si `ended_at < started_at`, si no viene ningún grupo de métricas o si algo está fuera de rango.
 
 ## 7. `POST /wellbeing/co-presence`
 
-Un episodio de co-presencia en un módulo. Con una sola persona cuenta como tiempo solo.
+Una ventana (60 s) de un módulo: quién estuvo y qué pares compartieron espacio.
 
 Request:
 
 ```json
 {
-  "module": "node-1",
-  "astronaut_ids": ["ast-01", "ast-03"],
-  "started_at": "2026-11-14T12:00:00Z",
-  "ended_at": "2026-11-14T12:25:00Z",
-  "facing_ratio": 0.4,
-  "mean_distance_m": 1.2,
-  "identity_method": "wearable",
+  "module_id": "modulo-a",
+  "source": "vision:cam0",
+  "window_start": "2026-11-14T12:00:00Z",
+  "window_end": "2026-11-14T12:01:00Z",
+  "occupants": [
+    {"astronaut_id": "ast-01", "seconds_present": 58},
+    {"astronaut_id": "ast-02", "seconds_present": 45}
+  ],
+  "pairs": [
+    {"a": "ast-01", "b": "ast-02", "seconds_together": 40, "mean_distance_shoulders": 2.3, "facing_ratio": 0.4}
+  ],
   "quality": "good",
-  "source": "vision:ambient"
+  "provisional": true
 }
 ```
 
-Componente usado: minutos acompañado por día (`social.accompanied_minutes`, menos = peor). `facing_ratio` y `mean_distance_m` se guardan; no entran en la fusión v1.
+- `quality` es opcional (por defecto `"good"`).
+- `occupants` no puede repetir ids. Cada par (`a`, `b`) debe ser de dos ocupantes distintos de la ventana.
+- `seconds_present` y `seconds_together` van de 0 a la duración de la ventana.
+- `mean_distance_shoulders` (anchos de hombro) y `facing_ratio` (orientación 2D) son aproximados: se guardan y no entran en la fusión v1.
+- Se aceptan ids `"unknown-<track>"`. No tienen línea base. El tiempo que un astronauta conocido pasa con un desconocido sí cuenta como tiempo acompañado.
 
-Response `201`: lo mismo más `id`, `received_at` y `simulated`. Errores: `404` si algún astronauta no existe; `422` si los ids se repiten, la lista está vacía o `ended_at < started_at`.
+Componente usado: `social.accompanied_minutes` por día (menos = peor). En cada ventana se toma el mayor `seconds_together` de los pares de la persona; es una cota inferior que evita contar doble cuando hay tres o más personas. Una ventana donde la persona está sin pares cuenta como tiempo observado solo (0 min acompañado).
+
+Response `201`: lo mismo más `id`, `received_at` y `simulated`. Errores: `404` si algún id no existe (salvo `unknown-*`); `422` si la validación falla.
 
 ## 8. `GET /wellbeing/crew` (vista tripulación)
 
@@ -455,7 +476,7 @@ export type Confidence = "low" | "medium" | "high";
 export type Trend = "improving" | "stable" | "worsening" | "unknown";
 export type AdverseDirection = "low" | "high" | "both";
 export type SignalKind = "hrv_sdnn" | "resting_heart_rate" | "sleep_hours";
-export type VisionSessionKind = "daily_log" | "ambient";
+export type VisionSessionType = "bitacora" | "ambiente";
 export type IdentityMethod = "face" | "wearable" | "manual";
 export type GroundRequester = "self" | "captain" | "ground_psychologist";
 export type GroundInclude = "assessment" | "timeline" | "checkins" | "comments";
@@ -558,24 +579,47 @@ export interface Signal extends SignalCreate {
   simulated: boolean;
 }
 
+export interface VisionIdentity {
+  method: IdentityMethod;
+  match_score?: number | null;
+}
+
+export interface VisionFatigue {
+  blink_rate_per_min?: number | null;
+  perclos?: number | null;
+  eye_openness_vs_neutral?: number | null;
+  yawn_count?: number | null;
+  nod_count?: number | null;
+}
+
+export interface VisionTension {
+  brow_lower_delta?: number | null;
+  lip_press_delta?: number | null;
+}
+
+export interface VisionMotion {
+  speed?: number | null;
+  stationary_ratio?: number | null;
+  fidget_index?: number | null;
+  torso_angle_dev?: number | null;
+}
+
 export interface VisionSessionCreate {
+  /** Known astronaut id, or "unknown-<track>" (never used for baselines). */
   astronaut_id: string;
-  session_kind: VisionSessionKind;
+  session_type: VisionSessionType;
+  module_id: string;
+  source: string;
   started_at: string;
   ended_at: string;
-  identity_method: IdentityMethod;
-  identity_confidence?: number | null;
-  face_visible_ratio?: number | null;
-  eye_closure_ratio?: number | null;
-  blink_rate_per_min?: number | null;
-  yawn_count?: number | null;
-  head_nod_count?: number | null;
-  brow_tension?: number | null;
-  lip_press?: number | null;
-  movement_index?: number | null;
-  fidget_index?: number | null;
   quality: Quality;
-  source: string;
+  valid_frame_ratio: number;
+  identity: VisionIdentity;
+  neutral_ok: boolean;
+  fatigue: VisionFatigue | null;
+  tension: VisionTension | null;
+  motion: VisionMotion | null;
+  provisional: boolean;
 }
 
 export interface VisionSession extends VisionSessionCreate {
@@ -584,19 +628,32 @@ export interface VisionSession extends VisionSessionCreate {
   simulated: boolean;
 }
 
-export interface CoPresenceCreate {
-  module: string;
-  astronaut_ids: string[];
-  started_at: string;
-  ended_at: string;
-  facing_ratio?: number | null;
-  mean_distance_m?: number | null;
-  identity_method: IdentityMethod;
-  quality: Quality;
-  source: string;
+export interface CoPresenceOccupant {
+  astronaut_id: string;
+  seconds_present: number;
 }
 
-export interface CoPresence extends CoPresenceCreate {
+export interface CoPresencePair {
+  a: string;
+  b: string;
+  seconds_together: number;
+  mean_distance_shoulders?: number | null;
+  facing_ratio?: number | null;
+}
+
+export interface CoPresenceCreate {
+  module_id: string;
+  source: string;
+  window_start: string;
+  window_end: string;
+  occupants: CoPresenceOccupant[];
+  pairs: CoPresencePair[];
+  /** Default "good". */
+  quality?: Quality;
+  provisional: boolean;
+}
+
+export interface CoPresence extends Required<CoPresenceCreate> {
   id: number;
   received_at: string;
   simulated: boolean;
