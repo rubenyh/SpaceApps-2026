@@ -52,10 +52,12 @@ COMPONENTS: tuple[ComponentDef, ...] = (
     ComponentDef("checkin.sleep_quality", "checkin", "sleep", "low", 1.0, "0-4"),
     ComponentDef("signal.sleep_hours", "physiology", "sleep", "low", 0.5, "h"),
     ComponentDef("checkin.energy", "checkin", "fatigue", "low", 1.0, "0-4"),
-    ComponentDef("vision.perclos", "vision", "fatigue", "high", 0.02, "ratio"),
-    ComponentDef("vision.eye_openness_vs_neutral", "vision", "fatigue", "low", 0.03, "ratio"),
-    ComponentDef("vision.yawns_per_min", "vision", "fatigue", "high", 0.1, "1/min"),
-    ComponentDef("vision.nods_per_min", "vision", "fatigue", "high", 0.1, "1/min"),
+    # Vision floors ~ day-to-day spread at rest (one real session, ~50 cm):
+    # one extra yawn in a 90 s log is already +0.67/min.
+    ComponentDef("vision.perclos", "vision", "fatigue", "high", 0.03, "ratio"),
+    ComponentDef("vision.eye_openness_vs_neutral", "vision", "fatigue", "low", 0.05, "ratio"),
+    ComponentDef("vision.yawns_per_min", "vision", "fatigue", "high", 0.5, "1/min"),
+    ComponentDef("vision.nods_per_min", "vision", "fatigue", "high", 0.5, "1/min"),
     ComponentDef("checkin.stress", "checkin", "stress", "high", 1.0, "0-4"),
     ComponentDef("signal.hrv_sdnn", "physiology", "stress", "low", 5.0, "ms"),
     ComponentDef("signal.resting_heart_rate", "physiology", "stress", "high", 2.0, "bpm"),

@@ -7,7 +7,8 @@ Crew story (deterministic for a given seed):
   ast-03  says "I'm fine" in the check-in, but physiology and social drop from
           day DISCREPANCY_DAY -> discrepancy.
   ast-04  stable, with a single bad day: an isolated reading never alerts.
-No vision history is simulated: camera metrics in the demo are live.
+Vision (daily logs) follows the same story and stops at yesterday, so a live
+log recorded today is judged alone against an already formed baseline.
 """
 
 import random
@@ -15,13 +16,41 @@ from datetime import UTC, date, datetime, time, timedelta
 from itertools import combinations
 
 from onboard_api.wellbeing.repository import WellbeingRepository
-from onboard_api.wellbeing.schemas import CheckinUpsert, CoPresenceCreate, SignalCreate
+from onboard_api.wellbeing.schemas import (
+    CheckinUpsert,
+    CoPresenceCreate,
+    SignalCreate,
+    VisionSessionCreate,
+)
 
 CREW = {"ast-01": "X", "ast-02": "Y", "ast-03": "Z", "ast-04": "W"}
 SOURCE = "simulated"
 DERAIL_DAY = 14
 DISCREPANCY_DAY = 15
 BAD_DAY = 17
+
+# Daily-log (bitacora) ranges, uniform (low, high). "measured": one real session
+# at ~50 cm on 2026-11-14, at rest. "assumed": not measured yet. Simulation
+# parameters only, not clinical ranges; adjust as more sessions are measured.
+VISION_REST = {
+    "blink_rate_per_min": (15.0, 25.0),  # measured
+    "eye_openness_vs_neutral": (0.90, 1.05),  # measured
+    "yawn_count": (0, 2),  # measured
+    "nod_count": (0, 2),  # measured
+    "tension_mean": (0.0, 0.05),  # measured (brow_lower / lip_press deltas)
+    "perclos": (0.02, 0.08),  # assumed
+    "tension_peak_1s": (0.05, 0.15),  # assumed
+}
+# Altered days (more fatigue and tension). Assumed, for the demo story only.
+VISION_ALTERED = {
+    "blink_rate_per_min": (15.0, 25.0),
+    "eye_openness_vs_neutral": (0.70, 0.80),
+    "yawn_count": (2, 4),
+    "nod_count": (2, 4),
+    "tension_mean": (0.08, 0.12),
+    "perclos": (0.15, 0.25),
+    "tension_peak_1s": (0.30, 0.50),
+}
 
 
 def _at(day: date, hour: int, minute: int = 0) -> datetime:
@@ -34,6 +63,9 @@ def clear_simulated(repo: WellbeingRepository) -> None:
     conn.execute("DELETE FROM signals WHERE source = ?", (SOURCE,))
     conn.execute(
         "DELETE FROM co_presence WHERE json_extract(body, '$.source') = ?", (SOURCE,)
+    )
+    conn.execute(
+        "DELETE FROM vision_sessions WHERE json_extract(body, '$.source') = ?", (SOURCE,)
     )
 
 
@@ -89,6 +121,12 @@ def simulate(repo: WellbeingRepository, today: date, days: int = 21, seed: int =
                     ),
                     received_at=_at(day, hour, 5),
                 )
+            if i < days - 1:  # leave today free for a live log
+                altered = passive_low or bad_day
+                repo.create_vision_session(
+                    _bitacora(aid, day, VISION_ALTERED if altered else VISION_REST, rng),
+                    received_at=_at(day, 8, 2),
+                )
 
         # Six 30-minute shared slots per day (meals, briefings, leisure).
         withdrawn = {aid for aid, flag in derailed.items() if flag}
@@ -113,3 +151,40 @@ def simulate(repo: WellbeingRepository, today: date, days: int = 21, seed: int =
                 ),
                 received_at=begin + timedelta(minutes=31),
             )
+
+
+def _bitacora(
+    aid: str, day: date, ranges: dict[str, tuple[float, float]], rng: random.Random
+) -> VisionSessionCreate:
+    def u(key: str) -> float:
+        return round(rng.uniform(*ranges[key]), 3)
+
+    def n(key: str) -> int:
+        return rng.randint(*map(int, ranges[key]))
+
+    begin = _at(day, 8)
+    return VisionSessionCreate(
+        astronaut_id=aid,
+        session_type="bitacora",
+        module_id="modulo-a",
+        source=SOURCE,
+        started_at=begin,
+        ended_at=begin + timedelta(seconds=90),
+        quality="good",
+        valid_frame_ratio=0.95,
+        identity={"method": "face", "match_score": 0.8},
+        neutral_ok=True,
+        fatigue={
+            "blink_rate_per_min": u("blink_rate_per_min"),
+            "perclos": u("perclos"),
+            "eye_openness_vs_neutral": u("eye_openness_vs_neutral"),
+            "yawn_count": n("yawn_count"),
+            "nod_count": n("nod_count"),
+        },
+        tension={
+            "brow_lower_delta": u("tension_mean"),
+            "lip_press_delta": u("tension_mean"),
+            "brow_lower_peak_1s": u("tension_peak_1s"),
+            "lip_press_peak_1s": u("tension_peak_1s"),
+        },
+    )

@@ -1,40 +1,82 @@
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 from wellbeing_support import TODAY
 
 from onboard_api.wellbeing.database import connect_wellbeing
 from onboard_api.wellbeing.engine import build_daily_inputs, evaluate
 from onboard_api.wellbeing.repository import WellbeingRepository
+from onboard_api.wellbeing.schemas import VisionSessionCreate
 from onboard_api.wellbeing.settings import WellbeingSettings
-from onboard_api.wellbeing.simulator import CREW, DERAIL_DAY, simulate
+from onboard_api.wellbeing.simulator import (
+    CREW,
+    DERAIL_DAY,
+    DISCREPANCY_DAY,
+    simulate,
+)
 
 SETTINGS = WellbeingSettings()
 
 
-def test_simulated_crew_tells_the_demo_story(tmp_path) -> None:
-    conn = connect_wellbeing(tmp_path / "wellbeing.db")
-    repo = WellbeingRepository(conn)
-    simulate(repo, TODAY)
-    simulate(repo, TODAY)  # rerun replaces, never duplicates
+def evaluate_all(repo: WellbeingRepository):
     results = {}
     for aid in CREW:
         inputs = build_daily_inputs(
             aid,
             repo.list_checkins(aid),
             repo.list_signals(aid),
-            [],
+            repo.list_vision_sessions(aid),
             repo.list_co_presence(aid),
             [],
             SETTINGS,
         )
         results[aid] = evaluate(inputs, TODAY, SETTINGS)
+    return results
+
+
+def test_simulated_crew_tells_the_demo_story(tmp_path) -> None:
+    conn = connect_wellbeing(tmp_path / "wellbeing.db")
+    repo = WellbeingRepository(conn)
+    for seed in range(20):  # the story must not depend on one lucky seed
+        simulate(repo, TODAY, seed=seed)
+        r = evaluate_all(repo)
+        assert r["ast-01"].level == "ok", seed
+        assert r["ast-04"].level == "ok", seed  # one bad day never alerts
+        assert r["ast-02"].level == "needs_support", seed
+        assert r["ast-02"].onset_date == TODAY - timedelta(days=20 - DERAIL_DAY), seed
+        assert "vision" in r["ast-02"].sustained_sources, seed
+        assert r["ast-03"].discrepancy is True, seed
+        assert r["ast-03"].onset_date == TODAY - timedelta(days=20 - DISCREPANCY_DAY), seed
+        assert r["ast-03"].sustained_sources == ["vision", "physiology", "social"], seed
+
+    simulate(repo, TODAY)  # rerun replaces, never duplicates
     assert len(repo.list_checkins("ast-01")) == 21
     assert len(repo.list_signals("ast-01")) == 21 * 3
+    vision = repo.list_vision_sessions("ast-01")
+    assert len(vision) == 20 and all(v.simulated for v in vision)
+    assert max(v.started_at.date() for v in vision) == TODAY - timedelta(days=1)
     conn.close()
 
-    assert results["ast-01"].level == "ok"
-    assert results["ast-04"].level == "ok"  # one bad day never alerts
-    assert results["ast-02"].level == "needs_support"
-    assert results["ast-02"].onset_date == TODAY - timedelta(days=20 - DERAIL_DAY)
-    assert results["ast-03"].discrepancy is True
-    assert results["ast-03"].level == "needs_support"
+
+def test_live_log_today_meets_a_formed_baseline(tmp_path) -> None:
+    conn = connect_wellbeing(tmp_path / "wellbeing.db")
+    repo = WellbeingRepository(conn)
+    simulate(repo, TODAY)
+    start = datetime.combine(TODAY, datetime.min.time(), tzinfo=UTC).replace(hour=9)
+    repo.create_vision_session(
+        VisionSessionCreate(
+            astronaut_id="ast-01", session_type="bitacora", module_id="modulo-a",
+            source="vision:cam0", started_at=start, ended_at=start + timedelta(seconds=90),
+            quality="good", valid_frame_ratio=0.94, identity={"method": "face"},
+            neutral_ok=True,
+            fatigue={"blink_rate_per_min": 18.2, "perclos": 0.07,
+                     "eye_openness_vs_neutral": 0.88, "yawn_count": 1, "nod_count": 0},
+            tension={"brow_lower_delta": 0.12, "lip_press_delta": 0.05},
+        ),
+        received_at=start,
+    )
+    ev = evaluate_all(repo)["ast-01"]
+    conn.close()
+    fatigue = next(i for i in ev.indicators if i.kind == "fatigue")
+    perclos = next(c for c in fatigue.components if c.definition.component == "vision.perclos")
+    assert perclos.ready and perclos.latest_day == TODAY and perclos.latest_z is not None
+    assert fatigue.status != "baseline_pending"

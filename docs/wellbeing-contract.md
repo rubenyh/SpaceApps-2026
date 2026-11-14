@@ -796,7 +796,7 @@ export interface GroundPackageContent {
 
 - El router está registrado en `main.py`: todos los endpoints viven en el mismo servidor onboard (`http://127.0.0.1:8000`) y aparecen en `/docs` bajo la etiqueta `wellbeing`.
 - Flujo sugerido para la pantalla de consentimiento: el astronauta revisa el periodo e `include` → `POST` con `astronaut_confirmed: true` → `GET …/content` para mostrar lo que va en cola → botón "retirar" con `POST …/withdraw`.
-- Simulador de historial: `uv run python scripts/simulate_wellbeing.py` (en `services/onboard-api`). Crea `ast-01`…`ast-04` vía `POST /astronauts` si no existen, y escribe en `wellbeing.db` con `source: "simulated"`.
+- Simulador de historial: `uv run python scripts/simulate_wellbeing.py` (en `services/onboard-api`). Crea `ast-01`…`ast-04` vía `POST /astronauts` si no existen, y escribe en `wellbeing.db` con `source: "simulated"`: checklists, señales tipo Watch, co-presencia y bitácoras de visión. Las bitácoras simuladas llegan hasta ayer, así que una bitácora en vivo de hoy se evalúa sola contra una línea base ya formada. Los rangos de visión están en `VISION_REST` y `VISION_ALTERED` de `wellbeing/simulator.py`; los medidos y los supuestos están marcados ahí.
 - Configuración (variables de entorno): `WELLBEING_DB_PATH` (por defecto `data/wellbeing.db`), `ONBOARD_DB_PATH` (la base de Rubén, sólo lectura), `WELLBEING_Z_THRESHOLD`, `WELLBEING_SUSTAIN_DAYS`, etc. (ver `onboard_api/wellbeing/settings.py`).
 
 ## Probarlo en local (PowerShell)
