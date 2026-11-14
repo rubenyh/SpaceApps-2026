@@ -12,7 +12,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
-from onboard_api.wellbeing.onboard_reader import HeartRateReading
+from onboard_api.schemas.readings import Reading
 from onboard_api.wellbeing.schemas import (
     INDICATOR_KINDS,
     SOURCES,
@@ -128,7 +128,7 @@ def build_daily_inputs(
     signals: Sequence[Signal],
     vision: Sequence[VisionSession],
     co_presence: Sequence[CoPresence],
-    heart_rates: Sequence[HeartRateReading],
+    heart_rates: Sequence[Reading],
     settings: WellbeingSettings,
 ) -> DailyInputs:
     """Aggregate raw inputs to daily component values.

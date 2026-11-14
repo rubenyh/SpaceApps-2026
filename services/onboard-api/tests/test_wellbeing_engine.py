@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 from wellbeing_support import TODAY, series_inputs
 
 from onboard_api.wellbeing.engine import build_daily_inputs, evaluate, support_notes
-from onboard_api.wellbeing.onboard_reader import HeartRateReading
+from onboard_api.schemas.readings import Reading
 from onboard_api.wellbeing.schemas import CoPresence, Signal, VisionSession
 from onboard_api.wellbeing.settings import WellbeingSettings
 
@@ -142,6 +142,11 @@ def test_activation_counts_both_directions() -> None:
     assert ev.sustained_sources == ["vision"]
 
 
+def hr(value: float, at: datetime, quality: str = "good") -> Reading:
+    return Reading(id=1, astronaut_id="ast-01", kind="heart_rate", value=value, unit="bpm",
+                   recorded_at=at, received_at=at, quality=quality, source="serial:pulse")
+
+
 def test_build_daily_inputs_quality_rates_and_onboard_heart_rate() -> None:
     t = datetime(2026, 11, 10, 8, 0, tzinfo=UTC)
     common = {"astronaut_id": "ast-01", "received_at": t}
@@ -174,9 +179,8 @@ def test_build_daily_inputs_quality_rates_and_onboard_heart_rate() -> None:
                    occupants=[{"astronaut_id": "ast-01", "seconds_present": 60}],
                    received_at=t, simulated=False),
     ]
-    rates = [HeartRateReading(60 + i, t + timedelta(minutes=i), "good", "serial:pulse")
-             for i in range(10)]
-    rates.append(HeartRateReading(30, t, "bad", "serial:pulse"))
+    rates = [hr(60 + i, t + timedelta(minutes=i)) for i in range(10)]
+    rates.append(hr(30, t, "bad"))
 
     inputs = build_daily_inputs("ast-01", [], signals, vision, co, rates, SETTINGS)
     d = t.date()
@@ -196,6 +200,6 @@ def test_build_daily_inputs_quality_rates_and_onboard_heart_rate() -> None:
 
 def test_heart_rate_low_needs_enough_readings() -> None:
     t = datetime(2026, 11, 10, 8, 0, tzinfo=UTC)
-    rates = [HeartRateReading(70, t, "good", "serial:pulse") for _ in range(9)]
+    rates = [hr(70, t) for _ in range(9)]
     inputs = build_daily_inputs("ast-01", [], [], [], [], rates, SETTINGS)
     assert "onboard.heart_rate_low" not in inputs.values

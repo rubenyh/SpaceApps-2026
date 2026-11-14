@@ -170,3 +170,22 @@ def test_parameters_and_form(wb_client: TestClient) -> None:
     assert {c["component"] for c in params["components"]} >= {"checkin.mood", "vision.perclos"}
     form = wb_client.get("/wellbeing/checkin-form").json()
     assert [i["key"] for i in form["items"]][-1] == "comment"
+
+
+def test_numeric_series_filters_unit_and_text_values(wb_settings: WellbeingSettings) -> None:
+    from onboard_api.repositories.database import connect
+    from onboard_api.repositories.readings import ReadingRepository
+
+    at = NOW.replace(hour=6)
+    insert_heart_rates(wb_settings.onboard_db_path, "ast-01", [(at, 70, "good")])
+    conn = connect(wb_settings.onboard_db_path)
+    conn.execute(
+        "INSERT INTO readings (astronaut_id, kind, value, value_text, unit, recorded_at,"
+        " received_at, quality, source) VALUES"
+        " ('ast-01', 'heart_rate', 71, NULL, 'beats/min', ?, ?, 'good', 't'),"
+        " ('ast-01', 'heart_rate', NULL, 'n/a', 'bpm', ?, ?, 'good', 't')",
+        ["2026-11-14T05:00:00.000000Z"] * 4,
+    )
+    series = ReadingRepository(conn).numeric_series("ast-01", "heart_rate", "bpm")
+    conn.close()
+    assert [r.value for r in series] == [70]

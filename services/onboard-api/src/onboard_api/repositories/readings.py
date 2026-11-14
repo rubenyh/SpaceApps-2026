@@ -88,3 +88,15 @@ class ReadingRepository:
             (astronaut_id, kind),
         ).fetchone()
         return _to_reading(row) if row else None
+
+    def numeric_series(self, astronaut_id: str, kind: SensorKind, unit: str) -> list[Reading]:
+        """Numeric readings of one kind in one unit, oldest first, any quality.
+
+        Used by the wellbeing baselines, which need the whole history in order.
+        """
+        rows = self._conn.execute(
+            f"SELECT {_COLUMNS} FROM readings WHERE astronaut_id = ? AND kind = ?"
+            " AND unit = ? AND value IS NOT NULL ORDER BY recorded_at, id",
+            (astronaut_id, kind, unit),
+        ).fetchall()
+        return [_to_reading(row) for row in rows]
