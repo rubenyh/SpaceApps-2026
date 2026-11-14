@@ -1,6 +1,6 @@
--- Wellbeing database, schema version 1. Separate file from onboard.db.
--- Applied by onboard_api.wellbeing.database.init_wellbeing_db when
--- PRAGMA user_version is 0. Timestamps: UTC YYYY-MM-DDTHH:MM:SS.ffffffZ.
+-- Wellbeing database (wellbeing.db), version 1. Separate file from onboard.db.
+-- Applied by onboard_api.repositories.database.init_db, which also writes
+-- PRAGMA user_version. Timestamps: UTC YYYY-MM-DDTHH:MM:SS.ffffffZ.
 -- Days: YYYY-MM-DD (UTC mission day). astronaut_id refers to onboard.db
 -- (or is "unknown-<track>"), so there are no foreign keys to astronauts.
 -- No images, video or face templates are ever stored: only derived metrics.
@@ -58,5 +58,3 @@ CREATE TABLE co_presence_members (
   PRIMARY KEY (window_id, astronaut_id)
 );
 CREATE INDEX idx_co_presence_member ON co_presence_members (astronaut_id);
-
-PRAGMA user_version = 1;

@@ -2,61 +2,32 @@
 
 import sqlite3
 import threading
-from importlib.resources import files
 from pathlib import Path
 
-_MIGRATIONS = ((1, "schema.sql"), (2, "0002_ground_packages.sql"))
-SCHEMA_VERSION = _MIGRATIONS[-1][0]
+from onboard_api.repositories.database import connect, init_db
+
+# db/migrations/wellbeing at the repo root, resolved from this file like the
+# onboard MIGRATIONS_DIR, so it works from any launch directory.
+WELLBEING_MIGRATIONS_DIR = (
+    Path(__file__).resolve().parents[5] / "db" / "migrations" / "wellbeing"
+)
 
 _init_lock = threading.Lock()
 _initialized: set[Path] = set()
 
 
 def connect_wellbeing(db_path: Path) -> sqlite3.Connection:
-    """Read/write connection to wellbeing.db, creating the schema on first use.
+    """Read/write connection to wellbeing.db, migrating it on first use.
 
-    The onboard app's lifespan is not ours to change, so the schema is created
+    The onboard app's lifespan is not ours to change, so migrations run
     lazily, once per process and path.
     """
     resolved = db_path.resolve()
     with _init_lock:
         if resolved not in _initialized:
-            init_wellbeing_db(db_path)
+            init_db(db_path, migrations_dir=WELLBEING_MIGRATIONS_DIR)
             _initialized.add(resolved)
-    return _open(db_path)
-
-
-def _open(db_path: Path) -> sqlite3.Connection:
-    conn = sqlite3.connect(db_path, isolation_level=None, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    conn.execute("PRAGMA journal_mode = WAL")
-    return conn
-
-
-def init_wellbeing_db(db_path: Path) -> None:
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = _open(db_path)
-    try:
-        version = conn.execute("PRAGMA user_version").fetchone()[0]
-        if version > SCHEMA_VERSION:
-            raise RuntimeError(
-                f"unsupported wellbeing schema version {version} in {db_path}; "
-                f"expected at most {SCHEMA_VERSION}"
-            )
-        # Each script sets PRAGMA user_version to its own version.
-        for target, name in _MIGRATIONS:
-            if version >= target:
-                continue
-            script = files("onboard_api.wellbeing").joinpath(name).read_text("utf-8")
-            try:
-                conn.executescript("BEGIN;\n" + script + "\nCOMMIT;")
-            except BaseException:
-                if conn.in_transaction:
-                    conn.execute("ROLLBACK")
-                raise
-    finally:
-        conn.close()
+    return connect(db_path)
 
 
 class OnboardDatabaseUnavailable(Exception):

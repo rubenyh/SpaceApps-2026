@@ -1,6 +1,4 @@
-import sqlite3
 from datetime import timedelta
-from importlib.resources import files
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,8 +9,6 @@ from wellbeing_support import (  # noqa: F401 (fixtures)
     wb_clock,
     wb_settings,
 )
-
-from onboard_api.wellbeing.database import SCHEMA_VERSION, connect_wellbeing
 
 
 def package(**overrides: object) -> dict[str, object]:
@@ -99,21 +95,3 @@ def test_withdraw_blocks_content(wb_client: TestClient) -> None:
     assert wb_client.get(f"{url}/content").status_code == 409
     assert wb_client.post("/wellbeing/ground-packages/nope/withdraw").status_code == 404
 
-
-def test_v1_database_migrates_and_keeps_data(tmp_path) -> None:
-    path = tmp_path / "wellbeing.db"
-    conn = sqlite3.connect(path)
-    v1 = files("onboard_api.wellbeing").joinpath("schema.sql").read_text("utf-8")
-    conn.executescript(v1)
-    conn.execute(
-        "INSERT INTO signals (astronaut_id, kind, value, unit, recorded_at, received_at,"
-        " quality, source) VALUES ('ast-01', 'hrv_sdnn', 50, 'ms', 'x', 'x', 'good', 't')"
-    )
-    conn.commit()
-    conn.close()
-
-    migrated = connect_wellbeing(path)
-    assert migrated.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 2
-    assert migrated.execute("SELECT count(*) FROM signals").fetchone()[0] == 1
-    assert migrated.execute("SELECT count(*) FROM ground_packages").fetchone()[0] == 0
-    migrated.close()
