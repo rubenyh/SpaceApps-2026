@@ -8,11 +8,11 @@ NASA Space Apps 2026 monorepo. An astronaut console (Tauri) talks to an onboard 
 |---|---|---|
 | `apps/spaceship-app/` | Astronaut console. Tauri 2 + React 19 + Vite 8 + TypeScript 6. Rust crate `spaceship_app_lib`. | Template scaffold |
 | `apps/base-app/` | Second Tauri 2 app, same stack. Assumed ground console (name only, no code yet). | Template scaffold |
-| `services/onboard-api/` | FastAPI 0.163, Python 3.12, uv. Package `onboard_api` in `src/`. App `onboard_api.main:app`. | Health route only |
+| `services/onboard-api/` | FastAPI 0.163, Python 3.12, uv. Package `onboard_api` in `src/`. App `onboard_api.main:app`. | Readings API, SQLite repository, `POST /assistant/messages` (LangGraph medical workflow, Ollama, ChromaDB), pytest |
 | `services/ground-api/` | FastAPI 0.163, Python 3.12, uv. Package `ground_api` in `src/`. App `ground_api.main:app`. | Health route only |
 | `.claude/agents/`, `.claude/skills/` | Claude Code subagents and skills. | |
 
-Planned, not in the repo yet: SQLite repository, hardware collectors (pySerial, OpenCV, MediaPipe), LangGraph assistant, Ollama and ChromaDB integrations, telemetry publisher/receiver and contract, console API clients, Python tests (no pytest dependency yet).
+Planned, not in the repo yet: hardware collectors (pySerial, OpenCV, MediaPipe), telemetry publisher/receiver and contract.
 
 ## Architecture decisions
 

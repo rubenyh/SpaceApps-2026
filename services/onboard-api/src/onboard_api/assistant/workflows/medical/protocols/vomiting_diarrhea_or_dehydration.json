@@ -1,0 +1,85 @@
+{
+  "id": "vomiting_diarrhea_or_dehydration",
+  "version": "1.0.0",
+  "title": "Vómitos, diarrea o deshidratación",
+  "priority": 140,
+  "summary": "Vómitos, diarrea, pérdidas de líquidos o baja ingesta. La deshidratación se considera según el contexto y un cuadro gastrointestinal según los síntomas. Una lectura urinaria aislada (color, pH, salinidad) no cuantifica la hidratación. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "immediate": {
+      "urgency": "immediate",
+      "text": "Avisar de inmediato al responsable médico a bordo: vómitos o diarrea con confusión nueva, pérdida de conciencia o sangre en el vómito.",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    },
+    "prompt_review": {
+      "urgency": "review_required",
+      "text": "Pedir valoración pronta al responsable médico a bordo: no retiene líquidos, orina poco o los síntomas persisten.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    },
+    "review": {
+      "urgency": "review_required",
+      "text": "Pedir valoración al responsable médico a bordo y vigilar si tolera líquidos y cuánto orina.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    },
+    "fluids_check": {
+      "urgency": "undetermined",
+      "text": "Falta saber si tolera líquidos y cuánto ha orinado para decidir la prioridad de la valoración.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    }
+  },
+  "questions": {
+    "fluids_urine": "¿Puede retener líquidos y ha orinado con normalidad en las últimas horas?"
+  },
+  "candidates": [
+    {
+      "id": "dehydration",
+      "label": "Deshidratación",
+      "minimum_evidence": "Pérdidas (vómitos, diarrea, sudoración abundante), baja ingesta u orina escasa reportadas.",
+      "source_ids": [
+        "medlineplus_dehydration"
+      ]
+    },
+    {
+      "id": "gastrointestinal_illness",
+      "label": "Cuadro gastrointestinal",
+      "minimum_evidence": "Vómitos, diarrea o náuseas reportados.",
+      "source_ids": [
+        "medlineplus_nausea_vomiting",
+        "medlineplus_diarrhea"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "medlineplus_dehydration",
+      "title": "MedlinePlus: Dehydration",
+      "section": "Resumen",
+      "url": "https://medlineplus.gov/dehydration.html"
+    },
+    {
+      "id": "medlineplus_nausea_vomiting",
+      "title": "MedlinePlus: Nausea and Vomiting",
+      "section": "Resumen",
+      "url": "https://medlineplus.gov/nauseaandvomiting.html"
+    },
+    {
+      "id": "medlineplus_diarrhea",
+      "title": "MedlinePlus: Diarrhea",
+      "section": "Resumen",
+      "url": "https://medlineplus.gov/diarrhea.html"
+    }
+  ],
+  "guide_topics": [
+    "dehydration",
+    "nausea_vomiting",
+    "diarrhea"
+  ]
+}

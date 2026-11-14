@@ -3,9 +3,9 @@ name: langgraph-workflows
 description: Build or change the onboard assistant LangGraph code - parent graph, intent routing and fallback, workflow subgraphs (medical), state mapping between parent and subgraph, and fake-based graph tests. Use for any work under services/onboard-api/src/onboard_api/assistant.
 ---
 
-# LangGraph assistant workflows (planned)
+# LangGraph assistant workflows
 
-Status: no assistant code or LangGraph dependency yet. Add in `services/onboard-api`: `uv add langgraph langchain-core`, commit `uv.lock`. Record the locked versions here once added.
+Status: implemented in `onboard_api.assistant` (medical workflow: `workflows/medical/` with `interpret.py`, `triage.py`, `protocols/*.json`, `nodes.py`, `graph.py`). Locked: langgraph 1.2.22, langchain-core 1.8.0. The layout below is the original guidance; check the code for the current files.
 
 ## Layout (implementation guidance)
 Under `services/onboard-api/src/onboard_api/`:
@@ -33,7 +33,7 @@ assistant/
 - Psychological support: possible future workflow. Do not create `workflows/psych/`, a routing branch, or prompts until the user confirms scope. Until then, route it as `unsupported` (see below).
 
 ## Shared API contract (proposed)
-One route, planned `POST /assistant/messages`, same shape for every workflow:
+One route, `POST /assistant/messages`, same shape for every workflow:
 ```python
 class AssistantRequest(BaseModel):
     message: str

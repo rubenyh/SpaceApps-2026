@@ -3,12 +3,12 @@ name: ollama-local
 description: Connect the onboard assistant to a local Ollama server for chat and embeddings. Use when adding or changing integrations/ollama.py, choosing models, or debugging LLM calls.
 ---
 
-# Ollama local LLM (planned)
+# Ollama local LLM
 
-Status: not a dependency yet. Add in `services/onboard-api`: `uv add langchain-ollama` (gives `ChatOllama`, which works with LangGraph messages). Commit `uv.lock`.
+Status: Ollama is called with httpx 0.28.1 (`/api/chat`, `/api/embed`); langchain-ollama is not used. Default models: `qwen2.5:0.5b` (chat), `bge-m3` (embeddings).
 
 ## Where
-- Planned: `services/onboard-api/src/onboard_api/assistant/integrations/ollama.py`.
+- Client: `services/onboard-api/src/onboard_api/assistant/integrations/ollama.py`.
 
 ## Do
 - Base URL (default `http://127.0.0.1:11434`), chat model, embedding model and timeouts come from settings. Never hard-code model names in nodes.

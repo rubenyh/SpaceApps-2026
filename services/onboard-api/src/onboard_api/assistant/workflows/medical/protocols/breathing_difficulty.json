@@ -1,0 +1,67 @@
+{
+  "id": "breathing_difficulty",
+  "version": "1.0.0",
+  "title": "Dificultad para respirar",
+  "priority": 20,
+  "summary": "Falta de aire real: importan el inicio, la intensidad, la progresión y el contexto. Una SpO₂ baja es un hallazgo, no una causa. Una lectura normal (por ejemplo 97 %), vieja o ausente no cancela una falta de aire intensa o repentina. El oxímetro estima la saturación y su lectura puede alterarse por movimiento, mala colocación o señal pobre. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "immediate": {
+      "urgency": "immediate",
+      "text": "Avisar de inmediato al responsable médico a bordo y seguir la ficha de emergencia respiratoria de la misión. Una SpO₂ normal, vieja o ausente no cancela este aviso.",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    },
+    "new_no_red_flags": {
+      "urgency": "review_required",
+      "text": "Pedir valoración al responsable médico a bordo por falta de aire nueva sin señales de alarma identificadas. Avisar de inmediato si empeora, aparece de repente o se vuelve intensa.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    },
+    "reading_check": {
+      "urgency": "undetermined",
+      "text": "Lectura aislada sin síntomas conocidos: confirmar síntomas y repetir la medición antes de interpretarla.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    },
+    "reading_reference": {
+      "urgency": "informational",
+      "text": "La lectura está dentro de la referencia visual; si aparecen síntomas, comentarlos con el responsable médico a bordo.",
+      "notify": []
+    }
+  },
+  "questions": {
+    "symptoms_and_repeat": "¿Tiene ahora falta de aire u otro síntoma? Repita la medición en reposo, con el sensor bien colocado según las instrucciones del oxímetro, y comparta el resultado."
+  },
+  "candidates": [
+    {
+      "id": "respiratory_cause",
+      "label": "Causa respiratoria a valorar",
+      "minimum_evidence": "Falta de aire con tos o fiebre reportadas.",
+      "source_ids": [
+        "medlineplus_breathing_first_aid"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "medlineplus_breathing_first_aid",
+      "title": "MedlinePlus: Problemas respiratorios - primeros auxilios",
+      "section": "Síntomas y cuándo pedir ayuda",
+      "url": "https://medlineplus.gov/ency/article/000007.htm"
+    },
+    {
+      "id": "fda_pulse_oximeters",
+      "title": "FDA: Pulse Oximeters",
+      "section": "Limitaciones y precisión",
+      "url": "https://www.fda.gov/medical-devices/products-and-medical-procedures/pulse-oximeters"
+    }
+  ],
+  "guide_topics": [
+    "breathing_problems",
+    "pulse_oximetry"
+  ]
+}

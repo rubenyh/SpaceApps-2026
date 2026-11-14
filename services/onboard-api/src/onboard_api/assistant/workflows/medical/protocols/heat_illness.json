@@ -1,0 +1,62 @@
+{
+  "id": "heat_illness",
+  "version": "1.0.0",
+  "title": "Enfermedad por calor",
+  "priority": 100,
+  "summary": "Síntomas tras calor o esfuerzo intenso. Según la combinación de síntomas se consideran agotamiento por calor, calambres por calor o golpe de calor a descartar. La temperatura corporal, si se conoce, proviene de una fuente independiente (no de la muestra de orina). Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "immediate": {
+      "urgency": "immediate",
+      "text": "Avisar de inmediato al responsable médico a bordo: confusión o colapso con exposición al calor. Seguir la ficha de calor de la misión.",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    },
+    "review": {
+      "urgency": "review_required",
+      "text": "Pedir valoración al responsable médico a bordo y mostrar la ficha de calor prevista para síntomas compatibles con la persona consciente.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    }
+  },
+  "questions": {},
+  "candidates": [
+    {
+      "id": "heat_exhaustion",
+      "label": "Agotamiento por calor",
+      "minimum_evidence": "Exposición al calor con sudoración abundante, mareo, náuseas, dolor de cabeza o malestar.",
+      "source_ids": [
+        "niosh_heat_illnesses"
+      ]
+    },
+    {
+      "id": "heat_cramps",
+      "label": "Calambres por calor",
+      "minimum_evidence": "Exposición al calor con calambres musculares.",
+      "source_ids": [
+        "niosh_heat_illnesses"
+      ]
+    },
+    {
+      "id": "heat_stroke",
+      "label": "Golpe de calor (requiere descarte)",
+      "minimum_evidence": "Exposición al calor con confusión, colapso o falta de respuesta.",
+      "source_ids": [
+        "niosh_heat_illnesses"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "niosh_heat_illnesses",
+      "title": "CDC/NIOSH: Heat-related Illnesses",
+      "section": "Síntomas y primeros auxilios",
+      "url": "https://www.cdc.gov/niosh/heat-stress/about/illnesses.html"
+    }
+  ],
+  "guide_topics": [
+    "heat_illness"
+  ]
+}

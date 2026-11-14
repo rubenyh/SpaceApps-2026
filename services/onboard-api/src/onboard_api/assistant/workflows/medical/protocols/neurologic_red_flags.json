@@ -1,0 +1,55 @@
+{
+  "id": "neurologic_red_flags",
+  "version": "1.0.0",
+  "title": "Señales neurológicas de alarma",
+  "priority": 60,
+  "summary": "Alteración súbita del habla, asimetría facial, debilidad de un lado, pérdida súbita de visión o dolor de cabeza súbito e intenso pueden indicar un evento neurológico agudo. Ictus o AIT requieren descarte ante señales focales, aunque ya hayan cedido. Un dolor de cabeza sin esas señales se valora por su propio contexto o por la ruta de cabina. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "immediate": {
+      "urgency": "immediate",
+      "text": "Avisar de inmediato al responsable médico a bordo y seguir la ficha neurológica de la misión, aunque los signos ya hayan cedido. Registrar la hora conocida de inicio si está disponible, sin demorar el aviso.",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    },
+    "headache_check": {
+      "urgency": "undetermined",
+      "text": "Dolor de cabeza sin datos de inicio e intensidad: confirmar si hay señales de alarma neurológica.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    }
+  },
+  "questions": {
+    "headache_red_flags": "¿El dolor de cabeza empezó de repente y es muy intenso, o se acompaña de alteración del habla, cara caída, debilidad de un lado o pérdida de visión?"
+  },
+  "candidates": [
+    {
+      "id": "stroke_tia",
+      "label": "Ictus o accidente isquémico transitorio (requiere descarte)",
+      "minimum_evidence": "Al menos una señal focal súbita (habla, cara, debilidad de un lado, visión) o dolor de cabeza súbito e intenso, actual o ya cedido.",
+      "source_ids": [
+        "cdc_stroke_signs"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "cdc_stroke_signs",
+      "title": "CDC: Signs and Symptoms of Stroke",
+      "section": "Señales de ictus",
+      "url": "https://www.cdc.gov/stroke/signs-symptoms/"
+    },
+    {
+      "id": "medlineplus_headache",
+      "title": "MedlinePlus: Headache",
+      "section": "Resumen",
+      "url": "https://medlineplus.gov/headache.html"
+    }
+  ],
+  "guide_topics": [
+    "stroke",
+    "headache"
+  ]
+}

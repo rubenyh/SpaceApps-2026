@@ -1,0 +1,99 @@
+{
+  "id": "urinary_symptoms",
+  "version": "1.0.0",
+  "title": "Síntomas urinarios",
+  "priority": 110,
+  "summary": "Ardor o urgencia al orinar: posible infección de vejiga. Fiebre o escalofríos con dolor de costado: posible infección renal. Dolor de costado intenso en oleadas o sangre visible: cálculo entre las causas. Incapacidad súbita de orinar: posible retención aguda. pH, conductividad, color RGB y temperatura de la muestra, por sí solos, solo describen la muestra: no indican sangre, temperatura corporal, infección ni radiación. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "immediate": {
+      "urgency": "immediate",
+      "text": "Avisar de inmediato al responsable médico a bordo: incapacidad súbita para orinar.",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    },
+    "prompt_review": {
+      "urgency": "review_required",
+      "text": "Pedir valoración pronta al responsable médico a bordo por fiebre con dolor de costado, dolor intenso o sangre visible en la orina.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    },
+    "review": {
+      "urgency": "review_required",
+      "text": "Pedir valoración al responsable médico a bordo por síntomas urinarios.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    }
+  },
+  "questions": {},
+  "candidates": [
+    {
+      "id": "bladder_infection",
+      "label": "Infección de vejiga",
+      "minimum_evidence": "Ardor o urgencia al orinar reportados.",
+      "source_ids": [
+        "niddk_bladder_infection"
+      ]
+    },
+    {
+      "id": "kidney_infection",
+      "label": "Infección renal",
+      "minimum_evidence": "Fiebre o escalofríos con dolor de costado reportados.",
+      "source_ids": [
+        "niddk_kidney_infection"
+      ]
+    },
+    {
+      "id": "kidney_stone",
+      "label": "Cálculo renal",
+      "minimum_evidence": "Dolor de costado intenso o en oleadas, o sangre visible en la orina reportada.",
+      "source_ids": [
+        "niddk_kidney_stones"
+      ]
+    },
+    {
+      "id": "acute_retention",
+      "label": "Retención urinaria aguda",
+      "minimum_evidence": "Incapacidad súbita de orinar reportada.",
+      "source_ids": [
+        "niddk_urinary_retention"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "niddk_bladder_infection",
+      "title": "NIDDK: Bladder Infection (UTI) in Adults",
+      "section": "Symptoms & Causes",
+      "url": "https://www.niddk.nih.gov/health-information/urologic-diseases/bladder-infection-uti-in-adults/symptoms-causes"
+    },
+    {
+      "id": "niddk_kidney_infection",
+      "title": "NIDDK: Kidney Infection (Pyelonephritis)",
+      "section": "Symptoms & Causes",
+      "url": "https://www.niddk.nih.gov/health-information/urologic-diseases/kidney-infection-pyelonephritis/symptoms-causes"
+    },
+    {
+      "id": "niddk_kidney_stones",
+      "title": "NIDDK: Kidney Stones",
+      "section": "Symptoms & Causes",
+      "url": "https://www.niddk.nih.gov/health-information/urologic-diseases/kidney-stones/symptoms-causes"
+    },
+    {
+      "id": "niddk_urinary_retention",
+      "title": "NIDDK: Urinary Retention",
+      "section": "Symptoms & Causes",
+      "url": "https://www.niddk.nih.gov/health-information/urologic-diseases/urinary-retention/symptoms-causes"
+    }
+  ],
+  "guide_topics": [
+    "urinary_tract_infections",
+    "uti_bladder",
+    "kidney_infection",
+    "kidney_stones",
+    "urinary_retention"
+  ]
+}

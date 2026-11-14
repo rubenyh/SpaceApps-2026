@@ -1,0 +1,46 @@
+{
+  "id": "severe_allergic_reaction",
+  "version": "1.0.0",
+  "title": "Reacción alérgica grave",
+  "priority": 50,
+  "summary": "Hinchazón de lengua o garganta, dificultad respiratoria u otros signos de reacción grave tras una posible exposición. La anafilaxia es posible cuando el cuadro es compatible. Mostrar la ficha autorizada de la misión cuando exista. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "actions": {
+    "immediate": {
+      "urgency": "immediate",
+      "text": "Avisar de inmediato al responsable médico a bordo y seguir la ficha autorizada de reacción alérgica grave de la misión.",
+      "notify": [
+        "responsable médico a bordo",
+        "tripulación"
+      ]
+    },
+    "limited": {
+      "urgency": "review_required",
+      "text": "Pedir valoración al responsable médico a bordo por síntomas alérgicos limitados. Avisar de inmediato si aparece hinchazón de garganta o lengua o dificultad para respirar.",
+      "notify": [
+        "responsable médico a bordo"
+      ]
+    }
+  },
+  "questions": {},
+  "candidates": [
+    {
+      "id": "anaphylaxis",
+      "label": "Anafilaxia",
+      "minimum_evidence": "Compromiso de garganta o respiratorio, con exposición posible o ronchas para considerarla compatible.",
+      "source_ids": [
+        "medlineplus_anaphylaxis"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "medlineplus_anaphylaxis",
+      "title": "MedlinePlus: Anaphylaxis",
+      "section": "Resumen",
+      "url": "https://medlineplus.gov/anaphylaxis.html"
+    }
+  ],
+  "guide_topics": [
+    "anaphylaxis"
+  ]
+}

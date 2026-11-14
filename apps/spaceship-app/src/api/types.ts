@@ -127,16 +127,144 @@ export interface AstronautStatus {
 
 // --- Assistant ---
 
-export interface GuideSource {
-  id: string;
-  title: string;
+/**
+ * immediate: alert on board now. review_required: ask the crew medical officer
+ * for a review (priority is stated in `action`). undetermined: a decisive datum
+ * is missing. informational: general information only.
+ */
+export type Urgency = "immediate" | "review_required" | "undetermined" | "informational";
+export type SymptomStatus = "present" | "absent" | "unknown";
+export type CandidateStatus = "compatible" | "rule_out" | "insufficient_evidence";
+
+/**
+ * Closed vocabulary shared by structured input, text interpretation and rules.
+ * Some codes are context, not symptoms (heat_exposure, intense_exertion,
+ * allergen_exposure, multiple_crew_symptoms, *_reported alerts).
+ */
+export const SYMPTOM_CODES = [
+  "shortness_of_breath",
+  "abnormal_breathing",
+  "chest_pain",
+  "cold_sweat",
+  "palpitations",
+  "speech_change",
+  "facial_droop",
+  "one_sided_weakness",
+  "vision_loss",
+  "sudden_severe_headache",
+  "headache",
+  "unresponsive",
+  "fainting",
+  "seizure",
+  "throat_swelling",
+  "hives",
+  "allergen_exposure",
+  "fever",
+  "chills",
+  "cough",
+  "malaise",
+  "confusion",
+  "stiff_neck",
+  "dizziness",
+  "nausea",
+  "vomiting",
+  "diarrhea",
+  "low_fluid_intake",
+  "unable_to_keep_fluids",
+  "low_urine_output",
+  "vomiting_blood",
+  "abdominal_pain",
+  "black_stool",
+  "blood_in_stool",
+  "heat_exposure",
+  "heavy_sweating",
+  "collapse",
+  "urinary_burning",
+  "urinary_urgency",
+  "flank_pain",
+  "visible_blood_in_urine",
+  "unable_to_urinate",
+  "muscle_pain",
+  "muscle_cramps",
+  "muscle_weakness",
+  "dark_urine",
+  "intense_exertion",
+  "injury",
+  "head_injury",
+  "bleeding",
+  "heavy_bleeding",
+  "burn",
+  "severe_burn",
+  "repeated_vomiting",
+  "multiple_crew_symptoms",
+  "cabin_alarm_reported",
+  "radiation_alert_reported",
+] as const;
+
+export type SymptomCode = (typeof SYMPTOM_CODES)[number];
+
+/** One structured observation. Overrides text interpretation of the same code. */
+export interface ReportedSymptom {
+  symptom: SymptomCode;
+  /** Default "present". */
+  status?: SymptomStatus;
+  onset?: "sudden" | "gradual" | null;
+  severity?: "mild" | "moderate" | "severe" | null;
+  persistence?: "ongoing" | "resolved" | "recurrent" | null;
+  /** With UTC offset. */
+  started_at?: string | null;
+  /** Max 200 chars. */
+  context?: string | null;
 }
 
 export interface AssistantRequest {
+  /** 1 to 4000 chars. */
   message: string;
+  /** Person being assessed. */
   astronaut_id?: string | null;
+  /** Crewmate who sends the report, when it is not the assessed person. */
+  reported_by?: string | null;
+  /**
+   * Max 40. To answer a clarifying question, resend the original message plus
+   * the new structured data (the endpoint is stateless).
+   */
+  reported_symptoms?: ReportedSymptom[];
 }
 
+/** A protocol card (kind="protocol") or a retrieved corpus chunk (kind="guide"). */
+export interface GuideSource {
+  id: string;
+  title: string;
+  section: string | null;
+  url: string | null;
+  kind: "protocol" | "guide";
+}
+
+export interface MatchedRule {
+  rule_id: string;
+  protocol_id: string;
+  protocol_version: string;
+  urgency: Urgency;
+}
+
+export interface Finding {
+  kind: "symptom" | "reading" | "event" | "data_gap";
+  detail: string;
+  /** "report" (text), "structured", "sqlite:<kind>", "event:<id>". */
+  source: string;
+}
+
+/** Candidate from the protocol's reviewed catalog. Never a probability. */
+export interface PossibleCause {
+  id: string;
+  label: string;
+  status: CandidateStatus;
+  evidence_for: string[];
+  missing_data: string[];
+  source_ids: string[];
+}
+
+/** Same shape for every workflow. New workflows add a `workflow` value. */
 export interface AssistantResponse {
   reply: string;
   workflow: AssistantWorkflow;
@@ -144,4 +272,14 @@ export interface AssistantResponse {
   sources: GuideSource[];
   data_notices: string[];
   disclaimer: string | null;
+  urgency: Urgency | null;
+  action: string | null;
+  /** Who to notify, e.g. "responsable médico a bordo". Nothing is transmitted. */
+  notify: string[];
+  protocol_id: string | null;
+  additional_protocol_ids: string[];
+  matched_rules: MatchedRule[];
+  findings: Finding[];
+  possible_causes: PossibleCause[];
+  clarifying_question: string | null;
 }
