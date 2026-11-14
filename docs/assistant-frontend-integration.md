@@ -8,8 +8,8 @@ El asistente médico es soporte informativo. El diagnóstico y las decisiones de
 
 - Envío: `sendAssistantMessage()` en [`apps/spaceship-app/src/api/assistant.ts`](../apps/spaceship-app/src/api/assistant.ts) hace `POST /assistant/messages`.
 - URL base: `API_BASE_URL` en [`apps/spaceship-app/src/api/client.ts`](../apps/spaceship-app/src/api/client.ts). Usa `VITE_ONBOARD_API_URL` y, si no existe, `http://127.0.0.1:8000`. Tiempo de espera: 10 s.
-- [`AsistenteScreen.tsx`](../apps/spaceship-app/src/screens/AsistenteScreen.tsx) envía solo `message` y `astronaut_id`. Muestra `reply`, `data_notices`, los títulos de `sources` y `disclaimer`.
-- **Planned (siguiente etapa):** enviar `reported_by` y `reported_symptoms` y mostrar los campos de triaje en el orden indicado abajo. No hay implementación de UI todavía.
+- [`AsistenteScreen.tsx`](../apps/spaceship-app/src/screens/AsistenteScreen.tsx) envía `message`, `astronaut_id`, `reported_by` (selector "Informa") y `reported_symptoms` (selector de síntoma con Sí / No / No se sabe). Muestra todos los campos de la respuesta en el orden indicado abajo, con `matched_rules` en un detalle plegado. Los selectores no envían `onset`, `severity`, `persistence`, `started_at` ni `context`.
+- Aclaraciones: tras una respuesta con `needs_clarification`, el siguiente mensaje se envía con `buildRequest()` de [`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts): el mensaje original más el texto nuevo, la misma persona evaluada y la misma persona que informa, y los síntomas anteriores combinados con los nuevos. "Nuevo reporte" cancela la aclaración. Prueba: `node src/lib/assistant.check.ts`.
 
 **Nada se transmite.** `notify` indica a quién debe avisar la tripulación. El POST no envía avisos a bordo ni a tierra. El estado "enviado" se reserva para un futuro componente de telemetría que confirme la entrega (Planned).
 
