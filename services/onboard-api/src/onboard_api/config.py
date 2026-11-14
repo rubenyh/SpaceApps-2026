@@ -20,3 +20,16 @@ class Settings(BaseSettings):
 
     db_path: Path = Path("data/onboard.db")
     cors_origins: list[str] = DEFAULT_CORS_ORIGINS
+
+    # Local assistant. Everything runs on this machine.
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    ollama_chat_model: str = "qwen2.5:0.5b"
+    # Same model for ingest and query; changing it requires re-ingesting.
+    ollama_embed_model: str = "bge-m3"
+    ollama_timeout_seconds: float = 20.0
+    chroma_path: Path = Path("data/chroma")
+    guides_collection: str = "medical_guides"
+    # Cosine distance above which a retrieved chunk is dropped.
+    retrieval_max_distance: float = 0.45
+    # Optional JSON list of OperationalEvent used as the demo event source.
+    demo_events_path: Path | None = None
