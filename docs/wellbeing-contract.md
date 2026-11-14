@@ -1,6 +1,6 @@
 # Contrato de bienestar (salud mental) · onboard-api
 
-Estado: **borrador v1** · Dueño: Hiram · Consumidores: consola (Cedric), proceso de visión (`wellbeing-vision`, endpoints 6 y 7 según su borrador).
+Estado: **v1, implementado** (rama `agent/hiram/wellbeing-backend`) · Dueño: Hiram · Consumidores: consola (Cedric), proceso de visión (`wellbeing-vision`, endpoints 6 y 7 según su borrador).
 
 El módulo `onboard_api.wellbeing` detecta **cambios sostenidos de cada astronauta respecto a su propia línea base**. No diagnostica: sus salidas son de apoyo ("necesita apoyo"), nunca etiquetas clínicas.
 
@@ -13,20 +13,20 @@ El módulo `onboard_api.wellbeing` detecta **cambios sostenidos de cada astronau
 
 | # | Método y ruta | Para qué | Vista | Estado |
 |---|---|---|---|---|
-| 1 | `GET /wellbeing/parameters` | Umbrales y componentes de la fusión (todos PROVISIONALES) | — | paso 1 |
-| 2 | `GET /wellbeing/checkin-form` | Preguntas del checklist para pintar el formulario | personal | paso 1 |
-| 3 | `PUT /astronauts/{astronaut_id}/wellbeing/checkins/{day}` | Guardar (o reemplazar) el checklist del día | personal | paso 1 |
-| 4 | `GET /astronauts/{astronaut_id}/wellbeing/checkins` | Historial de checklists | personal | paso 1 |
-| 5 | `POST /wellbeing/signals` | HRV, FC en reposo y sueño (Apple Watch o simulador) | ingesta | paso 1 |
-| 6 | `POST /wellbeing/vision-sessions` | Métricas derivadas de cámara (sin video) | ingesta | paso 1 |
-| 7 | `POST /wellbeing/co-presence` | Quién compartió módulo con quién y cuánto tiempo | ingesta | paso 1 |
-| 8 | `GET /wellbeing/crew` | Semáforo de toda la tripulación | **tripulación** | paso 1 |
-| 9 | `GET /astronauts/{astronaut_id}/wellbeing` | Evaluación completa de una persona | **personal** | paso 1 |
-| 10 | `GET /astronauts/{astronaut_id}/wellbeing/timeline` | Serie diaria con el día de inicio de la alteración | **personal** | paso 1 |
-| 11 | `POST /wellbeing/ground-packages` | Crear un paquete para el psicólogo en Tierra (requiere consentimiento) | personal | paso 7 |
-| 12 | `GET /wellbeing/ground-packages` | Listar paquetes de un astronauta | personal | paso 7 |
-| 13 | `GET /wellbeing/ground-packages/{id}/content` | Ver exactamente qué se enviaría | personal | paso 7 |
-| 14 | `POST /wellbeing/ground-packages/{id}/withdraw` | Retirar el consentimiento de un paquete aún no enviado | personal | paso 7 |
+| 1 | `GET /wellbeing/parameters` | Umbrales y componentes de la fusión (todos PROVISIONALES) | — | listo |
+| 2 | `GET /wellbeing/checkin-form` | Preguntas del checklist para pintar el formulario | personal | listo |
+| 3 | `PUT /astronauts/{astronaut_id}/wellbeing/checkins/{day}` | Guardar (o reemplazar) el checklist del día | personal | listo |
+| 4 | `GET /astronauts/{astronaut_id}/wellbeing/checkins` | Historial de checklists | personal | listo |
+| 5 | `POST /wellbeing/signals` | HRV, FC en reposo y sueño (Apple Watch o simulador) | ingesta | listo |
+| 6 | `POST /wellbeing/vision-sessions` | Métricas derivadas de cámara (sin video) | ingesta | listo |
+| 7 | `POST /wellbeing/co-presence` | Quién compartió módulo con quién y cuánto tiempo | ingesta | listo |
+| 8 | `GET /wellbeing/crew` | Semáforo de toda la tripulación | **tripulación** | listo |
+| 9 | `GET /astronauts/{astronaut_id}/wellbeing` | Evaluación completa de una persona | **personal** | listo |
+| 10 | `GET /astronauts/{astronaut_id}/wellbeing/timeline` | Serie diaria con el día de inicio de la alteración | **personal** | listo |
+| 11 | `POST /wellbeing/ground-packages` | Crear un paquete para el psicólogo en Tierra (requiere consentimiento) | personal | listo |
+| 12 | `GET /wellbeing/ground-packages` | Listar paquetes de un astronauta | personal | listo |
+| 13 | `GET /wellbeing/ground-packages/{id}/content` | Ver exactamente qué se enviaría | personal | listo |
+| 14 | `POST /wellbeing/ground-packages/{id}/withdraw` | Retirar el consentimiento de un paquete aún no enviado | personal | listo |
 
 "Vista" indica qué pantalla debe usarlo. **No hay autenticación en la API**: la separación tripulación/personal la hace la consola. La vista de tripulación debe usar **sólo** el endpoint 8.
 
@@ -408,7 +408,7 @@ Una entrada por astronauta registrado, ordenados por `astronaut_id`. **Sin detal
 - `indicators.*` y `sources.*` son z adversos (positivo = peor), o `null`.
 - El nivel de un día pasa a `attention` o `needs_support` cuando la racha alcanza `sustain_days`, no antes. `onset_date` marca dónde empezó la racha: es el punto que hay que dibujar como "inicio de la alteración".
 
-## 11–14. Envío a psicólogo en Tierra (paso 7, aún no implementado)
+## 11–14. Envío a psicólogo en Tierra
 
 `POST /wellbeing/ground-packages`:
 
@@ -425,9 +425,15 @@ Una entrada por astronauta registrado, ordenados por `astronaut_id`. **Sin detal
 }
 ```
 
-- `requested_by`: `"self"`, `"captain"` o `"ground_psychologist"`.
+- `requested_by`: quién inicia el envío. Siempre requiere el consentimiento del astronauta.
+  - `"self"`: el propio astronauta.
+  - `"captain"`: el capitán, con consentimiento del astronauta.
+  - `"ground_psychologist"`: un psicólogo al terminar la misión, que revisa y decide si alguien necesita seguimiento, con consentimiento.
+- `period_from` ≤ `period_to` ≤ hoy (UTC). El contenido se evalúa con los datos hasta el final de `period_to`.
 - `include`: `"assessment"`, `"timeline"`, `"checkins"` o `"comments"`. Los comentarios libres sólo van si se piden explícitamente, y exigen `"checkins"`.
-- `422` si `consent.astronaut_confirmed` no es `true`. **No existe envío automático.**
+- `422` si `consent.astronaut_confirmed` no es `true` (o falta `consent`), si el periodo es inválido o está en el futuro, o si `include` está vacío, repite valores o trae `"comments"` sin `"checkins"`. **No existe envío automático.**
+- `404` si el astronauta no existe.
+- El objeto `consent` no se devuelve: queda registrado como `consent_statement_version` y `consent_recorded_at`.
 
 Response `201`:
 
@@ -442,6 +448,7 @@ Response `201`:
   "include": ["assessment", "timeline", "checkins"],
   "note": "Revisión sugerida tras una semana de cambios sostenidos.",
   "status": "queued",
+  "consent_statement_version": "v1",
   "consent_recorded_at": "2026-11-14T18:10:00.000000Z",
   "created_at": "2026-11-14T18:10:00.000000Z"
 }
@@ -450,8 +457,8 @@ Response `201`:
 `status`: `"queued"` (en cola a bordo; el envío asíncrono llega con la telemetría), `"withdrawn"` (consentimiento retirado) o `"sent"` (futuro).
 
 - `GET /wellbeing/ground-packages?astronaut_id=ast-02` → `GroundPackage[]`, del más reciente al más antiguo.
-- `GET /wellbeing/ground-packages/{id}/content` → `{ "package": GroundPackage, "assessment": WellbeingAssessment | null, "timeline": WellbeingTimeline | null, "checkins": Checkin[] | null }`. Es lo que la pantalla de consentimiento debe mostrar antes de confirmar.
-- `POST /wellbeing/ground-packages/{id}/withdraw` → `GroundPackage` con `status: "withdrawn"`. `409` si ya está `sent`.
+- `GET /wellbeing/ground-packages/{id}/content` → `{ "package": GroundPackage, "assessment": WellbeingAssessment | null, "timeline": WellbeingTimeline | null, "checkins": Checkin[] | null }`. Muestra lo que se enviaría. Sin `"comments"` en `include`, los `comment` salen como `null`. `404` si el paquete no existe; `409` si se retiró el consentimiento.
+- `POST /wellbeing/ground-packages/{id}/withdraw` → `GroundPackage` con `status: "withdrawn"`. Es idempotente: retirar uno ya retirado lo devuelve igual. `409` si ya está `sent`; `404` si no existe.
 
 `captain` y `ground_psychologist` no se verifican (la API no tiene usuarios). La consola debe pedir la confirmación del propio astronauta antes de mandar `astronaut_confirmed: true`.
 
@@ -764,6 +771,7 @@ export interface GroundPackage {
   include: GroundInclude[];
   note: string | null;
   status: GroundPackageStatus;
+  consent_statement_version: string;
   consent_recorded_at: string;
   created_at: string;
 }
@@ -780,6 +788,28 @@ export interface GroundPackageContent {
 
 ## Notas para la integración
 
-- El router todavía **no está registrado en `main.py`**. Ese commit de una línea va al final, coordinado con Rubén. Mientras tanto los endpoints se prueban con los tests del módulo.
+- El router está registrado en `main.py`: todos los endpoints viven en el mismo servidor onboard (`http://127.0.0.1:8000`) y aparecen en `/docs` bajo la etiqueta `wellbeing`.
+- Flujo sugerido para la pantalla de consentimiento: el astronauta revisa el periodo e `include` → `POST` con `astronaut_confirmed: true` → `GET …/content` para mostrar lo que va en cola → botón "retirar" con `POST …/withdraw`.
 - Simulador de historial: `uv run python scripts/simulate_wellbeing.py` (en `services/onboard-api`). Crea `ast-01`…`ast-04` vía `POST /astronauts` si no existen, y escribe en `wellbeing.db` con `source: "simulated"`.
 - Configuración (variables de entorno): `WELLBEING_DB_PATH` (por defecto `data/wellbeing.db`), `ONBOARD_DB_PATH` (la base de Rubén, sólo lectura), `WELLBEING_Z_THRESHOLD`, `WELLBEING_SUSTAIN_DAYS`, etc. (ver `onboard_api/wellbeing/settings.py`).
+
+## Probarlo en local (PowerShell)
+
+```powershell
+cd services\onboard-api
+uv sync --locked
+$env:PYTHONUTF8 = "1"
+uv run fastapi dev
+```
+
+En otra terminal:
+
+```powershell
+cd services\onboard-api
+uv run python scripts/simulate_wellbeing.py
+Invoke-RestMethod http://127.0.0.1:8000/wellbeing/crew | ConvertTo-Json -Depth 4
+Invoke-RestMethod http://127.0.0.1:8000/astronauts/ast-02/wellbeing | ConvertTo-Json -Depth 6
+Start-Process http://127.0.0.1:8000/docs
+```
+
+Resultado esperado del historial simulado: `ast-01` y `ast-04` en `ok`, `ast-02` en `needs_support` desde el día 14 del historial, `ast-03` en `needs_support` con `discrepancy: true`.
