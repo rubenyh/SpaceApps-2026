@@ -13,7 +13,11 @@ uv sync --locked
 uv run fastapi dev            # puerto 8000; GET / -> {"status":"ok"}
 ```
 
-Al arrancar se crea `data/onboard.db` (esquema y configuración de sensores) si no existe. Ollama y ChromaDB se usan solo cuando una petición los necesita.
+Al arrancar se crea `data/onboard.db` si no existe y se aplican las migraciones pendientes (ver [Base de datos](#base-de-datos)). Ollama y ChromaDB se usan solo cuando una petición los necesita.
+
+## Base de datos
+
+SQLite en `ONBOARD_DB_PATH`. Tablas, columnas, valores permitidos y filas de referencia de `sensor_config`: [`db/data-dictionary.md`](../../db/data-dictionary.md). Migraciones SQL: [`db/migrations/onboard/`](../../db/migrations/onboard/), aplicadas por `init_db` (`src/onboard_api/repositories/database.py`) al arrancar. La versión es `PRAGMA user_version`.
 
 ## Configuración
 
