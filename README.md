@@ -95,7 +95,7 @@ uv run fastapi dev                    # http://127.0.0.1:8000
 uv sync --locked
 uv run fastapi dev --port 8001        # http://127.0.0.1:8001
 
-# 3. repo root: simulated device feed (registers ast-01 and ast-02)
+# 3. repo root: simulated device feed (registers ast-01)
 python3 firmware/simulator.py
 
 # 4. apps/spaceship-app (and apps/base-app for the ground console)
@@ -122,7 +122,7 @@ Details: [docs/RAG-AND-EVALUATION.md](docs/RAG-AND-EVALUATION.md).
 
 ```sh
 curl http://127.0.0.1:8000/                          # {"status":"ok"}
-curl http://127.0.0.1:8000/astronauts                # ast-01 and ast-02 once the simulator runs
+curl http://127.0.0.1:8000/astronauts                # ast-01 once the simulator runs
 curl http://127.0.0.1:8001/link                      # batches_received grows every 5 s
 docker compose ps -a                                 # Compose only: demo-init "Exited (0)" when setup is done
 ```

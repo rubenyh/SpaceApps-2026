@@ -26,7 +26,7 @@ wellbeing-vision (camera) ──metrics──▶ onboard-api /wellbeing/vision-s
 | `ground-api` | FastAPI on `http://127.0.0.1:8001`. Receives telemetry from `onboard-api` and serves base-app. |
 | `ollama` | Official `ollama/ollama` image. Reachable only inside Compose as `http://ollama:11434`; port 11434 is not published. Keeps models loaded (`OLLAMA_KEEP_ALIVE=-1`). |
 | `demo-init` | One-shot job ([`prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py)). Waits for Ollama, pulls `qwen2.5:3b` and `bge-m3` if missing, loads them, and builds the guide index when it is missing or outdated. Exits 0 when done. Safe to rerun. |
-| `simulator` | [`firmware/simulator.py`](../firmware/simulator.py). Starts after the API healthcheck passes, registers `ast-01` and `ast-02`, uploads a 30-day history and posts readings every 5 s. |
+| `simulator` | [`firmware/simulator.py`](../firmware/simulator.py). Starts after the API healthcheck passes, registers `ast-01`, uploads a 30-day history and posts readings every 5 s. |
 
 Volumes: `sqlite` (`onboard.db`, `wellbeing.db`), `chroma` (guide index), `ollama` (models), `ground` (`ground.db`). They survive `docker compose down` and restarts; `docker compose down -v` deletes them.
 

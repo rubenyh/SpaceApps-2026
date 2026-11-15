@@ -15,8 +15,12 @@ for r in history:
     assert (r["value"] is None) != (r["value_text"] is None), r
     assert r["quality"] in ("good", "suspect", "bad"), r
     assert r["recorded_at"] < now.isoformat(), r
-hr = [r["value"] for r in history if r["kind"] == "heart_rate" and r["astronaut_id"] == "ast-01" and r["quality"] == "good"]
-assert 50 < sum(hr) / len(hr) < 100, sum(hr) / len(hr)
+assert list(CREW) == ["ast-01"]
+# Mock values stay inside the normal ranges.
+for kind, low, high in (("heart_rate", 60, 100), ("spo2", 95, 100), ("urine_temperature", 32, 38),
+                        ("urine_ph", 4.6, 8.0), ("urine_radiation_marker", 3.0, 5.5)):
+    values = [r["value"] for r in history if r["kind"] == kind]
+    assert values and all(low <= v <= high for v in values) and all(r["quality"] == "good" for r in history), kind
 rad = [r["value"] for r in history if r["kind"] == "urine_radiation_marker"]
 assert len(rad) == 14 * len(CREW) and all(r > 0 for r in rad), rad
 assert all(r["unit"] == "ng/mg creatinine" for r in history if r["kind"] == "urine_radiation_marker")
@@ -27,13 +31,10 @@ assert urine_color(0) == "#F5EC9A" and urine_color(1) == "#B8860B"
 uplink = Uplink("http://127.0.0.1:9")
 assert uplink.flush(history[:3]) == 0 and len(uplink.buffer) == 3 and not uplink.online
 uplink.configure_radiation()  # API down: logs and returns, never raises
-# A real watch owns this astronaut's pulse-ox: no simulated vitals, urine still simulated.
-crew[0].real_vitals = True
-assert crew[0].vitals(now) == [] and crew[0].urine(now) and crew[1].real_vitals is False
 # The ESP32 owns this astronaut's pH, salinity and temperature: only colour and 8-OHdG stay simulated.
+assert len(crew[0].urine(now)) == 5
 crew[0].real_urine = True
 assert {r["kind"] for r in crew[0].urine(now)} == {"urine_color", "urine_radiation_marker"}
-assert len(crew[1].urine(now)) == 5
 
 # Serial bridge parser, with lines as the board prints them.
 from serial_bridge import parse_line
