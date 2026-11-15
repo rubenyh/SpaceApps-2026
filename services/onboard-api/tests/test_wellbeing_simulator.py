@@ -8,6 +8,7 @@ from onboard_api.wellbeing.repository import WellbeingRepository
 from onboard_api.wellbeing.schemas import VisionSessionCreate
 from onboard_api.wellbeing.settings import WellbeingSettings
 from onboard_api.wellbeing.simulator import (
+    BAD_DAY,
     CREW,
     DERAIL_DAY,
     DISCREPANCY_DAY,
@@ -62,6 +63,22 @@ def test_simulated_crew_tells_the_demo_story(tmp_path) -> None:
     kinds = [v.session_type for v in vision]
     assert kinds.count("bitacora") == 20 and kinds.count("ambiente") == 20 * 3
     assert all(v.motion and v.fatigue is None for v in vision if v.session_type == "ambiente")
+    conn.close()
+
+
+def test_checkin_comments_follow_each_story(tmp_path) -> None:
+    conn = connect_wellbeing(tmp_path / "wellbeing.db")
+    repo = WellbeingRepository(conn)
+    simulate(repo, TODAY)
+    start = TODAY - timedelta(days=20)
+    noted = {aid: [(c.day - start).days for c in repo.list_checkins(aid) if c.comment] for aid in CREW}
+    assert len(noted["ast-01"]) <= 1  # stable: almost nothing to say
+    assert noted["ast-02"] and min(noted["ast-02"]) == DERAIL_DAY  # nothing before the shift change
+    assert noted["ast-03"] and min(noted["ast-03"]) >= DISCREPANCY_DAY
+    assert noted["ast-04"] == [BAD_DAY]  # one bad day, then back to normal
+    words = " ".join(c.comment or "" for aid in CREW for c in repo.list_checkins(aid)).lower()
+    for clinical in ("depress", "anxi", "insomnia", "diagnos", "disorder", "symptom"):
+        assert clinical not in words
     conn.close()
 
 
