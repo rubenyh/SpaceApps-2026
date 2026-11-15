@@ -290,6 +290,45 @@ export interface IncidentRef {
   error: string | null;
 }
 
+/** Stored onboard incident (GET /incidents, GET /incidents/{id}). Timestamps are UTC ISO 8601. */
+export interface Incident {
+  id: string;
+  status: "open" | "closed";
+  astronaut_id: string | null;
+  reported_by: string | null;
+  /** Onboard server clock. */
+  began_at: string;
+  closed_at: string | null;
+  urgency: Urgency;
+  action: string | null;
+  protocol_id: string | null;
+  steps: ActionStep[];
+  matched_rules: MatchedRule[];
+  findings: Finding[];
+  data_notices: string[];
+  mission_procedures: MissionProcedure[];
+  missing_guidance: string[];
+  /** Oldest first. */
+  acknowledgments: Acknowledgment[];
+  /** Oldest first. */
+  events: IncidentEvent[];
+  /** disabled: telemetry off; queued: some event not yet accepted by ground; delivered: all accepted. */
+  ground_delivery: "disabled" | "queued" | "delivered";
+}
+
+export interface Acknowledgment {
+  acknowledged_by: string;
+  acknowledged_at: string;
+}
+
+export interface IncidentEvent {
+  id: string;
+  type: "created" | "acknowledged" | "closed";
+  occurred_at: string;
+  acknowledged_by: string | null;
+  delivered_at: string | null;
+}
+
 /** Candidate from the protocol's reviewed catalog. Never a probability. */
 export interface PossibleCause {
   id: string;

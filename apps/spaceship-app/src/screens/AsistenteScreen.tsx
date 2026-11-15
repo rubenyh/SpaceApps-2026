@@ -138,6 +138,12 @@ function AssistantReply({ response, at }: { response: AssistantResponse; at: num
               <strong>Tell (nothing is sent automatically):</strong> {response.notify.join(", ")}
             </p>
           ) : null}
+          {response.incident?.recorded === false ? (
+            <p className="triage__notify">
+              <StateIcon state="alert" size={15} />
+              <strong>Incident not recorded:</strong> {response.incident.error ?? "unknown reason"}
+            </p>
+          ) : null}
         </div>
       ) : null}
       {clarification && response.clarifying_question ? (
