@@ -55,6 +55,8 @@ Referenced by `readings.kind`.
 
 These are demo values, not clinically validated thresholds.
 
+`urine_radiation_marker` is urinary 8-OHdG (8-hydroxy-2'-deoxyguanosine), an indirect marker of oxidative DNA damage, not a dose. The 0001 seed leaves it unconfigured. At boot, `firmware/simulator.py` sets it with `PUT /sensors/urine_radiation_marker` (only while `unit` is NULL): `unit` `ng/mg creatinine`, `stale_after_seconds` 86400, `normal_min` 3.0, `normal_max` 5.5, `range_role` health, `provisional` 1, `range_source` `Graille et al. 2020 (8-OHdG meta-analysis)` (healthy-adult IQR, chemical methods). Consoles show its value and range, but it never raises the console alert banner or the ground alert log.
+
 ## `readings`
 
 One crew reading. Rows are only inserted (`POST /readings`); the API has no update or delete.
