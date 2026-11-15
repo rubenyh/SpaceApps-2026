@@ -3,6 +3,7 @@ tension live, then one summary. Frames stay in memory only; only derived numbers
 
 import csv
 import time
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -12,12 +13,13 @@ import numpy as np
 from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python.vision import FaceLandmarker, FaceLandmarkerOptions, RunningMode
 
+from wellbeing_vision.anchor import anchor_file, load_anchor, save_neutral
 from wellbeing_vision.capture import open_camera
 from wellbeing_vision.config import Settings
 from wellbeing_vision.download import model_path
 from wellbeing_vision.face import (
-    EYE_CLOSED_RATIO, LEFT_EYE, MIN_VALID_S, NOD_PITCH_DEG, RIGHT_EYE, YAWN_JAW_DELTA, FaceFrame, SessionMetrics,
-    face_frame, neutral_of,
+    LEFT_EYE, MIN_VALID_S, NOD_PITCH_DEG, RIGHT_EYE, YAWN_JAW_DELTA, FaceFrame, SessionMetrics, calibration_break,
+    face_frame, neutral_of, neutral_problem,
 )
 from wellbeing_vision.facecrop import CROP_PX, FaceCrop
 from wellbeing_vision.overlay import AMBER, WHITE, Notice, Row, render, severity
@@ -25,14 +27,22 @@ from wellbeing_vision.schemas import Identity, VisionSession
 from wellbeing_vision.sink import Sink
 
 NEUTRAL_S = 3.0
-NEUTRAL_TIMEOUT_S = 30.0
+NEUTRAL_TIMEOUT_S = 45.0
+CALIB_HINTS = {
+    "blink": "Parpadeaste · mantén los ojos abiertos 3 s",
+    "move": "Mantén la cabeza quieta",
+    "mouth": "No hables durante la calibración",
+    "squint": "Abre los ojos con normalidad",
+    "anchor": "Distinto a tu neutral habitual · relaja la cara",
+}
 WINDOW = "Bitacora - wellbeing-vision"
 LANDMARKS_SHOWN = (*RIGHT_EYE, *LEFT_EYE, 13, 14, 61, 291)
 FOOTER = "Umbrales provisionales · no se guarda video"
 # Display-only marks for the live bars. PROVISIONAL, no clinical source.
+EYES_MARK = 0.6
 PERCLOS_MARK = 0.15
 TENSION_MARK = 0.20
-TRACE_FIELDS = ("t", "face_px", "usable", "ear_ratio", "eye_blink", "jaw_delta", "brow_delta", "lip_delta")
+TRACE_FIELDS = ("t", "face_px", "usable", "ear", "ear_ratio", "eye_blink", "jaw_delta", "brow_delta", "lip_delta")
 
 
 def quality_of(valid_frame_ratio: float) -> str:
@@ -55,7 +65,7 @@ def live_sections(m: SessionMetrics, live: dict[str, float]) -> list[tuple[str, 
 
     pct = lambda v: f"{v * 100:.0f} %"  # noqa: E731
     fatigue = [
-        row("Apertura de ojos", "eyes", pct, EYE_CLOSED_RATIO, 1.2, higher_is_worse=False),
+        row("Apertura de ojos", "eyes", pct, EYES_MARK, 1.2, higher_is_worse=False),
         row("PERCLOS (ojos cerrados)", "perclos", pct, PERCLOS_MARK, 0.30),
         Row("Parpadeos", f"{m.blinks.count / (m.valid_s / 60):.0f} /min" if m.valid_s >= MIN_VALID_S else "—"),
         row("Inclinación de cabeza", "pitch", lambda v: f"{v:+.0f}°", NOD_PITCH_DEG, 30.0),
@@ -114,6 +124,9 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
     min_px = settings.min_face_px
     t0, last_ms, fullscreen = time.monotonic(), -1, False
     neutral_frames: list[FaceFrame] = []
+    anchor_path = anchor_file(settings.data_dir, astronaut_id)
+    anchor, anchor_n = load_anchor(anchor_path)
+    day_neutral, retried, used_anchor, why, why_t = None, False, False, None, 0.0
     metrics: SessionMetrics | None = None
     live: dict[str, float] = {}
     started_at = rec_t0 = None
@@ -139,18 +152,30 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
             notice = None if usable else _far_notice(ff, min_px) if ff else NO_FACE
 
             if metrics is None:
-                # The neutral must be continuous and close enough: anything else restarts it.
-                neutral_frames = neutral_frames + [usable] if usable else []
+                # Steady, close and relaxed for 3 s in a row; a blink, head move or talking restarts it.
+                broke = calibration_break(neutral_frames, usable) if usable else None
+                if broke:
+                    why, why_t = broke, t
+                neutral_frames = [usable] if broke else neutral_frames + [usable] if usable else []
                 held = neutral_frames[-1].t - neutral_frames[0].t if neutral_frames else 0.0
-                notice = notice or Notice("Mantén el rostro relajado", "Mira a la cámara · neutral del día",
-                                          progress=held / NEUTRAL_S)
+                if held >= NEUTRAL_S:
+                    day_neutral = neutral_of(neutral_frames)
+                    problem = neutral_problem(day_neutral, anchor)
+                    if problem == "squint" or (problem == "anchor" and not retried):
+                        retried = retried or problem == "anchor"
+                        why, why_t, neutral_frames = problem, t, []
+                    else:
+                        # Off the anchor twice in a row: the day's eyes are not trusted, the anchor's are.
+                        used_anchor = problem == "anchor"
+                        neutral = replace(day_neutral, ear=anchor.ear, eye_blink=anchor.eye_blink)                             if used_anchor else day_neutral
+                        metrics = SessionMetrics(neutral)
+                        started_at, rec_t0 = datetime.now(UTC), t
+                hint = CALIB_HINTS[why] if why and t - why_t < 2.5 else "Mira a la cámara · neutral del día"
+                notice = notice or Notice("Mantén el rostro relajado", hint, progress=held / NEUTRAL_S)
                 canvas = render(frame, title, "CALIBRANDO", [("Las métricas aparecen al calibrar", [])],
                                 FOOTER, notice, points)
-                if held >= NEUTRAL_S:
-                    metrics = SessionMetrics(neutral_of(neutral_frames))
-                    started_at, rec_t0 = datetime.now(UTC), t
-                elif t > NEUTRAL_TIMEOUT_S:
-                    print("Calibration failed: no steady, close face for 3 s. No summary sent.")
+                if metrics is None and t > NEUTRAL_TIMEOUT_S:
+                    print("Calibration failed: no steady, relaxed, close face for 3 s. No summary sent.")
                     break
             else:
                 metrics.add(usable, t)
@@ -164,7 +189,7 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
                 if metrics.valid_s >= MIN_VALID_S:  # same rule as the summary: too short is not measurable
                     live["perclos"] = metrics.closed_s / metrics.valid_s
                 if tracer and ff:
-                    tracer.writerow([f"{t:.3f}", f"{ff.face_px:.0f}", int(usable is not None),
+                    tracer.writerow([f"{t:.3f}", f"{ff.face_px:.0f}", int(usable is not None), f"{ff.ear:.4f}",
                                      f"{ff.ear / n.ear:.3f}", f"{ff.eye_blink:.3f}", f"{ff.jaw_open - n.jaw_open:.3f}",
                                      f"{ff.brow_down - n.brow_down:.3f}", f"{ff.lip_press - n.lip_press:.3f}"])
                 left = max(0.0, seconds - (t - rec_t0))
@@ -205,4 +230,8 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
         tension=metrics.tension(),
     )
     sink.send("/wellbeing/vision-sessions", session)
+    save_neutral(anchor_path, day_neutral)
+    ref = "anchor (today's neutral was off twice)" if used_anchor else "today's neutral"
+    print(f"Eye reference: {ref}; anchor from {anchor_n} past neutrals"
+          f"{'' if anchor else ' (needs 3)'}; neutral eyeBlink {day_neutral.eye_blink:.2f}, EAR {day_neutral.ear:.3f}")
     return session

@@ -2,13 +2,16 @@ import math
 
 import numpy as np
 
-from wellbeing_vision.face import FaceFrame, SessionMetrics, eye_aspect_ratio, neutral_of, pitch_degrees
+from wellbeing_vision.anchor import load_anchor, save_neutral
+from wellbeing_vision.face import (
+    FaceFrame, SessionMetrics, calibration_break, eye_aspect_ratio, neutral_of, neutral_problem, pitch_degrees,
+)
 
-NEUTRAL = FaceFrame(0.0, ear=0.30, jaw_open=0.05, brow_down=0.10, lip_press=0.10, pitch=0.0)
+NEUTRAL = FaceFrame(0.0, ear=0.30, jaw_open=0.05, brow_down=0.10, lip_press=0.10, pitch=0.0, eye_blink=0.1)
 
 
 def _frame(t, **kw):
-    base = dict(ear=0.30, jaw_open=0.05, brow_down=0.10, lip_press=0.10, pitch=0.0)
+    base = dict(ear=0.30, jaw_open=0.05, brow_down=0.10, lip_press=0.10, pitch=0.0, eye_blink=0.1)
     return FaceFrame(t, **(base | kw))
 
 
@@ -34,8 +37,8 @@ def test_pitch_positive_when_rotated_about_x():
 
 
 def test_neutral_median_ignores_one_blink():
-    frames = [_frame(i, ear=0.3) for i in range(9)] + [_frame(9, ear=0.05)]
-    assert neutral_of(frames).ear == 0.3
+    frames = [_frame(i) for i in range(9)] + [_frame(9, ear=0.05, eye_blink=0.7)]
+    assert neutral_of(frames).ear == 0.3 and neutral_of(frames).eye_blink == 0.1
 
 
 def test_steady_face_has_no_events():
@@ -48,14 +51,47 @@ def test_steady_face_has_no_events():
 
 def test_blinks_counted_once_per_closure():
     # 0.1 s closed every 2 s -> 30 blinks/min
-    m = _run(lambda t: _frame(t, ear=0.05 if (t % 2) < 0.1 else 0.30))
+    m = _run(lambda t: _frame(t, eye_blink=0.7 if (t % 2) < 0.1 else 0.1))
     assert 29 <= m.fatigue().blink_rate_per_min <= 31
 
 
-def test_ear_jitter_at_threshold_is_one_blink():
-    # Neutral 0.30 -> closes below 0.18, reopens above 0.21. Jitter 0.17/0.19 is one closure.
-    m = _run(lambda t: _frame(t, ear=(0.17 if int(t * 30) % 2 else 0.19) if 5 <= t < 5.5 else 0.30))
+def test_blink_jitter_at_threshold_is_one_blink():
+    # Closes above 0.4, reopens below 0.3. Jitter 0.42/0.35 is one closure.
+    m = _run(lambda t: _frame(t, eye_blink=(0.42 if int(t * 30) % 2 else 0.35) if 5 <= t < 5.5 else 0.1))
     assert m.blinks.count == 1
+
+
+def test_far_face_inflating_ear_does_not_hide_closures():
+    # Traced: open-eye EAR doubles when the face moves away; eyeBlink still reads the closure.
+    m = _run(lambda t: _frame(t, ear=0.6, eye_blink=0.7 if (t % 2) < 0.1 else 0.05))
+    assert 29 <= m.fatigue().blink_rate_per_min <= 31
+
+
+def test_high_open_eye_baseline_raises_the_closure_bar():
+    m = SessionMetrics(FaceFrame(0.0, 0.3, 0.05, 0.1, 0.1, 0.0, eye_blink=0.25))
+    for i in range(600):
+        m.add(_frame(i / 30, eye_blink=0.45), i / 30)  # over 0.4 but under 0.25 + 0.25
+    assert m.fatigue().perclos == 0.0
+
+
+def test_calibration_breaks_on_blink_head_move_and_talking():
+    steady = [_frame(i / 30) for i in range(30)]
+    assert calibration_break(steady, _frame(1.0)) is None
+    assert calibration_break(steady, _frame(1.0, eye_blink=0.6)) == "blink"
+    assert calibration_break(steady, _frame(1.0, yaw=8.0)) == "move"
+    assert calibration_break(steady, _frame(1.0, jaw_open=0.3)) == "mouth"
+
+
+def test_neutral_plausibility_and_anchor(tmp_path):
+    assert neutral_problem(_frame(0, eye_blink=0.35), None) == "squint"  # S3-like: calibrated half-closed
+    path = tmp_path / "ast-01.jsonl"
+    for ear in (0.30, 0.31, 0.29):
+        save_neutral(path, _frame(0, ear=ear))
+    path.write_text(path.read_text() + '{"torn', encoding="utf-8")
+    anchor, n = load_anchor(path)
+    assert n == 3 and anchor.ear == 0.30
+    assert neutral_problem(_frame(0, ear=0.31), anchor) is None
+    assert neutral_problem(_frame(0, ear=0.22), anchor) == "anchor"
 
 
 def test_relaxing_below_neutral_is_not_negative_tension():

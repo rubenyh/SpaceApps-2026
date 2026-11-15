@@ -18,8 +18,12 @@ RIGHT_EYE = (33, 160, 158, 133, 153, 144)
 LEFT_EYE = (362, 385, 387, 263, 373, 380)
 FACE_EDGES = (234, 454)  # cheek to cheek: face width in pixels
 
-EYE_CLOSED_RATIO = 0.6  # PROVISIONAL: eye closed when EAR < 60 % of the day's neutral EAR
-EYE_REOPEN_RATIO = 0.7  # hysteresis: EAR jitter around 0.6 must not count as several blinks
+# Eye closure uses the eyeBlink blendshape, not EAR: on the traced session they agree on 94 % of frames
+# (r = -0.93), but EAR of open eyes doubles when the face moves away (1.1 -> 2.0 of neutral) and needs
+# the day's neutral, while eyeBlink stays at 0.03-0.15 for open eyes at any distance.
+EYE_BLINK_CLOSED = 0.4  # PROVISIONAL absolute bar
+EYE_BLINK_OVER_NEUTRAL = 0.25  # PROVISIONAL: raised for someone whose open eyes already read high
+EYE_BLINK_HYSTERESIS = 0.1  # reopen 0.1 below the bar: jitter must not count as several blinks
 YAWN_JAW_DELTA = 0.35  # PROVISIONAL: jawOpen blendshape above neutral (0.5 missed acted yawns)
 YAWN_MIN_S = 1.0  # PROVISIONAL: talking opens the jaw briefly; a yawn holds it
 NOD_PITCH_DEG = 15.0  # PROVISIONAL: head dropped forward vs neutral
@@ -27,6 +31,15 @@ NOD_MIN_S = 0.3
 TENSION_HOLD_S = 1.0  # a grimace must be held this long to count as a peak
 MIN_VALID_S = 10.0  # below this, rates are not measurable -> None
 MAX_DT_S = 0.2  # cap frame gaps so a stalled camera does not inflate durations
+
+# Neutral calibration. PROVISIONAL, tuned on one person's traces.
+CALIB_BLINK_JUMP = 0.15  # eyeBlink off the window median: a blink or squint
+CALIB_MOVE_DEG = 5.0  # head pitch or yaw off the window median
+CALIB_JAW_JUMP = 0.10  # talking or moving the mouth
+NEUTRAL_MAX_BLINK = 0.25  # open eyes read 0.03-0.15 in the trace, squinting or reading 0.3-0.45
+ANCHOR_SESSIONS = 7  # anchor = median of the last 7 neutrals: one bad day cannot move it, a slow drift can
+ANCHOR_MIN = 3
+ANCHOR_EAR_DEV = 0.15  # today's neutral EAR this far from the anchor is suspicious
 
 
 @dataclass
@@ -38,7 +51,8 @@ class FaceFrame:
     lip_press: float
     pitch: float
     face_px: float = 0.0
-    eye_blink: float = 0.0  # MediaPipe eyeBlink blendshape, traced to compare against EAR
+    eye_blink: float = 0.0  # MediaPipe eyeBlink blendshape, 0 open .. 1 closed
+    yaw: float = 0.0
 
 
 def eye_aspect_ratio(pts: np.ndarray) -> float:
@@ -55,26 +69,56 @@ def pitch_degrees(matrix: np.ndarray) -> float:
     return math.degrees(math.atan2(matrix[2, 1], matrix[2, 2]))
 
 
+def yaw_degrees(matrix: np.ndarray) -> float:
+    return math.degrees(math.atan2(-matrix[2, 0], math.hypot(matrix[2, 1], matrix[2, 2])))
+
+
 def face_frame(t: float, xy: np.ndarray, blendshapes, matrix) -> FaceFrame:
     """Build a FaceFrame from one face: xy are landmark pixel coords in the original frame."""
     ear = (eye_aspect_ratio(xy[list(RIGHT_EYE)]) + eye_aspect_ratio(xy[list(LEFT_EYE)])) / 2
     bs = {c.category_name: c.score for c in blendshapes}
+    matrix = np.asarray(matrix)
     return FaceFrame(
         t=t,
         ear=ear,
         jaw_open=bs["jawOpen"],
         brow_down=(bs["browDownLeft"] + bs["browDownRight"]) / 2,
         lip_press=(bs["mouthPressLeft"] + bs["mouthPressRight"]) / 2,
-        pitch=pitch_degrees(np.asarray(matrix)),
+        pitch=pitch_degrees(matrix),
         face_px=float(np.linalg.norm(xy[FACE_EDGES[0]] - xy[FACE_EDGES[1]])),
         eye_blink=(bs["eyeBlinkLeft"] + bs["eyeBlinkRight"]) / 2,
+        yaw=yaw_degrees(matrix),
     )
 
 
 def neutral_of(frames: list[FaceFrame]) -> FaceFrame:
     """Median of the neutral window: robust to a blink during calibration."""
-    med = lambda attr: statistics.median(getattr(f, attr) for f in frames)  # noqa: E731
-    return FaceFrame(0.0, med("ear"), med("jaw_open"), med("brow_down"), med("lip_press"), med("pitch"))
+    return FaceFrame(0.0, **{k: statistics.median(getattr(f, k) for f in frames)
+                             for k in FaceFrame.__dataclass_fields__ if k != "t"})
+
+
+def calibration_break(window: list[FaceFrame], f: FaceFrame) -> str | None:
+    """Why f breaks a steady neutral window: 'blink', 'move' or 'mouth'. None = still steady."""
+    if not window:
+        return None
+    med = lambda attr: statistics.median(getattr(x, attr) for x in window)  # noqa: E731
+    if abs(f.eye_blink - med("eye_blink")) > CALIB_BLINK_JUMP:
+        return "blink"
+    if max(abs(f.pitch - med("pitch")), abs(f.yaw - med("yaw"))) > CALIB_MOVE_DEG:
+        return "move"
+    if abs(f.jaw_open - med("jaw_open")) > CALIB_JAW_JUMP:
+        return "mouth"
+    return None
+
+
+def neutral_problem(n: FaceFrame, anchor: FaceFrame | None) -> str | None:
+    """'squint' if the eyes are not plausibly open, 'anchor' if EAR is far from the usual neutral."""
+    limit = NEUTRAL_MAX_BLINK if anchor is None else max(NEUTRAL_MAX_BLINK, anchor.eye_blink + CALIB_BLINK_JUMP)
+    if n.eye_blink > limit:
+        return "squint"
+    if anchor is not None and abs(n.ear / anchor.ear - 1) > ANCHOR_EAR_DEV:
+        return "anchor"
+    return None
 
 
 @dataclass
@@ -146,8 +190,8 @@ class SessionMetrics:
             return
         n = self.neutral
         dt = min(t - last, MAX_DT_S) if last is not None else 0.0
-        limit = EYE_REOPEN_RATIO if self.eyes_closed else EYE_CLOSED_RATIO
-        closed = self.eyes_closed = frame.ear < limit * n.ear
+        bar = max(EYE_BLINK_CLOSED, n.eye_blink + EYE_BLINK_OVER_NEUTRAL)
+        closed = self.eyes_closed = frame.eye_blink > (bar - EYE_BLINK_HYSTERESIS if self.eyes_closed else bar)
         self.frames_valid += 1
         self.valid_s += dt
         self.closed_s += dt if closed else 0.0
