@@ -28,5 +28,6 @@ entrypoint = "onboard_api.main:app"
 
 [dependency-groups]
 dev = [
+    "jsonschema>=4.26.0",
     "pytest>=9.2.0",
 ]
