@@ -4,7 +4,7 @@ tension live, then one summary. Frames stay in memory only; only derived numbers
 import csv
 import time
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import cv2
@@ -23,8 +23,8 @@ from wellbeing_vision.face import (
 )
 from wellbeing_vision.facecrop import CROP_PX, FaceCrop
 from wellbeing_vision.identify import face_id, gallery_of
-from wellbeing_vision.identity import verify
-from wellbeing_vision.overlay import AMBER, MUTED, WHITE, Notice, Row, render, severity
+from wellbeing_vision.identity import face_verdict, verify
+from wellbeing_vision.overlay import AMBER, MUTED, RED, WHITE, Notice, Row, render, severity
 from wellbeing_vision.schemas import VisionSession
 from wellbeing_vision.sink import Sink
 
@@ -46,6 +46,8 @@ EYES_MARK = 0.6
 PERCLOS_MARK = 0.15
 TENSION_MARK = 0.20
 ID_EVERY = 10  # frames between face templates for the identity check
+MIN_ID_SAMPLES = 3  # face samples before the preview says the face belongs to someone else
+STALL_S = 2.0  # a gap between processed frames this long ends the log (camera or window stalled)
 TRACE_FIELDS = ("t", "face_px", "usable", "ear", "ear_ratio", "eye_blink", "jaw_delta", "brow_delta", "lip_delta",
                 "speaking", "pitch_delta", "yaw", "look_down_delta", "look_up_delta", "looking_down")
 
@@ -148,7 +150,7 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
     day_neutral, retried, used_anchor, why, why_t = None, False, False, None, 0.0
     metrics: SessionMetrics | None = None
     live: dict[str, float] = {}
-    started_at = rec_t0 = None
+    started_at = rec_t0 = last_t = mismatch = None
     trace = _unused(trace) if trace else None
     trace_file = trace.open("w", newline="", encoding="utf-8") if trace else None
     tracer = csv.writer(trace_file) if trace_file else None
@@ -158,12 +160,15 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
         while True:
             ok, frame = cap.read()
             if not ok:
-                print("Camera stopped delivering frames.")
+                print("Camera stopped delivering frames: the log ends at the last frame.")
                 break
             raw = frame  # identity uses the unmirrored face, like the enrollment
             if mirror:
                 frame = cv2.flip(frame, 1)  # metrics average both eyes, so mirroring does not change them
             t = time.monotonic() - t0
+            if last_t is not None and t - last_t > STALL_S:
+                print(f"No frame for {t - last_t:.0f} s (camera or window stalled): the log ends at the last frame.")
+                break
             last_ms = max(int(t * 1000), last_ms + 1)
             h, w = frame.shape[:2]
             ff, xy = _detect(landmarker, cropper, frame, t, last_ms)
@@ -188,7 +193,8 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
                     else:
                         # Off the anchor twice in a row: the day's eyes are not trusted, the anchor's are.
                         used_anchor = problem == "anchor"
-                        neutral = replace(day_neutral, ear=anchor.ear, eye_blink=anchor.eye_blink)                             if used_anchor else day_neutral
+                        neutral = (replace(day_neutral, ear=anchor.ear, eye_blink=anchor.eye_blink)
+                                   if used_anchor else day_neutral)
                         metrics = SessionMetrics(neutral)
                         started_at, rec_t0 = datetime.now(UTC), t
                 hint = CALIB_HINTS[why] if why and t - why_t < 2.5 else "Look at the camera · today's neutral"
@@ -200,14 +206,19 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
                     break
             else:
                 metrics.add(usable, t)
+                last_t = t
                 if gallery.people and metrics.frames_total % ID_EVERY == 0:
                     faces = faceid.detect(raw)
                     if faces:
                         face = max(faces, key=lambda f: f.width)
                         tpl = faceid.template(raw, face)
                         id_samples.append((gallery.scores(tpl), tpl))
+                        who = face_verdict(id_samples)[0] if len(id_samples) >= MIN_ID_SAMPLES else None
+                        mismatch = who if who and who != astronaut_id else None
                 n = metrics.neutral
-                if usable and metrics.looking_down:
+                if mismatch:
+                    notice = Notice(f"This looks like {mismatch}, not {astronaut_id}", "This log will not be sent", RED)
+                elif usable and metrics.looking_down:
                     notice = LOOK_DOWN
                 elif usable:
                     live["eyes"] = _ema(live.get("eyes"), usable.ear / n.ear if n.ear else 0.0, 0.1)
@@ -250,13 +261,16 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
     if metrics is None or metrics.frames_total == 0:
         return None
     identity, new_templates, id_msg = verify(id_samples, astronaut_id)
+    print(f"Identity: {id_msg}")
+    if identity is None:  # someone else's face: never store it under the declared astronaut
+        return None
     session = VisionSession(
         astronaut_id=astronaut_id,
         session_type="bitacora",
         module_id=settings.cameras.get(camera, f"cam{camera}"),
         source=f"vision:cam{camera}",
         started_at=started_at,
-        ended_at=datetime.now(UTC),
+        ended_at=started_at + timedelta(seconds=last_t - rec_t0),  # last processed frame, not wall clock
         quality=quality_of(metrics.valid_frame_ratio),
         valid_frame_ratio=round(metrics.valid_frame_ratio, 3),
         identity=identity,
@@ -268,7 +282,6 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
     save_neutral(anchor_path, day_neutral)
     if new_templates:
         gallery.add_auto(astronaut_id, new_templates)
-    print(f"Identity: {id_msg}")
     measured = metrics.talking_s + metrics.quiet_s
     talk = metrics.talking_s / measured if measured else 0.0
     print(f"Talking {talk:.0%} of valid time (excluded from lip press; null below {MIN_VALID_S:.0f} s quiet)")

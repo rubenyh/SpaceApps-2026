@@ -131,19 +131,25 @@ def best_match(scores: dict[str, float]) -> tuple[str | None, float]:
     return (who if top >= MATCH and top - runner_up >= MARGIN else None), top
 
 
-def verify(samples: list[tuple[dict[str, float], np.ndarray]], claimed: str) -> tuple[Identity, list[np.ndarray], str]:
-    """Check a log's face samples (scores, template) against the claimed astronaut.
-    Returns (identity for the payload, templates to add to the gallery, message)."""
+def face_verdict(samples: list[tuple[dict[str, float], np.ndarray]]) -> tuple[str | None, float]:
+    """Best astronaut over a log's face samples (scores, template), by median score."""
+    if not samples or not samples[0][0]:
+        return None, 0.0
+    return best_match({i: statistics.median(s[i] for s, _ in samples) for i in samples[0][0]})
+
+
+def verify(samples: list[tuple[dict[str, float], np.ndarray]], claimed: str) -> tuple[Identity | None, list[np.ndarray], str]:
+    """Rule: the face confidently matches the claimed astronaut -> "face"; confidently matches someone else ->
+    None (do not send); matches nobody confidently (or nobody is enrolled) -> "manual".
+    Returns (identity for the payload or None, templates to add to the gallery, message)."""
     if not samples or not samples[0][0]:
         return Identity(method="manual"), [], "face check skipped: no enrolled faces or no face samples"
-    if claimed not in samples[0][0]:
-        return Identity(method="manual"), [], f"face check skipped: {claimed} is not enrolled"
-    median = {i: statistics.median(s[i] for s, _ in samples) for i in samples[0][0]}
-    who, score = best_match(median)
+    who, score = face_verdict(samples)
+    if who is None:
+        return Identity(method="manual"), [], f"no confident face match (best {score:.2f}); sent as manual"
     if who != claimed:
-        return Identity(method="manual"), [], (f"face does not confirm {claimed}: best {who or 'nobody'} "
-                                               f"({score:.2f}); sent as manual")
+        return None, [], f"this looks like {who} ({score:.2f}), not {claimed}: NOT sent"
     strong = sorted((s for s in samples if s[0][claimed] >= AUTO_ENROLL), key=lambda s: -s[0][claimed])
     add = [t for _, t in strong[:AUTO_PER_LOG]]
-    return (Identity(method="face", match_score=round(min(max(median[claimed], 0.0), 1.0), 3)), add,
-            f"face confirms {claimed} ({median[claimed]:.2f}); {len(add)} templates added to the gallery")
+    return (Identity(method="face", match_score=round(min(max(score, 0.0), 1.0), 3)), add,
+            f"face confirms {claimed} ({score:.2f}); {len(add)} templates added to the gallery")

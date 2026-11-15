@@ -51,10 +51,13 @@ def test_verify_confirms_and_picks_strong_templates():
     identity, add, _ = verify(good, "ast-01")
     assert identity.method == "face" and identity.match_score == 0.55
     assert len(add) == 3  # only frames over AUTO_ENROLL, best first
-    wrong, add, msg = verify([({"ast-01": 0.1, "ast-02": 0.7}, t)] * 3, "ast-01")
-    assert wrong.method == "manual" and add == [] and "ast-02" in msg
+    # Someone else's face: not sent at all (None), not even as manual.
+    wrong, add, msg = verify([({"ast-01": 0.1, "ast-02": 0.87}, t)] * 3, "ast-01")
+    assert wrong is None and add == [] and "ast-02" in msg
+    assert verify([({"ast-02": 0.87}, t)], "ast-01")[0] is None  # ast-01 not enrolled, but it is ast-02
+    # Nobody matches confidently, or nobody is enrolled: manual.
+    assert verify([({"ast-01": 0.2, "ast-02": 0.25}, t)] * 3, "ast-01")[0].method == "manual"
     assert verify([], "ast-01")[0].method == "manual"
-    assert verify([({"ast-02": 0.7}, t)], "ast-01")[0].method == "manual"  # ast-01 not enrolled
 
 
 def test_tracker_keeps_ids_while_faces_move_and_drops_old_tracks():
