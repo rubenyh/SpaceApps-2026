@@ -103,6 +103,8 @@ npm install
 npm run tauri dev
 ```
 
+Optional live muscle demo: `python firmware/muscle_live.py` prints a URL to open on a phone on the same Wi-Fi. Its slider drives the **Live muscle reading** graph on the console's Muscle screen ([setup](docs/RUN-REPO.md#6-optional-live-muscle-demo-with-a-phone-slider-terminal-5-repo-root)).
+
 On Windows PowerShell, the commands are the same except: set `$env:PYTHONUTF8 = "1"` in each Python terminal, and run the simulator with `python firmware\simulator.py`.
 
 The assistant answers alarms and card decisions without anything else. For drafted explanations and guide search, start Ollama and build the index once:

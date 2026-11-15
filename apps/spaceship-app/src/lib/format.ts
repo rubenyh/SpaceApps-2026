@@ -97,9 +97,10 @@ export function formatUtcSeconds(ms: number): string {
 }
 
 /** "18:02" in UTC. */
-export function formatUtcTime(ms: number): string {
+export function formatUtcTime(ms: number, seconds = false): string {
   const d = new Date(ms);
-  return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+  const hm = `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+  return seconds ? `${hm}:${pad(d.getUTCSeconds())}` : hm;
 }
 
 /** Range text for a config, or null when the range is not defined. */

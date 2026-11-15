@@ -4,7 +4,6 @@ Pure functions: landmarks/blendshapes in, numbers out. No camera here.
 All thresholds are PROVISIONAL (no clinical source); they are relative to the person's own neutral.
 """
 
-import itertools
 import math
 import statistics
 from collections import deque
@@ -28,10 +27,28 @@ EYE_BLINK_HYSTERESIS = 0.1  # reopen 0.1 below the bar: jitter must not count as
 YAWN_JAW_DELTA = 0.35  # PROVISIONAL: jawOpen blendshape above neutral (0.5 missed acted yawns)
 YAWN_MIN_S = 1.0  # PROVISIONAL: talking opens the jaw briefly; a yawn holds it
 NOD_PITCH_DEG = 15.0  # PROVISIONAL: head dropped forward vs neutral
+NOD_RETURN_DEG = 10.0  # hysteresis: a posture hovering around 15 degrees is not several nods
 NOD_MIN_S = 0.3
+NOD_MAX_S = 2.0  # PROVISIONAL: a nod drops and comes back; staying down longer is a posture (reading)
+# Looking down (reading) lowers the lids and the brows: in the S3 trace the long low-lid stretches hold 87 %
+# of the closed time and every brow (0.54-0.57) and lip (0.45) peak. Those frames are not comparable to a
+# neutral taken at the camera. PROVISIONAL, eyeLookDown not traced yet.
+GAZE_DOWN_DELTA = 0.25  # eyeLookDown blendshape over neutral (eyes down relative to the head)
+GAZE_UP_DELTA = 0.2  # head down but eyes up over neutral: still looking at the camera
+GAZE_DOWN_HOLD_S = 0.5  # longer than a blink, so a blink is never taken for looking down
+DEEP_CLOSED_BLINK = 0.6  # a closure this deep counts even looking down (yawns and acted closures: 0.6-0.7)
 TENSION_HOLD_S = 1.0  # a grimace must be held this long to count as a peak
 # Talking presses the lips on every m/b/p, so lip press is measured only while the jaw is still.
-SPEECH_JAW_TRAVEL = 0.15  # PROVISIONAL: jawOpen travel in 1 s; still face <= 0.035 in the trace, yawns ~0.5
+# Jaw travel alone flagged single openings (a swallow, a sigh) as talking: 33 % of S3, 12 % of silent S1/S2.
+SPEECH_JAW_OPEN = 0.03  # PROVISIONAL: jawOpen over neutral that counts as one opening
+SPEECH_MIN_OPENINGS = 2  # talking opens the jaw again and again: 2 openings within SPEECH_WINDOW_S
+SPEECH_WINDOW_S = 1.0  # on the S3 trace: 33 % talking -> 6 %
+# Talking to the camera barely moves jawOpen (p90 0.003-0.01 in the R1-R3 traces), so mouthPress swings count
+# too. A held press also moves, but with the lips above neutral: then the swings do not count.
+# R1-R3 talking: 7/1/6 % -> 59/67/83 %; silent press L2: 0 % -> 0 %, its peak 0.466 kept.
+SPEECH_LIP_SWING = 0.08  # PROVISIONAL: mouthPress reversal of at least this much
+SPEECH_MIN_SWINGS = 2  # within SPEECH_WINDOW_S
+SPEECH_PRESS_LEVEL = 0.1  # PROVISIONAL: lips this far over neutral (median of the window) = pressing
 SPEECH_HANGOVER_S = 0.5  # lips close between words: keep excluding a moment after the jaw stops
 MIN_VALID_S = 10.0  # below this, rates are not measurable -> None
 MAX_DT_S = 0.2  # cap frame gaps so a stalled camera does not inflate durations
@@ -40,7 +57,8 @@ MAX_DT_S = 0.2  # cap frame gaps so a stalled camera does not inflate durations
 CALIB_BLINK_JUMP = 0.15  # eyeBlink off the window median: a blink or squint
 CALIB_MOVE_DEG = 5.0  # head pitch or yaw off the window median
 CALIB_JAW_JUMP = 0.10  # talking or moving the mouth
-NEUTRAL_MAX_BLINK = 0.25  # open eyes read 0.03-0.15 in the trace, squinting or reading 0.3-0.45
+CALIB_GAZE_JUMP = 0.15  # eyeLookDown off the window median: looking away from the camera
+NEUTRAL_MAX_BLINK = 0.3  # real neutrals at the camera read 0.20-0.24; squinting or reading 0.3-0.45
 ANCHOR_SESSIONS = 7  # anchor = median of the last 7 neutrals: one bad day cannot move it, a slow drift can
 ANCHOR_MIN = 3
 ANCHOR_EAR_DEV = 0.15  # today's neutral EAR this far from the anchor is suspicious
@@ -57,6 +75,8 @@ class FaceFrame:
     face_px: float = 0.0
     eye_blink: float = 0.0  # MediaPipe eyeBlink blendshape, 0 open .. 1 closed
     yaw: float = 0.0
+    look_down: float = 0.0  # eyeLookDown blendshape: eyes down relative to the head
+    look_up: float = 0.0
 
 
 def eye_aspect_ratio(pts: np.ndarray) -> float:
@@ -92,6 +112,8 @@ def face_frame(t: float, xy: np.ndarray, blendshapes, matrix) -> FaceFrame:
         face_px=float(np.linalg.norm(xy[FACE_EDGES[0]] - xy[FACE_EDGES[1]])),
         eye_blink=(bs["eyeBlinkLeft"] + bs["eyeBlinkRight"]) / 2,
         yaw=yaw_degrees(matrix),
+        look_down=(bs["eyeLookDownLeft"] + bs["eyeLookDownRight"]) / 2,
+        look_up=(bs["eyeLookUpLeft"] + bs["eyeLookUpRight"]) / 2,
     )
 
 
@@ -102,7 +124,7 @@ def neutral_of(frames: list[FaceFrame]) -> FaceFrame:
 
 
 def calibration_break(window: list[FaceFrame], f: FaceFrame) -> str | None:
-    """Why f breaks a steady neutral window: 'blink', 'move' or 'mouth'. None = still steady."""
+    """Why f breaks a steady neutral window: 'blink', 'move', 'mouth' or 'gaze'. None = still steady."""
     if not window:
         return None
     med = lambda attr: statistics.median(getattr(x, attr) for x in window)  # noqa: E731
@@ -112,6 +134,8 @@ def calibration_break(window: list[FaceFrame], f: FaceFrame) -> str | None:
         return "move"
     if abs(f.jaw_open - med("jaw_open")) > CALIB_JAW_JUMP:
         return "mouth"
+    if abs(f.look_down - med("look_down")) > CALIB_GAZE_JUMP:
+        return "gaze"
     return None
 
 
@@ -168,21 +192,65 @@ class _SustainedPeak:
 
 @dataclass
 class _Speech:
-    """Talking moves the jaw fast and repeatedly: total jawOpen travel over the last second."""
+    """Talking moves the mouth again and again: jaw openings, or mouthPress swinging below a held press.
+    One opening or one swing (a swallow, a sigh, starting a press) is not talking."""
 
-    window: deque = field(default_factory=deque)
+    rises: deque = field(default_factory=deque)
+    armed: bool = True
+    swings: deque = field(default_factory=deque)
+    lips: deque = field(default_factory=deque)
+    extreme: float | None = None
+    direction: int = 0
     until: float = -math.inf
 
-    def update(self, jaw: float | None, t: float) -> bool:
-        if jaw is None:
-            self.window.clear()
+    def update(self, jaw_delta: float | None, lip_delta: float | None, t: float) -> bool:
+        if jaw_delta is None or lip_delta is None:
+            self.rises.clear()
+            self.swings.clear()
+            self.lips.clear()
+            self.armed, self.extreme, self.direction = True, None, 0
             return False
-        self.window.append((t, jaw))
-        while self.window[0][0] < t - 1.0:
-            self.window.popleft()
-        if sum(abs(b - a) for (_, a), (_, b) in itertools.pairwise(self.window)) > SPEECH_JAW_TRAVEL:
+        if self.armed and jaw_delta > SPEECH_JAW_OPEN:
+            self.rises.append(t)
+            self.armed = False
+        elif jaw_delta < SPEECH_JAW_OPEN / 2:  # closed again: the next opening counts
+            self.armed = True
+        if self.extreme is None:
+            self.extreme = lip_delta
+        elif self.direction >= 0 and lip_delta > self.extreme:
+            self.extreme, self.direction = lip_delta, 1
+        elif self.direction <= 0 and lip_delta < self.extreme:
+            self.extreme, self.direction = lip_delta, -1
+        elif abs(lip_delta - self.extreme) >= SPEECH_LIP_SWING:  # turned back by a full swing
+            self.swings.append(t)
+            self.extreme, self.direction = lip_delta, -self.direction
+        self.lips.append((t, lip_delta))
+        for q in (self.rises, self.swings):
+            while q and q[0] < t - SPEECH_WINDOW_S:
+                q.popleft()
+        while self.lips[0][0] < t - SPEECH_WINDOW_S:
+            self.lips.popleft()
+        pressing = statistics.median(v for _, v in self.lips) >= SPEECH_PRESS_LEVEL
+        if len(self.rises) >= SPEECH_MIN_OPENINGS or (len(self.swings) >= SPEECH_MIN_SWINGS and not pressing):
             self.until = t + SPEECH_HANGOVER_S
         return t <= self.until
+
+
+@dataclass
+class _Dip:
+    """A nod: the head drops past NOD_PITCH_DEG and comes back under NOD_RETURN_DEG within
+    NOD_MIN_S..NOD_MAX_S. Staying down longer is a posture (reading), not a nod."""
+
+    start: float | None = None
+    count: int = 0
+
+    def update(self, drop_deg: float, t: float) -> None:
+        if self.start is None:
+            if drop_deg > NOD_PITCH_DEG:
+                self.start = t
+        elif drop_deg < NOD_RETURN_DEG:
+            self.count += NOD_MIN_S <= t - self.start <= NOD_MAX_S
+            self.start = None
 
 
 @dataclass
@@ -197,46 +265,77 @@ class SessionMetrics:
     lip_delta_sum: float = 0.0
     lip_frames: int = 0
     quiet_s: float = 0.0  # valid time without talking: the only time lip press is measured
+    talking_s: float = 0.0
     speaking: bool = False
     blinks: _Episode = field(default_factory=lambda: _Episode(0.0))
     yawns: _Episode = field(default_factory=lambda: _Episode(YAWN_MIN_S))
-    nods: _Episode = field(default_factory=lambda: _Episode(NOD_MIN_S))
+    nods: _Dip = field(default_factory=_Dip)
     brow_peak: _SustainedPeak = field(default_factory=lambda: _SustainedPeak(TENSION_HOLD_S))
     lip_peak: _SustainedPeak = field(default_factory=lambda: _SustainedPeak(TENSION_HOLD_S))
     speech: _Speech = field(default_factory=_Speech)
     eyes_closed: bool = False
+    down_since: float | None = None
+    looking_down: bool = False  # held for GAZE_DOWN_HOLD_S: the preview asks to look at the camera
+    # PERCLOS time (valid s, closed s) while looking down is not decided yet: kept if the gaze comes back
+    # before GAZE_DOWN_HOLD_S (a blink, a glance), dropped if it turns out to be looking down.
+    _pending: list = field(default_factory=lambda: [0.0, 0.0])
     _last_t: float | None = None
+
+    def _settle(self, keep: bool) -> None:
+        if keep:
+            self.valid_s += self._pending[0]
+            self.closed_s += self._pending[1]
+        self._pending = [0.0, 0.0]
 
     def add(self, frame: FaceFrame | None, t: float) -> None:
         """Feed every captured frame; None when no face was found."""
         self.frames_total += 1
         last, self._last_t = self._last_t, t
+        n = self.neutral
+        if frame is not None:
+            self.nods.update(frame.pitch - n.pitch, t)  # every face: a nod ends where looking down begins
+            down = frame.look_down - n.look_down > GAZE_DOWN_DELTA or (
+                frame.pitch - n.pitch > NOD_PITCH_DEG and frame.look_up - n.look_up < GAZE_UP_DELTA)
+            self.down_since = (t if self.down_since is None else self.down_since) if down else None
+            self.looking_down = down and t - self.down_since >= GAZE_DOWN_HOLD_S
+            if not down or self.looking_down:
+                self._settle(keep=not down)
+            if self.looking_down and frame.eye_blink < DEEP_CLOSED_BLINK:
+                frame = None  # lowered lids and brows of reading, not fatigue or tension
+        else:
+            self.down_since, self.looking_down = None, False
+            self._settle(keep=True)
         if frame is None:
             self.brow_peak.update(None, t)
             self.lip_peak.update(None, t)
-            self.speaking = self.speech.update(None, t)
+            self.speaking = self.speech.update(None, None, t)
             return
-        n = self.neutral
         dt = min(t - last, MAX_DT_S) if last is not None else 0.0
         bar = max(EYE_BLINK_CLOSED, n.eye_blink + EYE_BLINK_OVER_NEUTRAL)
         closed = self.eyes_closed = frame.eye_blink > (bar - EYE_BLINK_HYSTERESIS if self.eyes_closed else bar)
         self.frames_valid += 1
-        self.valid_s += dt
-        self.closed_s += dt if closed else 0.0
+        undecided = self.down_since is not None and not self.looking_down and frame.eye_blink < DEEP_CLOSED_BLINK
+        if undecided:
+            self._pending[0] += dt
+            self._pending[1] += dt if closed else 0.0
+        else:
+            self.valid_s += dt
+            self.closed_s += dt if closed else 0.0
         self.ear_ratio_sum += frame.ear / n.ear if n.ear else 0.0
         # Only increases over the neutral count as tension (contract range 0-1).
         brow, lip = max(0.0, frame.brow_down - n.brow_down), max(0.0, frame.lip_press - n.lip_press)
         self.brow_delta_sum += brow
         self.brow_peak.update(brow, t)
-        self.speaking = self.speech.update(frame.jaw_open, t)
+        self.speaking = self.speech.update(frame.jaw_open - n.jaw_open, frame.lip_press - n.lip_press, t)
         self.lip_peak.update(None if self.speaking else lip, t)
         if not self.speaking:
             self.lip_delta_sum += lip
             self.lip_frames += 1
             self.quiet_s += dt
+        else:
+            self.talking_s += dt
         self.blinks.update(closed, t)
         self.yawns.update(frame.jaw_open - n.jaw_open > YAWN_JAW_DELTA, t)
-        self.nods.update(frame.pitch - n.pitch > NOD_PITCH_DEG, t)
 
     @property
     def valid_frame_ratio(self) -> float:
