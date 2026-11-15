@@ -39,7 +39,7 @@ def make_client(
     clients: list[TestClient] = []
 
     def factory() -> TestClient:
-        app = create_app(Settings(db_path=db_path))
+        app = create_app(Settings(db_path=db_path, telemetry_enabled=False))
         app.dependency_overrides[get_clock] = lambda: clock
         client = TestClient(app)
         client.__enter__()  # run lifespan

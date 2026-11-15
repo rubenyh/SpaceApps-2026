@@ -37,3 +37,9 @@ class Settings(BaseSettings):
     retrieval_max_distance: float = 0.50
     # Optional JSON list of OperationalEvent used as the demo event source.
     demo_events_path: Path | None = None
+
+    # Telemetry to ground (contracts/telemetry). A lost link never blocks onboard work.
+    telemetry_enabled: bool = True
+    ground_api_url: str = "http://127.0.0.1:8001"
+    telemetry_interval_seconds: float = 5.0
+    ship_id: str = "ship-01"
