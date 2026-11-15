@@ -1,6 +1,6 @@
 # Run the repo
 
-How to run the full demo: the onboard stack, ground, both Tauri consoles and, if you want, the wellbeing camera.
+Every way to run the system: the Docker Compose stack, a native setup, both Tauri consoles, the wellbeing camera and the Apple Watch. The short version is the [README quickstart](../README.md#quickstart). Variables: [CONFIGURATION.md](CONFIGURATION.md). Problems: [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ```
 simulator ──readings──▶ onboard-api :8000 ◀── spaceship-app (Tauri, Vite 1420)
@@ -15,8 +15,20 @@ wellbeing-vision (camera) ──metrics──▶ onboard-api /wellbeing/vision-s
 
 - Docker Desktop, running.
 - Node.js and the Rust toolchain (for the Tauri consoles).
-- `uv` with Python 3.12 (only for the manual ground-api option and for wellbeing-vision).
+- `uv` with Python 3.12 (only for the native options and for wellbeing-vision), and Ollama for the native option with LLM answers.
 - Free ports: 8000, 8001, 1420, 1421. Stop any native `uv run fastapi dev` on 8000 or 8001 first.
+
+## Compose services
+
+| Service | What it does |
+|---|---|
+| `onboard-api` | FastAPI on `http://127.0.0.1:8000`. Applies the SQLite migrations at startup. Does not depend on Ollama, so alarm and SOS replies work while the models are down. |
+| `ground-api` | FastAPI on `http://127.0.0.1:8001`. Receives telemetry from `onboard-api` and serves base-app. |
+| `ollama` | Official `ollama/ollama` image. Reachable only inside Compose as `http://ollama:11434`; port 11434 is not published. Keeps models loaded (`OLLAMA_KEEP_ALIVE=-1`). |
+| `demo-init` | One-shot job ([`prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py)). Waits for Ollama, pulls `qwen2.5:3b` and `bge-m3` if missing, loads them, and builds the guide index when it is missing or outdated. Exits 0 when done. Safe to rerun. |
+| `simulator` | [`firmware/simulator.py`](../firmware/simulator.py). Starts after the API healthcheck passes, registers `ast-01` and `ast-02`, uploads a 30-day history and posts readings every 5 s. |
+
+Volumes: `sqlite` (`onboard.db`, `wellbeing.db`), `chroma` (guide index), `ollama` (models), `ground` (`ground.db`). They survive `docker compose down` and restarts; `docker compose down -v` deletes them.
 
 ## Option A: one command (Windows)
 
@@ -113,6 +125,14 @@ Sit facing the camera, about 50 cm away, in good light. The process sends only d
 ### 5. Optional: Apple Watch (macOS + Xcode)
 
 The watch app shows the astronaut's readings and sends an SOS. `./run.sh` starts it in the watchOS simulator. Compose publishes onboard-api only on `127.0.0.1` by default, so a real watch cannot reach it. For a real watch, use `./run.sh --watch-device` (sets `ONBOARD_API_HOST=0.0.0.0`) or run onboard-api natively with `uv run fastapi dev --host 0.0.0.0`. Install and setup: [`apps/watch-app/README.md`](../apps/watch-app/README.md).
+
+## Option C: native, without Docker
+
+Run onboard-api, ground-api and the simulator as local processes: [README, local development](../README.md#quickstart-local-development). Then start the consoles as in steps 2 and 3 above. Optional extras for the native setup:
+
+- Demo ship events (a radiation and a cabin CO₂ alarm for `ast-02`): start onboard-api with `ONBOARD_DEMO_EVENTS_PATH=demo/events.example.json`.
+- One-shot fake readings instead of the live simulator: `uv run python scripts/seed_demo.py [--live]` in `services/onboard-api`.
+- Faster simulator samples: `python3 firmware/simulator.py --urine-every 120`. Self-check without the API: `cd firmware && python3 test_simulator.py`.
 
 ## Check the full flow
 

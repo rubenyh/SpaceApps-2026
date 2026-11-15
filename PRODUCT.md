@@ -40,7 +40,8 @@ Readings come from the spacecraft's own sensors: a wearable pulse oximeter per a
 
 ## Evidence on Hand
 
-- Design reference: `docs/diseno/` (static mockups of the six tabs and states, `tokens.css`, `HANDOFF.md`). Note: HANDOFF.md still says the UI is in Spanish; English now applies.
+- Visual identity: shared with the ground console (`apps/base-app`). Source of truth: `apps/spaceship-app/src/styles/tokens.css` (Barlow Condensed, steel/flap surfaces, red alert, amber old data, grey for no data; normal is plain text, never green; 2 px radius; sidebar navigation plus a top bar).
+- Design reference: `docs/diseno/` (static mockups of the six tabs and states, `HANDOFF.md`). Use the mockups for structure and state logic only; their navy palette and system font are superseded. HANDOFF.md still says the UI is in Spanish; English now applies.
 - Medical agent plan: `docs/plan-agente-medico-space-apps.md`.
 - All crew data is synthetic (demo astronauts "Demo Uno", "Demo Dos"). No real crew data, testimonials or validation studies exist; do not fabricate them.
 
@@ -53,4 +54,4 @@ Readings come from the spacecraft's own sensors: a wearable pulse oximeter per a
 
 ## Accessibility & Inclusion
 
-State is never conveyed by color alone (icon + text + border). No text below 14 px. Touch targets at least 44 px.
+State is never conveyed by color alone: every state has its own icon shape and text label. Only alerts change the card border (red). No text below 14 px. Touch targets at least 44 px.

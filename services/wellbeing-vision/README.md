@@ -1,6 +1,6 @@
 # wellbeing-vision
 
-Camera analysis for the crew wellbeing module. Runs as its own process next to `onboard-api`.
+Camera analysis for the crew wellbeing module (optional). Runs as its own process next to `onboard-api` and posts to `POST /wellbeing/vision-sessions` ([contract](../../docs/wellbeing-contract.md)). Implements the daily video log (`bitacora`), face enrollment and identity, and the two-camera ambient mode (co-presence and motion, `POST /wellbeing/co-presence`).
 Only derived metrics leave the process: no frames are stored or sent.
 
 ## Setup (Windows, PowerShell)
@@ -127,17 +127,17 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
 - Preview: cameras stacked top to bottom after the per-camera flip/turn; boxes, skeletons, per-module named
   people, unknowns as one row, the longest pairs, transfers, FPS per camera and the window countdown.
 
-## Settings (env vars)
+## Settings
+
+Environment variables `WELLBEING_VISION_*` (API URL, cameras, astronauts, minimum face size, directories): [docs/CONFIGURATION.md](../../docs/CONFIGURATION.md#wellbeing-vision-wellbeing_vision_).
+Camera and ambient settings not listed there yet:
 
 | Variable | Default |
 |---|---|
-| `WELLBEING_VISION_API_URL` | `http://127.0.0.1:8000` |
-| `WELLBEING_VISION_CAMERAS` | `{"0":"modulo-a","1":"modulo-b"}` |
-| `WELLBEING_VISION_ASTRONAUTS` | `{"ast-01":"ast-01", ... "ast-04":"ast-04"}` |
-| `WELLBEING_VISION_MIN_FACE_PX` | `160` (PROVISIONAL) |
 | `WELLBEING_VISION_CAMERA_BACKEND` | `auto` (DSHOW, then MSMF); `dshow` or `msmf` to force one. Also `--backend` on every camera command. |
 | `WELLBEING_VISION_CAMERA_FLIP` / `_CAMERA_TURN` | `[]` / `{}`: mirror or turn (clockwise) cameras before processing and display, e.g. `'[1]'`, `'{"1": 180}'`. Also `--flip 1` and `--turn 1:180` on every camera command; the orientation applied is printed at start. |
-| `WELLBEING_VISION_MODELS_DIR` / `_DATA_DIR` | `models` / `data` |
+| `WELLBEING_VISION_AMBIENT_WIDTH` / `_AMBIENT_HEIGHT` | `1280` / `720`: ambient capture size (`--size`). |
+| `WELLBEING_VISION_MIN_TRACK_S` | `3` (PROVISIONAL): seconds before a track counts as occupant (`--min-track`). |
 
 ## Thresholds
 

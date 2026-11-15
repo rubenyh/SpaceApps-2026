@@ -3,6 +3,7 @@ import type { SensorStatus } from "../api/types";
 import { TRACK_SCALE, explain, shownStatus } from "../lib/estado";
 import { rangeText, readingValueText, unitLabel } from "../lib/format";
 import { ColorSwatch } from "./ColorSwatch";
+import { FlapSkeleton } from "./Flap";
 import { RangeTrack } from "./RangeTrack";
 import { ReadingCard } from "./ReadingCard";
 import { StateIcon, type VisualState } from "./StatusPill";
@@ -37,7 +38,13 @@ export function SensorCard({
   tag,
   children,
 }: Props) {
-  if (!loaded) return <section className="card card--skeleton" aria-hidden="true" />;
+  if (!loaded) {
+    return (
+      <section className="card card--skeleton" aria-hidden="true">
+        <FlapSkeleton tiles={4} />
+      </section>
+    );
+  }
 
   const shown = shownStatus(sensor, offline);
   const range = sensor ? rangeText(sensor.config) : null;

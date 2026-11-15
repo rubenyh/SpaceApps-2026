@@ -3,7 +3,8 @@
 Synthetic, versioned cases for the onboard medical assistant (issue #52). The case format is
 section 1 of [`contracts/medical-eval/README.md`](../../contracts/medical-eval/README.md). Its JSON
 Schema is [`cases/v1/case.schema.json`](cases/v1/case.schema.json). The runner (#53) sends each
-case to `POST /assistant/messages` and compares the last response with `expected`.
+case to `POST /assistant/messages` and compares the last response with `expected`. How to run it and read the
+output: [`docs/RAG-AND-EVALUATION.md`](../../docs/RAG-AND-EVALUATION.md#medical-case-suite).
 
 **No clinician has reviewed any of these cases yet. Every case is `draft`.** The team wrote the
 expected values from the protocol cards
@@ -85,6 +86,7 @@ No case is known to fail on content against `main`. These gaps were found by the
 
 - Typo and transcription cases (`breathing.transcription.001`, `chest.hypothetical.002`, `dizziness.typo.001`, `fever.typo.001`, `injury.typo.001`, `loc.transcription.001`, `neuro.transcription.001`, `neuro.typo.001`, `vomiting.typo.001`) and `loc.negation.002` (English "didn't"): issue #51.
 - `cabin.alarm.005` (English "several of us have …" raised no cabin alarm) and `abdominal.stale.001` (Spanish "me duele mucho el estómago" was out of coverage): issue #73.
+- `urinary.simulated.001` (live run only: the LLM interpreter read a reddish sample with "no tengo síntomas" as dark urine and gave the muscle card): issue #78.
 
 Passing these cases means the code matches the team's draft expectations. It is not a clinical review.
 

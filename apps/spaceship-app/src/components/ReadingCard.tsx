@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import type { Quality } from "../api/types";
 import { formatAge } from "../lib/format";
+import { Flap } from "./Flap";
 import { StateIcon, StatusPill, type VisualState } from "./StatusPill";
+import { withSub2 } from "./Sub2";
 
 const QUALITY_TEXT: Record<Quality, string> = {
   good: "Good quality",
@@ -15,7 +17,7 @@ interface Props {
   organ: string;
   /** "doubtful" is for a sample-validity range out of bounds: never drawn as an alert. */
   status: VisualState;
-  /** Formatted value. Ignored when there is no data. */
+  /** Formatted value: a string is drawn on a split-flap plate. Ignored when there is no data. */
   value: ReactNode;
   unit?: string;
   ageSeconds: number | null;
@@ -32,7 +34,7 @@ interface Props {
   children?: ReactNode;
 }
 
-/** Card for one reading: border, label, value and age all follow its status. */
+/** Card for one reading: label, value and age follow its status; only an alert turns the border red. */
 export function ReadingCard({
   title,
   organ,
@@ -53,14 +55,18 @@ export function ReadingCard({
     <section className={`card card--${status} card--${size}`}>
       <div className="card__head">
         <div className="card__titles">
-          <span className="card__title">{title}</span>
-          <span className="card__organ">{organ}</span>
+          <span className="card__title">{withSub2(title)}</span>
+          <span className="card__organ">{withSub2(organ)}</span>
         </div>
         <StatusPill state={status} />
       </div>
       <div className="card__reading">
         <div className="card__value">
-          {noData ? "---" : value}
+          {noData ? "---" : typeof value === "string" ? (
+            <Flap text={value} className={status === "alert" ? "flap--red" : ""} />
+          ) : (
+            value
+          )}
           {!noData && unit ? <span className="card__unit">{unit}</span> : null}
         </div>
         <div className="card__meta">

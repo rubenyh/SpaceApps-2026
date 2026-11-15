@@ -1,6 +1,6 @@
 # Architecture
 
-This document follows the system from startup through a user action. It shows where decisions are made and which files to change. It describes the integration branch `agent/rubenyh/medical-eval-integration` (origin/main plus the open medical-eval PRs #56, #59 to #63) as of 2026-11-15. If this document and the code disagree, the code wins.
+This document follows the system from startup through a user action. It shows where decisions are made and which files to change. It describes `main` as of 2026-11-15. If this document and the code disagree, the code wins. How to run things: [RUN-REPO.md](RUN-REPO.md). Environment variables: [CONFIGURATION.md](CONFIGURATION.md).
 
 Status labels used below:
 
@@ -15,54 +15,38 @@ The medical assistant gives informational support only. Diagnosis and treatment 
 ```mermaid
 flowchart LR
     subgraph Ship["Ship (one machine, all local)"]
-        Console["spaceship-app<br/>Tauri 2 + React 19<br/>astronaut console"]
-        Watch["watch-app<br/>watchOS SwiftUI<br/>wrist readings + SOS"]
+        Console["spaceship-app<br/>Tauri 2 + React 19"]
+        Watch["watch-app<br/>watchOS"]
+        Producers["firmware/simulator.py<br/>scripts/seed_demo.py"]
+        Vision["wellbeing-vision<br/>camera, optional"]
         API["onboard-api<br/>FastAPI :8000"]
-        DB[("SQLite<br/>data/onboard.db")]
-        WDB[("SQLite<br/>data/wellbeing.db")]
-        Vision["wellbeing-vision<br/>daily video log"]
-        Chroma[("ChromaDB<br/>data/chroma")]
+        DB[("SQLite<br/>onboard.db")]
+        WDB[("SQLite<br/>wellbeing.db")]
+        Chroma[("ChromaDB<br/>guide index")]
         Ollama["Ollama :11434<br/>qwen2.5:3b, bge-m3"]
-        Events["Demo events JSON<br/>(optional)"]
-        Seed["scripts/seed_demo.py"]
-        Firmware["firmware/simulator.py<br/>simulated biomonitor"]
-        Init["demo-init (Compose)<br/>scripts/prepare_demo.py"]
-        Eval["eval runner (CLI)<br/>onboard_api.assistant.eval"]
-        Cases[("eval/medical/cases/v1<br/>114 draft cases")]
-        Know[("data/knowledge<br/>active, previous")]
     end
     subgraph Ground["Ground"]
-        Ground_API["ground-api<br/>FastAPI :8001"]
-        GroundDB[("SQLite<br/>data/ground.db")]
-        BaseApp["base-app<br/>Tauri 2 + React 19<br/>ground console"]
+        GroundAPI["ground-api<br/>FastAPI :8001"]
+        GroundDB[("SQLite<br/>ground.db")]
+        BaseApp["base-app<br/>Tauri 2 + React 19"]
     end
 
-    Console -- "HTTP JSON (fetch)" --> API
-    Watch -- "HTTP JSON (Wi-Fi, polling, SOS)" --> API
-    Seed -- "POST /astronauts, /readings" --> API
-    Firmware -- "POST /astronauts, /readings" --> API
+    Console -- "HTTP JSON" --> API
+    Watch -- "HTTP JSON (Wi-Fi), SOS" --> API
+    Producers -- "POST /astronauts, /readings" --> API
     Vision -- "POST /wellbeing/vision-sessions" --> API
     API --> DB
-    API -- "wellbeing module" --> WDB
-    API -- "interpret (JSON), embed, chat" --> Ollama
+    API --> WDB
+    API -- "interpret, chat, embed" --> Ollama
     API -- "vector search" --> Chroma
-    Events -. "loaded at startup" .-> API
-    Init -. "pull models, embed" .-> Ollama
-    Init -. "ingest guides" .-> Chroma
-    API -- "telemetry v1 batches (HTTP)" --> Ground_API
-    Ground_API --> GroundDB
-    BaseApp -- "HTTP JSON (fetch, polling)" --> Ground_API
-    BaseApp -- "review decisions, findings" --> Ground_API
-    Cases --> Eval
-    Eval -- "replays cases in-process" --> API
-    Eval -. "manifest + result (manual POST)" .-> Ground_API
-    API -- "POST /knowledge/sync pulls approved bundle" --> Ground_API
-    API --> Know
+    API -- "telemetry v1 batches" --> GroundAPI
+    GroundAPI --> GroundDB
+    BaseApp -- "HTTP JSON" --> GroundAPI
 ```
 
-On the ship, the console and the watch app (reads, assistant, SOS), the demo producers and the vision collector (writes) call onboard-api over HTTP. onboard-api pushes readings to ground-api in telemetry batches ([flow 6](#6-telemetry-and-ground-console)). base-app talks only to ground-api: it reads telemetry and, on the Eval screen, posts review decisions and findings. The knowledge release path ([flow 7](#7-knowledge-release-evaluation-review-activation)) is separate from telemetry.
+On the ship, the console and the watch app (reads, assistant, SOS), the demo producers and the vision collector (writes) call onboard-api over HTTP. onboard-api pushes readings to ground-api in telemetry batches ([flow 6](#6-telemetry-and-ground-console)). base-app talks only to ground-api: it reads telemetry and, on the Eval screen, posts review decisions and findings. The guide ingest ([flow 5](#5-guide-ingestion-and-retrieval)) and the knowledge release path with the eval runner ([flow 7](#7-knowledge-release-evaluation-review-activation)) are offline tools with their own diagrams.
 
-In the Docker Compose demo, `onboard-api`, `ollama`, `demo-init` and `simulator` and `ground-api` run as containers, and both consoles stay on the host. Telemetry goes to the `ground-api` container. The paths in the diagram are the native defaults; Compose uses the `sqlite`, `chroma` and `ollama` volumes instead ([Docker Compose demo](#docker-compose-demo)).
+In the Docker Compose demo, `onboard-api`, `ground-api`, `ollama`, `demo-init` and `simulator` run as containers, and both consoles stay on the host. Natively, each service keeps its files under its own `data/` directory (`services/onboard-api/data/onboard.db`, `wellbeing.db`, `chroma/`, `knowledge/`; `services/ground-api/data/ground.db`). Compose uses the `sqlite`, `chroma`, `ollama` and `ground` volumes instead ([Compose services](RUN-REPO.md#compose-services)).
 
 ## Component map
 
@@ -79,7 +63,7 @@ In the Docker Compose demo, `onboard-api`, `ollama`, `demo-init` and `simulator`
 | Device simulator | Implemented (simulated hardware) | Software stand-in for the biomonitor: pulse oximeter per astronaut, shared urine analyser, muscle scanner. Registers `ast-01` and `ast-02`, uploads a history "flash log", then posts live readings with source `simulated:<sensor>`. Buffers readings (up to 10 000) while the API is down. Stdlib only. | [`firmware/simulator.py`](../firmware/simulator.py) | [`firmware/test_simulator.py`](../firmware/test_simulator.py) |
 | Demo seeder | Implemented (dev tool) | Creates the same two demo astronauts and posts fake readings with source `demo`, optionally every 5 s. | [`scripts/seed_demo.py`](../services/onboard-api/scripts/seed_demo.py) | |
 | Demo setup | Implemented (Compose `demo-init`) | One-shot: waits for Ollama, pulls the chat and embedding models if missing, runs the guide ingest when `ingest-stamp.txt` in the Chroma path does not match the corpus, chunker and embedding model digest. Logs lines prefixed `[prepare-demo]`. Safe to rerun. | [`scripts/prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py) | [`docker-compose.yml`](../docker-compose.yml), [`Dockerfile`](../services/onboard-api/Dockerfile) |
-| Database schema | Implemented | SQLite schema and seed rows for `sensor_config` (0001), incident tables (0002), applied at onboard-api startup. | [`db/migrations/onboard/0001_baseline.sql`](../db/migrations/onboard/0001_baseline.sql), [`0002_incidents.sql`](../db/migrations/onboard/0002_incidents.sql) | [`db/data-dictionary.md`](../db/data-dictionary.md), [`repositories/database.py`](../services/onboard-api/src/onboard_api/repositories/database.py) |
+| Database schema | Implemented | SQLite schema and seed rows for `sensor_config` (0001), incident tables (0002), incident origin columns (0003), applied at onboard-api startup. Wellbeing has its own migrations in `db/migrations/wellbeing/`. | [`db/migrations/onboard/0001_baseline.sql`](../db/migrations/onboard/0001_baseline.sql), [`0002_incidents.sql`](../db/migrations/onboard/0002_incidents.sql), [`0003_incident_origin.sql`](../db/migrations/onboard/0003_incident_origin.sql) | [`db/data-dictionary.md`](../db/data-dictionary.md), [`repositories/database.py`](../services/onboard-api/src/onboard_api/repositories/database.py) |
 | Wellbeing module (onboard-api) | Implemented | Sustained change of each astronaut against their own baseline: daily check-ins, signals, vision sessions, co-presence, crew and personal views, consented ground packages. Support notes only, no clinical labels. Own SQLite file; reads the onboard DB read-only. | `wellbeing_router` registered in [`main.py`](../services/onboard-api/src/onboard_api/main.py), routes in [`wellbeing/router.py`](../services/onboard-api/src/onboard_api/wellbeing/router.py) | [`wellbeing/`](../services/onboard-api/src/onboard_api/wellbeing/), contract: [`wellbeing-contract.md`](wellbeing-contract.md) |
 | Telemetry publisher | Implemented | Background task in onboard-api. Sends astronauts, sensor config, new readings and queued incident updates to ground-api as v1 batches. | `TelemetryPublisher.run`, started in `lifespan` in [`main.py`](../services/onboard-api/src/onboard_api/main.py) | [`telemetry/publisher.py`](../services/onboard-api/src/onboard_api/telemetry/publisher.py), contract: [`contracts/telemetry/README.md`](../contracts/telemetry/README.md), [`telemetry.v1.schema.json`](../contracts/telemetry/telemetry.v1.schema.json) |
 | ground-api | Implemented | Telemetry receiver (`POST /telemetry/v1/batches`, `GET /telemetry/v1/cursor`) and read API for base-app (`/link`, `/crew`, `/astronauts/{id}/readings`, `/alerts`, `/incidents`, `/incidents/{id}`). Demo-gated `DELETE /demo/incidents` (off unless `GROUND_DEMO_CONTROLS_ENABLED=true`). Evaluates sensor status with its own clock. Medical-eval review and approval under `/medical-eval` ([flow 7](#7-knowledge-release-evaluation-review-activation)). | `ground_api.main:app` in [`main.py`](../services/ground-api/src/ground_api/main.py) | [`telemetry.py`](../services/ground-api/src/ground_api/telemetry.py), [`medical_eval.py`](../services/ground-api/src/ground_api/medical_eval.py), [`storage.py`](../services/ground-api/src/ground_api/storage.py), [`status.py`](../services/ground-api/src/ground_api/status.py), [`schemas.py`](../services/ground-api/src/ground_api/schemas.py), [`config.py`](../services/ground-api/src/ground_api/config.py), [`tests/test_telemetry.py`](../services/ground-api/tests/test_telemetry.py), [`tests/test_medical_eval.py`](../services/ground-api/tests/test_medical_eval.py) |
@@ -92,40 +76,13 @@ In the Docker Compose demo, `onboard-api`, `ollama`, `demo-init` and `simulator`
 
 ## Startup
 
-All commands were run on Windows 11 with Git Bash on 2026-11-14.
+Commands for every way to run the system are in [RUN-REPO.md](RUN-REPO.md); every environment variable is in [CONFIGURATION.md](CONFIGURATION.md). This section describes what happens when each process starts.
 
-### Docker Compose demo
+### Docker Compose
 
-`docker compose up --build` from the repo root runs the onboard stack: `onboard-api` (port 8000), `ollama`, the one-shot `demo-init` (model pull and guide ingest via [`scripts/prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py)) `simulator` and `ground-api` (port 8001). The API does not depend on Ollama, `demo-init` or `ground-api`. Both consoles stay native. Compose points `ONBOARD_GROUND_API_URL` at `http://ground-api:8001`. Demo controls are off unless the stack starts with `DEMO_CONTROLS_ENABLED=true` (sets `ONBOARD_DEMO_CONTROLS_ENABLED` and `GROUND_DEMO_CONTROLS_ENABLED`); runbook: [demo-outage.md](demo-outage.md). `run.ps1` starts the stack and opens both consoles ([RUN-REPO](RUN-REPO.md)). Steps, logs and volumes: [README](../README.md#run-the-demo-docker-compose--tauri). The sections below describe the native setup.
-
-Until `demo-init` finishes, the guide index is empty and searches fall back as described in [Failure and fallback behavior](#failure-and-fallback-behavior). The API picks up the first ingest without a restart. After a later re-ingest, restart it with `docker compose restart onboard-api`.
+`docker compose up --build` starts the services listed in [RUN-REPO.md](RUN-REPO.md#compose-services). onboard-api does not wait for Ollama, `demo-init` or ground-api. Until `demo-init` finishes, the guide index is empty and searches fall back as described in [Failure and fallback behavior](#failure-and-fallback-behavior). The API picks up the first ingest without a restart; after a later re-ingest, restart it with `docker compose restart onboard-api`.
 
 ### onboard-api
-
-Working directory: `services/onboard-api`.
-
-```sh
-uv sync --locked
-uv run fastapi dev                 # port 8000, auto-reload
-PYTHONUTF8=1 uv run pytest -q      # 589 passed, 1 skipped (2026-11-15, integration branch)
-```
-
-Medical eval and knowledge gate ([flow 7](#7-knowledge-release-evaluation-review-activation)):
-
-```sh
-PYTHONUTF8=1 uv run python -m onboard_api.assistant.eval --cases ../../eval/medical/cases/v1 --out <dir> [--baseline result.json] [--candidate-id ID] [--min-hit-rate 0.8]
-uv run python -m onboard_api.knowledge active|sync|rollback
-```
-
-The runner exits 1 when `release_blocked` or when the retrieval hit rate is below `--min-hit-rate`. `knowledge sync` exits 1 when `last_sync.ok` is false.
-
-Optional local dependencies, needed only by some assistant paths:
-
-```sh
-ollama pull bge-m3          # embeddings (ingest and query)
-ollama pull qwen2.5:3b    # chat model: reads non-alarm turns and drafts explanations
-PYTHONUTF8=1 uv run python -m onboard_api.assistant.ingest   # fills data/chroma
-```
 
 Startup sequence (`create_app` and `lifespan` in [`main.py`](../services/onboard-api/src/onboard_api/main.py)):
 
@@ -138,88 +95,13 @@ Startup sequence (`create_app` and `lifespan` in [`main.py`](../services/onboard
 7. If `ONBOARD_TELEMETRY_ENABLED` is true (the default), the lifespan opens one `httpx.AsyncClient` to `ONBOARD_GROUND_API_URL` (10 s timeout) and starts `TelemetryPublisher.run` as a background task, stored on `app.state.telemetry_publisher`. The task is cancelled on shutdown. Startup does not wait for ground-api.
 8. The wellbeing module has no lifespan step. `connect_wellbeing` creates and migrates `wellbeing.db` on first use ([`wellbeing/database.py`](../services/onboard-api/src/onboard_api/wellbeing/database.py)).
 
-Runtime configuration (all prefixed `ONBOARD_`):
-
-| Variable | Default | Used by |
-|---|---|---|
-| `DB_PATH` | `data/onboard.db` | All repositories, `SqliteReadingsProvider` |
-| `MIGRATIONS_DIR` | `<repo>/db/migrations/onboard` | `init_db` |
-| `CORS_ORIGINS` | Vite and Tauri origins | CORS middleware |
-| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | `OllamaClient` |
-| `OLLAMA_CHAT_MODEL` | `qwen2.5:3b` | `understand_turn` (`chat_json`) and `compose_answer` (`chat`) |
-| `OLLAMA_EMBED_MODEL` | `bge-m3` | Ingest and retrieval. Must match the ingested index. |
-| `OLLAMA_TIMEOUT_SECONDS` | `20.0` | `chat` and `embed` calls |
-| `OLLAMA_INTERPRET_TIMEOUT_SECONDS` | `15.0` | `chat_json` call of the local interpreter |
-| `CHROMA_PATH` | `data/chroma` | `GuideRetriever` |
-| `GUIDES_COLLECTION` | `medical_guides` | `GuideRetriever` |
-| `RETRIEVAL_MAX_DISTANCE` | `0.50` | Drops chunks with a larger cosine distance |
-| `DEMO_EVENTS_PATH` | unset | Ship events for the demo, e.g. [`demo/events.example.json`](../services/onboard-api/demo/events.example.json): a simulated radiation event and a `cabin_co2` event, both for `ast-02` only. While an event is active, every message for that astronaut routes to an `immediate` alarm; `ast-01` has no events. |
-| `TELEMETRY_ENABLED` | `true` | Starts the telemetry publisher. Compose keeps it `true`. |
-| `GROUND_API_URL` | `http://127.0.0.1:8001` | Publisher base URL. Compose default: `http://ground-api:8001`. |
-| `TELEMETRY_INTERVAL_SECONDS` | `5.0` | Wait between batches, and base of the retry backoff |
-| `SHIP_ID` | `ship-01` | `ship_id` in every batch and in the cursor query |
-| `DEMO_CONTROLS_ENABLED` | `false` | Enables the demo routes in `routers/link.py` ([demo-outage.md](demo-outage.md)) |
-| `KNOWLEDGE_DIR` | `data/knowledge` | Knowledge gate store (`active/`, `previous/`, `last_sync.json`). Not set in Compose. |
-
-Wellbeing settings use the `WELLBEING_` prefix ([`wellbeing/settings.py`](../services/onboard-api/src/onboard_api/wellbeing/settings.py)). `WELLBEING_DB_PATH` (default `data/wellbeing.db`) is the module's own database. `WELLBEING_MISSION_TZ` (IANA zone, default `UTC`) sets the mission day that every wellbeing input is grouped by; timestamps stay in UTC. The onboard database is opened read-only from `ONBOARD_DB_PATH` (or `WELLBEING_ONBOARD_DB_PATH`). The other `WELLBEING_*` values are provisional thresholds and baseline windows, not clinical cut-offs; `GET /wellbeing/parameters` returns the baseline and threshold values. Endpoints and data shapes: [`wellbeing-contract.md`](wellbeing-contract.md).
-
-Demo data, with the service running (pick one):
-
-```sh
-# repo root: simulated device feed (live)
-python3 firmware/simulator.py [--url URL] [--vitals-every 5] [--urine-every 600] [--muscle-every 3600] [--no-history]
-cd firmware && python3 test_simulator.py      # self-check, no API needed
-
-# services/onboard-api: one-shot seed, or --live for vitals every 5 s
-uv run python scripts/seed_demo.py [--live] [--url URL]
-```
-
-### spaceship-app (console)
-
-Working directory: `apps/spaceship-app`.
-
-```sh
-npm install
-npm run build          # tsc && vite build (verified)
-npm run tauri dev      # opens the desktop window; Vite on port 1420 (strictPort)
-```
-
-`cargo check` runs in `apps/spaceship-app/src-tauri`. On Git Bash, cargo is at `~/.cargo/bin/cargo.exe`.
-
-Runtime configuration: `VITE_ONBOARD_API_URL` sets the onboard base URL at build time. Default: `http://127.0.0.1:8000` ([`client.ts`](../apps/spaceship-app/src/api/client.ts)). The selected astronaut is kept in `localStorage` under `consola-medica.astronaut`.
-
 ### ground-api
-
-Working directory: `services/ground-api`.
-
-```sh
-uv sync --locked
-uv run fastapi dev --port 8001     # not run as written; served with uvicorn on another port for the check below
-PYTHONUTF8=1 uv run pytest -q      # 33 passed (2026-11-15, integration branch)
-```
 
 `create_app` and `lifespan` in [`main.py`](../services/ground-api/src/ground_api/main.py): `Settings()` reads `GROUND_*` variables ([`config.py`](../services/ground-api/src/ground_api/config.py)), CORS allows `settings.cors_origins`, and `storage.init_db` creates `GROUND_DB_PATH` (default `data/ground.db`) with `CREATE TABLE IF NOT EXISTS`. There are no migration files.
 
-| Variable | Default | Used by |
-|---|---|---|
-| `GROUND_DB_PATH` | `data/ground.db` | `init_db`, one connection per request (`get_connection`) |
-| `GROUND_CORS_ORIGINS` | `http://localhost:1421`, `tauri://localhost`, `http://tauri.localhost` | CORS middleware |
-| `GROUND_DEMO_CONTROLS_ENABLED` | `false` | Enables `DELETE /demo/incidents` |
-| `GROUND_BUNDLE_ROOT` | `../..` (repo root when run from `services/ground-api`) | `GET /medical-eval/approved/bundle` reads component files from here |
+### Consoles
 
-Verified 2026-11-14: ground-api and onboard-api on spare ports with temp databases. A reading posted to onboard-api appeared in `GET /alerts` and `GET /link` on ground within the interval. After stopping ground-api, onboard logged `telemetry send failed (1 in a row), retry in 2s` (interval 1 s). After a restart, the backlog arrived.
-
-### base-app (ground console)
-
-Working directory: `apps/base-app`.
-
-```sh
-npm install
-npm run build          # tsc && vite build (verified)
-npm run tauri dev      # not run (opens a window); Vite on port 1421 (strictPort)
-```
-
-Runtime configuration: `VITE_GROUND_API_URL` sets the ground base URL at build time. Default: `http://127.0.0.1:8001` ([`client.ts`](../apps/base-app/src/api/client.ts)). base-app (1421) and spaceship-app (1420) use different Vite ports and can run at the same time.
+Both consoles read their API base URL at build time (`VITE_ONBOARD_API_URL`, `VITE_GROUND_API_URL`; defaults `http://127.0.0.1:8000` and `:8001`) and start polling at once. spaceship-app keeps the selected astronaut in `localStorage` under `consola-medica.astronaut`. Neither Tauri shell has custom Rust commands.
 
 ## End-to-end flows
 
@@ -250,7 +132,7 @@ Astronauts are created with `POST /astronauts` (`id`, `display_name`; 409 if the
 Trigger: the user sends a message in [`AsistenteScreen.tsx`](../apps/spaceship-app/src/screens/AsistenteScreen.tsx), with optional structured symptom chips and an optional "Reported by" crewmate.
 
 1. `send` builds the request with `buildRequest(null, ...)` ([`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts)): `message`, `astronaut_id` (the selected crew member), `reported_by`, `reported_symptoms`.
-2. `sendAssistantMessage` ([`api/assistant.ts`](../apps/spaceship-app/src/api/assistant.ts)) sends `POST /assistant/messages` through `apiRequest` with a 60 s client timeout (other requests use 10 s), above the server worst case of 8 + 20 + 20 s of sequential Ollama calls.
+2. `sendAssistantMessage` ([`api/assistant.ts`](../apps/spaceship-app/src/api/assistant.ts)) sends `POST /assistant/messages` through `apiRequest` with a 60 s client timeout (other requests use 10 s), above the server worst case of three sequential Ollama calls with default timeouts: interpret 15 s + embed 20 s + answer 20 s = 55 s. Raising `ONBOARD_OLLAMA_*_TIMEOUT_SECONDS` can push a reply past the client timeout.
 3. FastAPI validates the body as `AssistantRequest` ([`schemas/assistant.py`](../services/onboard-api/src/onboard_api/schemas/assistant.py)). `post_message` ([`routers/assistant.py`](../services/onboard-api/src/onboard_api/routers/assistant.py)) receives a `Responder` from `get_assistant_responder` ([`dependencies.py`](../services/onboard-api/src/onboard_api/dependencies.py)).
 4. `get_assistant_responder` gets the compiled parent graph from `build_assistant_graph(deps)`. It is compiled once per `AssistantDeps` object (`lru_cache`, identity hash). The responder calls `respond(graph, request, now)`, which runs `graph.invoke({"request": request, "now": now})` and returns `["response"]`.
 5. **Parent node `select_intent`** ([`routing.py`](../services/onboard-api/src/onboard_api/assistant/routing.py)) decides the intent without an LLM:
@@ -266,7 +148,7 @@ Trigger: the user sends a message in [`AsistenteScreen.tsx`](../apps/spaceship-a
    1. `interpret` (`interpret_report`): runs the rule interpreter on the new message. If an open case was echoed, it rebuilds the case's observations, reads the message as an answer to the pending question (`understand.answer_turn`, e.g. a bare "sí" or "empezó de repente"), and merges both (`understand.merge_case`). Sets `sos` and reuses the parent's events. Each spelling correction becomes a notice `Read "<typed>" as "<word>".` in `data_notices`, so the crew sees how the word was read.
    2. `evaluate_alarms` (`check_alarms`): `triage.evaluate_alarms` returns `immediate` rule hits from text, structured symptoms and events relevant to this astronaut (events with empty `astronaut_ids` apply to the whole cabin).
    3. `route_after_alarms`: any hit or `sos` → `respond_alarm`, else `understand`.
-   4. `respond_alarm`: `decide()` builds the `Decision` from the protocol cards only. With SOS, `_with_sos` puts the SOS action first and notifies the medical officer and the crew. No SQLite, ChromaDB or Ollama call. Adds `ALARM_NOTICE`. End.
+   4. `respond_alarm`: `decide()` builds the `Decision` from the protocol cards only. With SOS, `_with_sos` puts the SOS action first and notifies the medical officer and the crew. It loads the latest readings from local SQLite (`_safe_load`) as evidence for the findings and the report only: readings never change the urgency, and a readings failure becomes a notice. No ChromaDB or Ollama call. Adds `ALARM_NOTICE` and the reading notices for the decision's cards. End.
    5. `understand` (`understand_turn`): skipped for educational questions. Otherwise `understand.read_turn` asks the local model for JSON (`chat_json`, schema `LlmReading`, 15 s timeout) with symptom codes, status and the user's exact words as evidence. `understand.accept` keeps an observation only when its evidence is in the new message, a bare "sí"/"no" answers only the pending question's codes, and the rules do not read the same words as another symptom. A concrete complaint outside the vocabulary is kept as `uncovered`. Any model failure returns no change: the rules alone decide.
    6. `recheck_alarms` (`check_alarms` again) and `route_after_recheck`: model-added observations can still raise an alarm before any slower dependency → `respond_alarm`, else `load_context`.
    7. `load_context`: `SqliteReadingsProvider.load` ([`context.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/context.py)) reads the latest reading per kind and marks stale, future-dated and low-quality readings. Warnings are grouped per sensor kind (`kind_warnings`).
@@ -286,6 +168,37 @@ Who decides what:
 | Alarm, urgency, action, notify, possible causes | `triage.evaluate_alarms`, `evaluate_case`, `decide`, from versioned cards in [`protocols/`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/protocols/) | No |
 | Next node in the medical subgraph | `route_after_alarms`, `route_after_recheck`, `select_route` / `route_after_case` | No |
 | Explanation text | `compose_answer` via Ollama, accepted only if `valid_draft` passes | Yes, text only |
+
+The two LangGraph graphs, as built in [`graph.py`](../services/onboard-api/src/onboard_api/assistant/graph.py) and [`workflows/medical/graph.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/graph.py):
+
+```mermaid
+flowchart TD
+    In(["POST /assistant/messages"]) --> SI["select_intent<br/>rules only, no LLM"]
+    SI -- "clarify" --> PC["clarify<br/>fixed question"]
+    SI -- "unsupported" --> PU["unsupported<br/>capabilities list"]
+    SI -- "medical" --> I
+    subgraph Medical["medical subgraph"]
+        I["interpret<br/>rules, spelling, open case"] --> EA["evaluate_alarms"]
+        EA -- "alarm or SOS" --> RA["respond_alarm<br/>cards + readings as evidence"]
+        EA -- "no alarm" --> U["understand<br/>Ollama chat_json (skipped if down)"]
+        U --> RC["recheck_alarms"]
+        RC -- "alarm" --> RA
+        RC -- "no alarm" --> LC["load_context<br/>SQLite readings"]
+        LC --> EC["evaluate_case<br/>select_route"]
+        EC -- "clarify" --> RCL["respond_clarify"]
+        EC -- "out_of_coverage" --> ROC["respond_out_of_coverage"]
+        EC -- "assessment or educational" --> RG["retrieve_guides<br/>ChromaDB"]
+        RG --> CA["compose_answer<br/>Ollama chat + valid_draft"]
+    end
+    PC --> Out(["AssistantResponse"])
+    PU --> Out
+    RA --> Out
+    RCL --> Out
+    ROC --> Out
+    CA --> Out
+```
+
+The sequence of calls for one request:
 
 ```mermaid
 sequenceDiagram
@@ -307,7 +220,8 @@ sequenceDiagram
         P->>M: run_medical({request, now, events})
         M->>M: interpret (+ echoed case), evaluate_alarms
         alt alarm hit or SOS
-            M-->>P: respond_alarm (cards only, urgency immediate)
+            M->>DB: respond_alarm: latest readings (evidence only)
+            M-->>P: alarm reply from cards (urgency immediate)
         else no alarm
             M->>O: understand: chat_json (15 s timeout)
             M->>M: accept evidence, recheck_alarms
@@ -355,13 +269,38 @@ Verified at runtime (2026-11-14):
 - Path A: `"Me duele la cabeza"` for `ast-01` returned `urgency: "undetermined"` with `clarification.question_id = "neurologic_red_flags.headache_red_flags"`. Sending that object back with `"sí, empezó de repente y es muy fuerte"` returned `urgency: "immediate"`.
 - Path B: resending `"Me duele la cabeza\nempezó de repente y es muy fuerte"` returned `urgency: "immediate"`.
 
-### 5. Guide ingestion (offline)
+### 5. Guide ingestion and retrieval
 
-1. `python -m onboard_api.assistant.ingest` ([`__main__.py`](../services/onboard-api/src/onboard_api/assistant/ingest/__main__.py)) loads [`corpus/manifest.json`](../services/onboard-api/corpus/manifest.json) and [`corpus/curated.json`](../services/onboard-api/corpus/curated.json).
+Commands, models and evaluation: [RAG-AND-EVALUATION.md](RAG-AND-EVALUATION.md).
+
+```mermaid
+flowchart LR
+    subgraph Ingest["Ingestion: offline CLI, or demo-init in Compose"]
+        Man["corpus/manifest.json<br/>topics, model, collection"] --> Chunk
+        XML["MedlinePlus Health Topics XML<br/>download or --xml"] --> Chunk["medlineplus.py<br/>chunks + metadata"]
+        Cur["corpus/curated.json"] --> Chunk
+        Chunk --> EmbI["Ollama embed<br/>bge-m3"]
+        EmbI --> Up["upsert_chunks<br/>delete_missing"]
+    end
+    Up --> Idx[("ChromaDB<br/>medical_guides")]
+    subgraph Retrieve["Retrieval: retrieve_guides, per request"]
+        Q["primary card title<br/>or the educational question"] --> EmbQ["Ollama embed<br/>bge-m3"]
+        EmbQ --> Search["search: k=3, card topics,<br/>English only, max distance 0.50"]
+        Search --> Compose["compose_answer<br/>Ollama chat + valid_draft"]
+    end
+    Idx --> Search
+```
+
+Ingestion:
+
+1. `python -m onboard_api.assistant.ingest` ([`__main__.py`](../services/onboard-api/src/onboard_api/assistant/ingest/__main__.py)) loads [`corpus/manifest.json`](../services/onboard-api/corpus/manifest.json) and [`corpus/curated.json`](../services/onboard-api/corpus/curated.json), and aborts if the manifest's embedding model or collection differs from the settings.
 2. Without `--xml`, it downloads the newest MedlinePlus Health Topics XML into `data/corpus_cache/`. This is the only network call in the project outside localhost.
 3. [`medlineplus.py`](../services/onboard-api/src/onboard_api/assistant/ingest/medlineplus.py) builds chunks with metadata (`topic`, `language`, `source_*`).
-4. `GuideRetriever.upsert_chunks` ([`chroma.py`](../services/onboard-api/src/onboard_api/assistant/integrations/chroma.py)) embeds with Ollama and upserts by `chunk_id`. `delete_missing` removes chunks no longer produced.
-5. `python -m onboard_api.assistant.ingest.evaluate` checks top-3 retrieval hit rate ([`evaluate.py`](../services/onboard-api/src/onboard_api/assistant/ingest/evaluate.py)).
+4. `GuideRetriever.upsert_chunks` ([`chroma.py`](../services/onboard-api/src/onboard_api/assistant/integrations/chroma.py)) embeds with Ollama and upserts by `chunk_id`, recording the embedding model digest. `delete_missing` removes chunks no longer produced.
+5. In Compose, [`prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py) runs the same ingest only when `ingest-stamp.txt` does not match the corpus, chunker and model digest.
+6. `python -m onboard_api.assistant.ingest.evaluate` checks the top-3 retrieval hit rate ([`evaluate.py`](../services/onboard-api/src/onboard_api/assistant/ingest/evaluate.py)).
+
+Retrieval happens only on the `assessment` and `educational` routes of the medical subgraph (flow 3, steps 10 and 11). The query is the primary card's title, never the personal text, except for an educational question with no known topic. A failure at any point (Ollama, ChromaDB, empty index, no chunk under the distance limit) adds a notice and falls back to card text; see [Failure and fallback behavior](#failure-and-fallback-behavior). The assistant never writes to the index.
 
 ### 6. Telemetry and ground console
 
@@ -420,8 +359,7 @@ flowchart LR
 Known gaps (2026-11-15):
 
 - The assistant still answers from the built-in protocol cards, rules and the ChromaDB index in the checkout. The activated bundle only appears as `report.knowledge_version`; nothing loads it.
-- `cabin.alarm.005` (English report of several crew members with symptoms) is a missed alarm today, so every candidate is `release_blocked` and cannot be approved.
-- A meaningful pass rate needs `qwen2.5:3b` and `bge-m3` pulled and the guide index built. Run on 2026-11-15 with `bge-m3` and an index but no `qwen2.5:3b`: 7/114 passed, 107 cases failed as `error` ("ollama expected up but unreachable"), 1 blocking (`cabin.alarm.005`), retrieval hit rate 0.907.
+- A meaningful pass rate needs `qwen2.5:3b` and `bge-m3` pulled and the guide index built. Without them most cases fail as `error` ("ollama expected up but unreachable"); see [RAG-AND-EVALUATION.md](RAG-AND-EVALUATION.md#setup-failure-or-failed-case). `cabin.alarm.005`, a missed alarm earlier, is fixed and covered by `tests/assistant/test_multi_crew_and_intensifiers.py`.
 - In Compose, the `ground-api` image contains only `services/ground-api`, so the bundle route has no components to serve, and `ONBOARD_KNOWLEDGE_DIR` is not on a volume (from reading the Dockerfiles; not run).
 
 ## Data and state
@@ -466,7 +404,7 @@ API contract mirror: [`schemas/`](../services/onboard-api/src/onboard_api/schema
 | Unknown astronaut | `ensure_astronaut_exists` ([`services/astronauts.py`](../services/onboard-api/src/onboard_api/services/astronauts.py)) | 404 for status and readings. The assistant still answers without readings. |
 | Missing or stale readings | `evaluate_sensor`; `SqliteReadingsProvider`; `_reading_notices` | Status `no_data` or `stale`. The assistant states gaps in `data_notices` (no pulse or SpO₂, stale age, future timestamp, suspect/bad quality, muscle unit pending) for the sensor kinds pertinent to the decision's cards. Values are never filled in. |
 | No `astronaut_id`, unknown astronaut, or SQLite file missing/unreadable during an assistant call | `SqliteReadingsProvider.load`, `load_context` | `available=False` plus a general warning. The reply continues. The warning reaches `data_notices` only when the case has a decision whose cards use readings. |
-| Alarm or SOS detected | `respond_alarm` | Returns from local cards at once. Readings, ChromaDB and Ollama are never waited on. |
+| Alarm or SOS detected | `respond_alarm` | Decides from local cards. Reads local SQLite readings as evidence only (they never lower the alarm); ChromaDB and Ollama are never called. |
 | Local interpreter fails, times out (15 s) or returns invalid JSON | `understand.read_turn` | Returns `None`; the turn continues with the rule interpretation only. No notice. |
 | Model proposes a symptom not backed by the user's words | `understand.accept` | Observation dropped. |
 | Ollama or ChromaDB down during retrieval | `retrieve_guides` | ChromaDB failure: notice `NOTICE_GUIDES_FAILED` ("... (ChromaDB)."). Query embedding failure (Ollama): `GuideRetriever.search` raises `EmbeddingUnavailable`, notice `NOTICE_EMBEDDING_FAILED`. Reply uses card text. |

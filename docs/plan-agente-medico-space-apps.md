@@ -2,6 +2,8 @@
 
 NASA Space Apps 2026 · Plan v2 · 14 de noviembre de 2026
 
+> Documento histórico: el plan con el que se construyó el subgrafo médico. El comportamiento actual está en [ARCHITECTURE.md](ARCHITECTURE.md#3-assistant-request-initial-message); si difieren, manda el código.
+
 ## 1. Alcance
 
 Implementar **16 rutas clínicas u operativas** en un solo subgrafo médico de LangGraph, detrás del `POST /assistant/messages` existente. Incluye la lógica de triaje, fichas locales, consulta de lecturas, ingesta del corpus público para ChromaDB y pruebas del endpoint. El plan cubre la ejecución con casos sintéticos del hackathon. Para uso real, un responsable clínico tendría que revisar las fichas y validar los criterios con el equipo y los procedimientos de la misión.
