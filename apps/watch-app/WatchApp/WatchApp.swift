@@ -12,6 +12,7 @@ struct RootView: View {
     @AppStorage("baseURL") private var baseURL = ""
     @AppStorage("astronautID") private var astronautID = ""
     @State private var sos = SOSSender()
+    @State private var vitals = Vitals()
     @State private var banner: String?
 
     var body: some View {
@@ -19,7 +20,7 @@ struct RootView: View {
             SetupView()
         } else {
             TabView {
-                ReadingsView(baseURL: baseURL, astronautID: astronautID)
+                ReadingsView(baseURL: baseURL, astronautID: astronautID, vitals: vitals.label)
                 SOSView(sender: sos, baseURL: baseURL, astronautID: astronautID)
                 SetupView()
             }
@@ -36,6 +37,7 @@ struct RootView: View {
             }
             .task(id: baseURL + astronautID) {
                 sos.resume(baseURL: baseURL, astronautID: astronautID)
+                await vitals.start(baseURL: baseURL, astronautID: astronautID)
                 await watchIncidents()
             }
         }

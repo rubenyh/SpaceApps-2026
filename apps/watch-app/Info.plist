@@ -9,5 +9,13 @@
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Lee las lecturas y envía el SOS al servicio onboard-api de la nave en la red local.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Lee tu pulso y tu oxígeno en sangre para enviarlos a la consola de la nave.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Abre una sesión de medición para leer el pulso en continuo. No guarda entrenamientos.</string>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
 </dict>
 </plist>

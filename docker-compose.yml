@@ -75,7 +75,8 @@ services:
 
   simulator:
     image: python:3.12-slim-bookworm
-    command: ["python", "-u", "/firmware/simulator.py", "--url", "http://onboard-api:8000"]
+    # SIMULATOR_ARGS="--real-vitals ast-01": a real watch sends ast-01's pulse (run.sh --watch-device).
+    command: ["sh", "-c", "exec python -u /firmware/simulator.py --url http://onboard-api:8000 ${SIMULATOR_ARGS:-}"]
     volumes:
       - ./firmware:/firmware:ro
     init: true  # forwards SIGTERM so `docker compose down` stops it at once

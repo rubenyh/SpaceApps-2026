@@ -8,7 +8,7 @@ NASA Space Apps 2026 monorepo. An astronaut console (Tauri) talks to an onboard 
 |---|---|---|
 | `apps/spaceship-app/` | Astronaut console. Tauri 2 + React 19 + Vite 8 + TypeScript 6. Rust crate `spaceship_app_lib`. Shares one visual identity with base-app (tokens: `src/styles/tokens.css`). | Status, vitals, muscle, urine, assistant, records, wellbeing |
 | `apps/base-app/` | Ground console, same stack and visual identity. | Crew, astronaut, alerts, incidents, medical eval, link |
-| `apps/watch-app/` | Apple Watch app, watchOS 10+ SwiftUI, watch-only (no iPhone app). Polls onboard-api status and open incidents; 2 s hold sends SOS to `POST /assistant/messages`. Replaces ARCHeR (no live API). Setup: `apps/watch-app/README.md`. | Readings, SOS, incident alert |
+| `apps/watch-app/` | Apple Watch app, watchOS 10+ SwiftUI, watch-only (no iPhone app). Sends the wearer's HealthKit pulse/SpO₂ to `POST /readings` (source `watch:healthkit`), polls status and open incidents; 2 s hold sends SOS to `POST /assistant/messages`. Replaces ARCHeR (no live API). Setup: `apps/watch-app/README.md`. | Real pulse, readings, SOS, incident alert |
 | `services/onboard-api/` | FastAPI 0.163, Python 3.12, uv. Package `onboard_api` in `src/`. App `onboard_api.main:app`. | Readings API, SQLite repository, `POST /assistant/messages` (LangGraph medical workflow, Ollama, ChromaDB), pytest |
 | `services/ground-api/` | FastAPI 0.163, Python 3.12, uv. Package `ground_api` in `src/`. App `ground_api.main:app`. | Health route only |
 | `services/wellbeing-vision/` | Camera collector for the wellbeing module. Python 3.12, uv, OpenCV + MediaPipe. Own process, CLI `wellbeing-vision`. Sends derived metrics only (never frames) to onboard-api `POST /wellbeing/vision-sessions`. | Daily video log; identity, co-presence and demo mode planned |
@@ -35,7 +35,7 @@ Planned, not in the repo yet: hardware collectors (pySerial, OpenCV, MediaPipe),
 | `services/onboard-api` | `uv run fastapi dev` | Uses `[tool.fastapi] entrypoint`. Default port 8000. `GET /` returns `{"status":"ok"}`. |
 | `services/ground-api` | `uv sync --locked` then `uv run fastapi dev --port 8001` | Use a different port than onboard. |
 | `services/*` | `uv add <pkg>` / `uv add --dev <pkg>` | Always commit `uv.lock` together with `pyproject.toml`. |
-| repo root | `python3 firmware/simulator.py` | Live device feed for the console (needs onboard-api running). `--urine-every 120` for faster samples. Self-check: `cd firmware && python3 test_simulator.py`. |
+| repo root | `python3 firmware/simulator.py` | Live device feed for the console (needs onboard-api running). `--urine-every 120` for faster samples, `--real-vitals ast-01` when a real watch sends that pulse. Self-check: `cd firmware && python3 test_simulator.py`. |
 | `apps/spaceship-app` | `npm run build` | `tsc && vite build`. |
 | `apps/spaceship-app/src-tauri` | `cargo check` | On Git Bash, cargo is at `~/.cargo/bin/cargo.exe` (not on PATH). |
 | `apps/spaceship-app` | `npm run tauri dev` | Not run by Claude (opens a window). Vite port 1420. |

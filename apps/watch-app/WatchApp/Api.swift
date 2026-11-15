@@ -49,12 +49,28 @@ enum Api {
     }
 
     static func sos(_ base: String, astronautID: String) async throws {
-        guard let url = URL(string: base + "/assistant/messages") else { throw ApiError(message: "URL inválida") }
+        // Only "SOS": other text can route to the symptom interpreter.
+        try await post(base, "/assistant/messages", ["message": "SOS", "astronaut_id": astronautID, "source": "watch"])
+    }
+
+    /// Body for `POST /readings`. kind is "heart_rate" (value in bpm) or "spo2" (HealthKit's 0–1 fraction).
+    static func readingBody(astronautID: String, kind: String, value: Double, at: Date) -> [String: Any] {
+        let spo2 = kind == "spo2"
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return [
+            "astronaut_id": astronautID, "kind": kind,
+            "value": (spo2 ? value * 100 : value).rounded(), "unit": spo2 ? "%" : "bpm", // units fixed by sensor_config
+            "recorded_at": f.string(from: at), "quality": "good", "source": "watch:healthkit",
+        ]
+    }
+
+    static func post(_ base: String, _ path: String, _ body: [String: Any]) async throws {
+        guard let url = URL(string: base + path) else { throw ApiError(message: "URL inválida") }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        // Only "SOS": other text can route to the symptom interpreter.
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["message": "SOS", "astronaut_id": astronautID, "source": "watch"])
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
         _ = try await send(req)
     }
 

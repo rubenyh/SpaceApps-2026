@@ -27,4 +27,7 @@ assert urine_color(0) == "#F5EC9A" and urine_color(1) == "#B8860B"
 uplink = Uplink("http://127.0.0.1:9")
 assert uplink.flush(history[:3]) == 0 and len(uplink.buffer) == 3 and not uplink.online
 uplink.configure_radiation()  # API down: logs and returns, never raises
+# A real watch owns this astronaut's pulse-ox: no simulated vitals, urine still simulated.
+crew[0].real_vitals = True
+assert crew[0].vitals(now) == [] and crew[0].urine(now) and crew[1].real_vitals is False
 print("ok")
