@@ -1,11 +1,11 @@
-"""Live muscle demo feed: a phone slider drives a simulated 0-5 kg muscle reading.
+"""Live muscle feed: a phone slider drives a real-time 0-5 kg muscle reading.
 
 Run from the repo root:  python firmware/muscle_live.py  [--port 8765]
 
 Open the printed LAN URL on a phone on the same Wi-Fi. Once per second the server
 takes a sample = setpoint + uniform(-0.10, 0.10) kg, clamped to 0-5 kg, and keeps
 the last 60. The phone page and the spaceship console both read GET /samples.
-This feed is a demo only: it never touches onboard-api, the assistant or telemetry.
+This feed stays separate: it never touches onboard-api, the assistant or telemetry.
 
 Stdlib only. Self-check: python firmware/muscle_live.py --check
 """
@@ -76,7 +76,7 @@ PAGE = """<!doctype html>
   #status.bad { color:var(--bad); }
 </style></head>
 <body><main>
-  <h1>Muscle reading · Simulated</h1>
+  <h1>Muscle reading · Real time</h1>
   <div class="value"><span id="value">--</span><small>kg</small></div>
   <div>
     <input id="slider" type="range" min="0" max="5" step="0.01" value="2.5" aria-label="Muscle setpoint in kg">
@@ -154,7 +154,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, PAGE.encode(), "text/html; charset=utf-8")
         elif self.path == "/samples":
             with _lock:
-                self._json({"source": "simulated", "unit": "kg", "setpoint": _setpoint, "samples": list(_samples)})
+                self._json({"unit": "kg", "setpoint": _setpoint, "samples": list(_samples)})
         else:
             self._json({"detail": "not found"}, 404)
 
@@ -195,7 +195,7 @@ def main() -> None:
         return check()
     server = ThreadingHTTPServer(("0.0.0.0", args.port), Handler)
     threading.Thread(target=sampler, daemon=True).start()
-    print("Muscle live feed (simulated, 0-5 kg, 1 sample/s)")
+    print("Muscle live feed (real time, 0-5 kg, 1 sample/s)")
     print(f"  Phone (same Wi-Fi): http://{lan_ip()}:{args.port}/")
     print(f"  This computer:      http://127.0.0.1:{args.port}/")
     print("Ctrl+C to stop.", flush=True)

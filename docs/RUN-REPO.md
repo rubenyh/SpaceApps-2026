@@ -127,7 +127,7 @@ Sit facing the camera, about 50 cm away, in good light. The process sends only d
 
 The watch app shows the astronaut's readings and sends an SOS. `./run.sh` starts it in the watchOS simulator. Compose publishes onboard-api only on `127.0.0.1` by default, so a real watch cannot reach it. For a real watch, use `./run.sh --watch-device` (sets `ONBOARD_API_HOST=0.0.0.0`) or run onboard-api natively with `uv run fastapi dev --host 0.0.0.0`. Install and setup: [`apps/watch-app/README.md`](../apps/watch-app/README.md).
 
-### 6. Optional: live muscle demo with a phone slider (terminal 5, repo root)
+### 6. Optional: live muscle feed with a phone slider (terminal 5, repo root)
 
 ```sh
 python firmware/muscle_live.py        # add --port N to change port 8765
@@ -139,7 +139,7 @@ Startup prints two URLs: a LAN URL such as `http://192.168.1.20:8765/` for the p
 2. The first time, allow Python through the Windows Defender Firewall prompt on **Private** networks. Without this, the phone cannot load the page.
 3. Open the LAN URL on the phone.
 
-The slider sets a target value from 0 kg to 5 kg. Once per second, the server makes one sample from the target plus random variation of up to ±0.10 kg. Each sample stays within 0 kg to 5 kg. On the **Muscle** screen, the console plots the last 60 samples in **Live muscle reading**, above the muscle density trend. The panel is labeled **Simulated**. While the server is down, the panel shows a waiting or disconnected state. It reconnects on its own when the server returns.
+The slider sets a target value from 0 kg to 5 kg. Once per second, the server makes one sample from the target plus random variation of up to ±0.10 kg. Each sample stays within 0 kg to 5 kg. On the **Muscle** screen, the console plots the last 60 samples in **Live muscle reading**, above the muscle density trend. The panel is labeled **Real time**, and the **Status** screen shows the latest value on the muscle density card. While the server is down, the panel shows a waiting or disconnected state. It reconnects on its own when the server returns.
 
 This feed is separate from the rest of the system. The console reads only `GET /samples` from this server, which keeps samples in memory. Nothing is sent to onboard-api, so the feed never reaches the stored muscle density history, the assistant or telemetry. Set `VITE_MUSCLE_LIVE_URL` if the console must read the feed from another host or port. Self-check: `python firmware/muscle_live.py --check`.
 
