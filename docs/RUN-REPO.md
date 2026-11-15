@@ -99,6 +99,10 @@ uv run wellbeing-vision bitacora --astronaut ast-01  # daily video log
 
 Sit facing the camera, about 50 cm away, in good light. The process sends only derived metrics, never frames. Add `--dry-run` to print the JSON without sending it. Details: [`services/wellbeing-vision/README.md`](../services/wellbeing-vision/README.md).
 
+### 5. Optional: Apple Watch (macOS + Xcode)
+
+The watch app shows the astronaut's readings and sends an SOS. Compose publishes onboard-api only on `127.0.0.1`, so a real watch cannot reach it: run onboard-api natively with `uv run fastapi dev --host 0.0.0.0` instead. Install and setup: [`apps/watch-app/README.md`](../apps/watch-app/README.md).
+
 ## Check the full flow
 
 1. `docker compose logs -f simulator` shows a reading post every 5 s.
