@@ -97,8 +97,9 @@ export function mergeSymptoms(prev: ReportedSymptom[], added: ReportedSymptom[])
 }
 
 /**
- * The endpoint is stateless: answering a clarifying question resends the original case
- * (message, astronaut_id, reported_by, symptoms) with the new text and symptoms added.
+ * The endpoint is stateless. Answering a clarifying question keeps the case's people and
+ * symptoms. With a server `clarification` it is echoed and `message` is only the answer;
+ * without one the original message is resent with the answer appended.
  */
 export function buildRequest(
   pending: AssistantRequest | null,
@@ -110,10 +111,13 @@ export function buildRequest(
   if (!pending) {
     return { message: text, astronaut_id: astronautId, reported_by: reportedBy, reported_symptoms: symptoms };
   }
-  return {
-    message: `${pending.message}\n${text}`.slice(0, MAX_MESSAGE),
+  const base = {
     astronaut_id: pending.astronaut_id,
     reported_by: pending.reported_by,
     reported_symptoms: mergeSymptoms(pending.reported_symptoms ?? [], symptoms),
   };
+  if (pending.clarification) {
+    return { message: text.slice(0, MAX_MESSAGE), ...base, clarification: pending.clarification };
+  }
+  return { message: `${pending.message}\n${text}`.slice(0, MAX_MESSAGE), ...base };
 }

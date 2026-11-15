@@ -224,11 +224,34 @@ export interface AssistantRequest {
   astronaut_id?: string | null;
   /** Crewmate who sends the report, when it is not the assessed person. */
   reported_by?: string | null;
-  /**
-   * Max 40. To answer a clarifying question, resend the original message plus
-   * the new structured data (the endpoint is stateless).
-   */
+  /** Max 40. Overrides text interpretation of the same code. */
   reported_symptoms?: ReportedSymptom[];
+  /** `clarification` from the previous response, echoed unchanged; `message` then holds only the answer. */
+  clarification?: Clarification | null;
+}
+
+/** One observation of an open case, returned by the server and echoed back unchanged. */
+export interface CaseObservation {
+  symptom: SymptomCode;
+  status: SymptomStatus;
+  origin: "structured" | "text" | "llm";
+  evidence: string;
+  temporality?: "current" | "resolved" | "historical" | "hypothetical";
+  subject?: "self" | "other";
+  onset?: "sudden" | "gradual" | null;
+  severity?: "mild" | "moderate" | "severe" | null;
+  persistence?: "ongoing" | "resolved" | "recurrent" | null;
+  context?: string | null;
+}
+
+/** Open case with a pending question. The endpoint keeps no conversation: send it back unchanged. */
+export interface Clarification {
+  /** "routing", "symptom" or "<protocol_id>.<question_key>". */
+  question_id: string;
+  question: string;
+  /** The case belongs to this person; another astronaut_id starts a new case. */
+  astronaut_id: string | null;
+  observations: CaseObservation[];
 }
 
 /** A protocol card (kind="protocol") or a retrieved corpus chunk (kind="guide"). */
@@ -282,4 +305,6 @@ export interface AssistantResponse {
   findings: Finding[];
   possible_causes: PossibleCause[];
   clarifying_question: string | null;
+  /** Set with needs_clarification on medical/clarify replies: send it back unchanged. */
+  clarification: Clarification | null;
 }

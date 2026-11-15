@@ -262,7 +262,7 @@ export function AsistenteScreen({ astronautId, astronauts, status, statusUpdated
     try {
       const response = await sendAssistantMessage(request, controller.signal);
       push({ role: "assistant", response });
-      setPending(response.needs_clarification ? request : null);
+      setPending(response.needs_clarification ? { ...request, clarification: response.clarification ?? null } : null);
       if (!fresh) setSymptoms([]);
     } catch (err) {
       if (controller.signal.aborted) return;
@@ -271,7 +271,9 @@ export function AsistenteScreen({ astronautId, astronauts, status, statusUpdated
         apiError instanceof HttpError
           ? `Error ${apiError.status}: ${apiError.detail}`
           : apiError instanceof NetworkError
-            ? "ONBOARD SERVICE UNAVAILABLE: the message was not sent."
+            ? apiError.message === "request timed out"
+              ? "NO REPLY IN TIME: the onboard assistant took too long. Try again."
+              : "ONBOARD SERVICE UNAVAILABLE: the message was not sent."
             : String(apiError);
       push({ role: "error", text: errorText });
     } finally {
@@ -322,7 +324,7 @@ export function AsistenteScreen({ astronautId, astronauts, status, statusUpdated
         <div className="chat__report">
           {pending ? (
             <p className="chat__pending">
-              Answering the clarifying question: the original report is resent.{" "}
+              Answering the clarifying question: the open case is sent back with your answer.{" "}
               <button type="button" className="btn btn--ghost" onClick={() => setPending(null)}>
                 New report
               </button>

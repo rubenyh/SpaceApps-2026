@@ -25,6 +25,11 @@ eq(
   "merge",
 );
 
+// With a server case, only the answer is sent and the case is echoed unchanged.
+const clarification = { question_id: "q", question: "¿De golpe?", astronaut_id: "ana", observations: [] };
+const echoed = buildRequest({ ...first, clarification }, "sí", "bob", null, []);
+eq([echoed.message, echoed.astronaut_id, echoed.clarification], ["sí", "ana", clarification], "echo case");
+
 eq(buildRequest({ message: "x".repeat(3999) }, "abc", null, null, []).message.length, 4000, "max length");
 
 console.log("assistant.check: ok");
