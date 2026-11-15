@@ -1,12 +1,15 @@
 """SIMULATED wellbeing history for the demo. Every record has source="simulated".
 
-Crew story (deterministic for a given seed):
-  ast-01  stable.
-  ast-02  derails from day DERAIL_DAY: check-in, physiology and social all drop
+Crew story (deterministic for a given seed). FICTIONAL demo profiles, see
+docs/wellbeing/demo-crew.md:
+  ast-01  Elena Ruiz, commander: stable. Records the live daily log in the demo.
+  ast-02  Marco Tanaka, flight engineer: from day DERAIL_DAY his shifts change for
+          a long repair; check-in, physiology and social all drop
           -> "needs_support", onset on that day.
-  ast-03  says "I'm fine" in the check-in, but physiology and social drop from
-          day DISCREPANCY_DAY -> discrepancy.
-  ast-04  stable, with a single bad day: an isolated reading never alerts.
+  ast-03  Sofía Mendel, medical officer: says "I'm fine" in the check-in, but
+          physiology and social drop from day DISCREPANCY_DAY -> discrepancy.
+  ast-04  Daniel Okafor, science specialist: stable, with a single bad day (a failed
+          experiment): an isolated reading never alerts.
 Vision (daily logs, and ambient-camera motion windows) follows the same story
 and stops at yesterday, so a live log recorded today is judged alone against an
 already formed baseline. In ambient windows ast-02 moves less from DERAIL_DAY.
@@ -24,7 +27,13 @@ from onboard_api.wellbeing.schemas import (
     VisionSessionCreate,
 )
 
-CREW = {"ast-01": "X", "ast-02": "Y", "ast-03": "Z", "ast-04": "W"}
+# Display names only: roles live in comments and docs, not in the contract.
+CREW = {
+    "ast-01": "Elena Ruiz",  # commander
+    "ast-02": "Marco Tanaka",  # flight engineer
+    "ast-03": "Sofía Mendel",  # medical officer
+    "ast-04": "Daniel Okafor",  # science specialist
+}
 SOURCE = "simulated"
 DERAIL_DAY = 14
 DISCREPANCY_DAY = 15
@@ -74,6 +83,25 @@ MOTION_REST = {
 # Moving less: slower, more time still. Fidgeting and posture unchanged.
 MOTION_ALTERED = {**MOTION_REST, "speed": (0.08, 0.18), "stationary_ratio": (0.80, 0.92)}
 AMBIENT_HOURS = (10, 13, 16)
+
+# Private check-in comments (personal view only), by day index. Few on purpose, and
+# fixed rather than drawn from the seeded generator, so the story is the same as before.
+COMMENTS = {
+    "ast-01": {9: "Good run on the treadmill today."},
+    "ast-02": {
+        DERAIL_DAY: "Moved to night shifts for the coolant pump repair.",
+        DERAIL_DAY + 1: "Short night. Woke up before the alarm.",
+        DERAIL_DAY + 3: "Another long shift. Ate on my own, too tired to join the others.",
+        DERAIL_DAY + 5: "Still on the repair schedule. Hard to switch off after a shift.",
+        DERAIL_DAY + 6: "Tired. Skipped movie night.",
+    },
+    "ast-03": {
+        DISCREPANCY_DAY: "All good. Busy day in the med bay.",
+        DISCREPANCY_DAY + 2: "Fine, lots to do. No complaints.",
+        DISCREPANCY_DAY + 4: "All good here.",
+    },
+    "ast-04": {BAD_DAY: "The crystal growth run failed after three weeks of prep. Rough day."},
+}
 
 
 def _at(day: date, hour: int, minute: int = 0, tz: tzinfo = UTC) -> datetime:
@@ -147,6 +175,7 @@ def simulate(
                     interest=1 if down else jitter(3),
                     stress=4 if down else jitter(1),
                     crew_connection=1 if down else jitter(3),
+                    comment=COMMENTS.get(aid, {}).get(i),
                     source=SOURCE,
                 ),
                 submitted_at=_at(day, 21, tz=tz),

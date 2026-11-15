@@ -46,3 +46,12 @@ class AstronautRepository:
         if cursor.rowcount == 0:
             return None
         return self.get(data.id)
+
+    def rename(self, astronaut_id: str, display_name: str) -> Astronaut | None:
+        """Change the display name. Returns None if the id does not exist."""
+        cursor = self._conn.execute(
+            "UPDATE astronauts SET display_name = ? WHERE id = ?", (display_name, astronaut_id)
+        )
+        if cursor.rowcount == 0:
+            return None
+        return self.get(astronaut_id)

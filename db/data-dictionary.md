@@ -17,7 +17,7 @@ Readings are informational support only. Diagnosis and treatment decisions stay 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
 | `id` | TEXT | PK | | API: `^[a-z0-9][a-z0-9-]{1,31}$` (`schemas/astronauts.py`). |
-| `display_name` | TEXT | NOT NULL | | API: 1 to 80 characters. |
+| `display_name` | TEXT | NOT NULL | | API: 1 to 80 characters. Changed only with `PATCH /astronauts/{id}`. |
 | `created_at` | TEXT | NOT NULL | | Timestamp, set by the server. |
 
 Referenced by `readings.astronaut_id`.

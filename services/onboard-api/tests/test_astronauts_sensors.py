@@ -28,6 +28,37 @@ def test_duplicate_astronaut_is_409(client: TestClient, astronaut: str) -> None:
     assert response.json() == {"detail": "Astronaut 'ana' already exists"}
 
 
+def test_rename_astronaut(client: TestClient, astronaut: str) -> None:
+    response = client.patch(f"/astronauts/{astronaut}", json={"display_name": "Ana Ruiz"})
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": astronaut,
+        "display_name": "Ana Ruiz",
+        "created_at": "2026-11-14T12:00:00Z",
+    }
+    assert client.get("/astronauts").json()[0]["display_name"] == "Ana Ruiz"
+
+
+def test_rename_unknown_astronaut_is_404(client: TestClient) -> None:
+    response = client.patch("/astronauts/nobody", json={"display_name": "Nobody"})
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Astronaut 'nobody' not found"}
+
+
+def test_rename_validates_name_like_create(client: TestClient, astronaut: str) -> None:
+    for name in ("", "x" * 81):
+        response = client.patch(f"/astronauts/{astronaut}", json={"display_name": name})
+        assert response.status_code == 422
+    assert client.get("/astronauts").json()[0]["display_name"] == "Ana"
+
+
+def test_post_existing_astronaut_still_409_after_rename(client: TestClient, astronaut: str) -> None:
+    client.patch(f"/astronauts/{astronaut}", json={"display_name": "Ana Ruiz"})
+    response = client.post("/astronauts", json={"id": astronaut, "display_name": "Other"})
+    assert response.status_code == 409
+    assert client.get("/astronauts").json()[0]["display_name"] == "Ana Ruiz"
+
+
 def test_invalid_astronaut_id_is_422(client: TestClient) -> None:
     response = client.post("/astronauts", json={"id": "Ana!", "display_name": "Ana"})
     assert response.status_code == 422

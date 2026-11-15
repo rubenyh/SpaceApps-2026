@@ -44,14 +44,16 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
   const tz = params.data?.mission_tz;
   const today = tz ? missionDay(tz) : undefined;
   // Not chained behind the params poll (which retries only every 5 min): the mission day is
-  // within one day of the UTC day, so fetch from UTC yesterday and pick today once tz is known.
+  // within one day of the UTC day, so fetch from UTC days and pick today once tz is known.
+  // The same list covers the timeline window for "My check-in notes".
   const checkin = usePolling(
     `wb-checkin:${astronautId}`,
-    (s) => listCheckins(astronautId, { since: addDays(missionDay("UTC"), -1) }, s),
+    (s) => listCheckins(astronautId, { since: addDays(missionDay("UTC"), -TIMELINE_DAYS) }, s),
     POLL_MS,
   );
   const checkinLoaded = today !== undefined && checkin.data !== null;
   const todayCheckin = (today && checkin.data?.find((c) => c.day === today)) || null;
+  const notes = (checkin.data ?? []).filter((c) => c.comment).sort((x, y) => y.day.localeCompare(x.day));
   const checkinFailed = !checkinLoaded && (checkin.error !== null || params.error !== null);
   const [open, setOpen] = useState<Partial<Record<IndicatorKind, boolean>>>({});
 
@@ -164,6 +166,20 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
                 />
               ))}
             </div>
+          </Panel>
+
+          <Panel title="My check-in notes">
+            <p className="wellbeing__faint">Private. Never shown to the crew.</p>
+            {notes.length > 0 ? (
+              notes.map((c) => (
+                <p key={c.day} className="wb-notice">
+                  <span className="wb-mono">{formatDay(c.day)}</span>
+                  {c.comment}
+                </p>
+              ))
+            ) : (
+              <p className="wellbeing__note">No notes in the last {days(TIMELINE_DAYS)}.</p>
+            )}
           </Panel>
 
           <Panel title="Data quality">

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from onboard_api.repositories.astronauts import AstronautRepository
-from onboard_api.schemas.astronauts import Astronaut, AstronautCreate
+from onboard_api.schemas.astronauts import Astronaut, AstronautCreate, AstronautUpdate
 
 
 class AstronautNotFoundError(Exception):
@@ -27,4 +27,13 @@ def create_astronaut(
     astronaut = repo.create(data, created_at=now)
     if astronaut is None:
         raise AstronautAlreadyExistsError(data.id)
+    return astronaut
+
+
+def rename_astronaut(
+    repo: AstronautRepository, astronaut_id: str, data: AstronautUpdate
+) -> Astronaut:
+    astronaut = repo.rename(astronaut_id, data.display_name)
+    if astronaut is None:
+        raise AstronautNotFoundError(astronaut_id)
     return astronaut
