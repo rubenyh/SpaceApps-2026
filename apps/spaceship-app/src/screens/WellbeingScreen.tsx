@@ -31,7 +31,13 @@ export function WellbeingScreen({ astronautId, astronauts }: Props) {
   const [unlocked, setUnlocked] = useState(false);
   const displayName = astronauts.find((a) => a.id === astronautId)?.display_name ?? astronautId;
 
-  const toggle = <SegmentedControl label="Wellbeing view" options={VIEWS} value={view} onChange={setView} />;
+  // Leaving Personal re-locks it, so nobody walks up to an unlocked detail later.
+  const changeView = (next: View) => {
+    if (next === "crew") setUnlocked(false);
+    setPage("summary");
+    setView(next);
+  };
+  const toggle = <SegmentedControl label="Wellbeing view" options={VIEWS} value={view} onChange={changeView} />;
 
   if (view === "crew") return <CrewView toggle={toggle} />;
 
@@ -58,10 +64,7 @@ export function WellbeingScreen({ astronautId, astronauts }: Props) {
       displayName={displayName}
       onCheckin={() => setPage("checkin")}
       onShare={() => setPage("ground")}
-      onLock={() => {
-        setUnlocked(false);
-        setView("crew");
-      }}
+      onLock={() => changeView("crew")}
     />
   );
 }
