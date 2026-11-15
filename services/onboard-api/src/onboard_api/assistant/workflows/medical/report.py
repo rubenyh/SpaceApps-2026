@@ -1,8 +1,12 @@
 """Copyable case report. Deterministic: built only from the case, readings, events and
 the rules' decision; the LLM never writes it. Nothing here transmits anything."""
 
+import re
 from datetime import datetime
+from uuid import uuid4
 
+from onboard_api.assistant.workflows.medical.context import snapshot
+from onboard_api.assistant.workflows.medical.protocols import load_catalog
 from onboard_api.assistant.workflows.medical.state import (
     Decision,
     Interpretation,
@@ -16,7 +20,12 @@ from onboard_api.assistant.workflows.medical.triage import (
     event_finding,
     _relevant_events,
 )
-from onboard_api.schemas.assistant import AssistantRequest, CaseReport, OperationalEvent
+from onboard_api.schemas.assistant import (
+    AssessmentSummary,
+    AssistantRequest,
+    CaseReport,
+    OperationalEvent,
+)
 from onboard_api.schemas.readings import is_simulated_source
 
 _KIND = {"heart_rate": "Pulse", "spo2": "SpO₂"}
@@ -27,10 +36,9 @@ _ONSET = {"sudden": "sudden", "gradual": "gradual"}
 _SEVERITY = {"mild": "mild", "moderate": "moderate", "severe": "severe"}
 _PERSISTENCE = {"ongoing": "persistent", "resolved": "resolved", "recurrent": "recurrent"}
 UNKNOWN = "unknown"
-NOT_SENT = (
-    "Send status: not_sent (pending). The assistant transmits nothing: copy it and send it"
-    " through the mission channel when the link is up."
-)
+URGENCY_LABELS = {"immediate": "Immediate", "review_required": "Review required",
+                  "undetermined": "Undetermined", "informational": "Informational"}
+_ESCALATION = re.compile(r"emergenc|escalat", re.IGNORECASE)
 
 
 def _symptom_line(o: Observation) -> str:
@@ -62,7 +70,9 @@ def _reading_lines(kinds: list[str], readings: ReadingsContext | None) -> list[s
                  f"quality {r.quality}", f"source {r.source}"]
         if is_simulated_source(r.source):
             parts.append("SIMULATED, not a real measurement")
-        if r.stale:
+        if r.freshness == "future":
+            parts.append("capture time AHEAD of the onboard clock, not current")
+        elif r.stale:
             parts.append("OLD, does not reflect the current state")
         out.append(" · ".join(parts) + ".")
     return out
@@ -88,7 +98,6 @@ def build_report(
         "MEDICAL CASE REPORT (generated on board; informational support, not a diagnosis)",
         f"Generated: {_iso(now)}",
         f"Astronaut: {request.astronaut_id or UNKNOWN} · Reported by: {reporter}",
-        NOT_SENT,
         "",
         f"Urgency (rules): {urgency or UNKNOWN}",
         f"Recommended action: {action or 'none defined by the cards'}",
@@ -120,4 +129,45 @@ def build_report(
     if decision and decision.matched_rules:
         rules = ", ".join(f"{r.rule_id} ({r.protocol_id}@{r.protocol_version})" for r in decision.matched_rules)
         lines += ["", f"Rules applied: {rules}"]
-    return CaseReport(text="\n".join(lines))
+    pertinent = snapshot(readings, kinds) if readings is not None and readings.available else []
+    return CaseReport(id=str(uuid4()), readings=pertinent, text="\n".join(lines))
+
+
+def _short(text: str) -> str:
+    """"Dizziness without neurologic signs: limit movement and monitor." ->
+    "Limit movement and monitor": first sentence of the clause after the label."""
+    clause = text.split(": ", 1)[-1].split(". ", 1)[0].strip().rstrip(".")
+    return clause[:1].upper() + clause[1:]
+
+
+def assessment_summary(
+    decision: Decision | None, urgency: str, action: str | None,
+    interp: Interpretation | None, events: list[OperationalEvent], astronaut_id: str | None,
+    sos: bool,
+) -> AssessmentSummary:
+    """Glanceable head built from the rules and the card text only."""
+    present = [o for o in (interp.observations if interp else [])
+               if o.status == "present" and o.temporality in ("current", "resolved")]
+    relevant = _relevant_events(events, astronaut_id)
+    if sos:
+        reported = "SOS reported"
+    elif present:
+        reported = f"{LABELS[present[0].symptom]} reported"
+    elif relevant:
+        reported = "Radiation alert reported" if relevant[0].type == "radiation" else "Cabin alarm reported"
+    else:
+        reported = "Symptom reported"
+
+    card_action = None
+    escalation: list[str] = []
+    if decision and decision.protocol_id:
+        card = load_catalog()[decision.protocol_id]
+        lead = [a for a in card.actions.values() if a.text in (decision.action or "")]
+        card_action = lead[0].text if lead else None
+        escalation = [t for a in lead for t in (*(st.text for st in a.steps), *a.notify)
+                      if _ESCALATION.search(t)]
+    text = action if sos else (card_action or action)
+    return AssessmentSummary(
+        urgency=urgency, urgency_label=URGENCY_LABELS[urgency], reported=reported,
+        action=_short(text) if text else None, escalation=list(dict.fromkeys(escalation)),
+    )

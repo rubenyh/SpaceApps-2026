@@ -5,13 +5,15 @@ add an explanation; any failure there becomes a data notice plus card text.
 """
 
 import re
+from datetime import datetime
 
 from onboard_api.assistant.integrations import LLM, EmbeddingUnavailable, GuideChunk, Retriever
 from onboard_api.assistant.workflows.medical import prompts
 from onboard_api.assistant.workflows.medical import understand
 from onboard_api.assistant.workflows.medical.interpret import interpret, is_sos
 from onboard_api.assistant.workflows.medical.protocols import load_catalog
-from onboard_api.assistant.workflows.medical.report import build_report
+from onboard_api.assistant.workflows.medical.context import snapshot
+from onboard_api.assistant.workflows.medical.report import assessment_summary, build_report
 from onboard_api.assistant.workflows.medical.state import (
     Decision,
     EventSource,
@@ -76,9 +78,10 @@ def _response(
     action = action or (d.action if d else None)
     interp = state.get("interpretation")
     report = None
+    assessed_at = state.get("assessed_at")
     if always_report or d or (interp and any(o.temporality != "hypothetical" for o in interp.observations)):
         report = build_report(
-            state["request"], state["now"], interp, state.get("events", []),
+            state["request"], assessed_at or state["now"], interp, state.get("events", []),
             state.get("readings"), d, urgency, action,
             [n for n in state.get("notices", []) if n not in prompts.ASSISTANT_NOTICES],
         )
@@ -104,6 +107,12 @@ def _response(
             possible_causes=d.possible_causes if d else [],
             clarifying_question=d.clarifying_question if d else None,
             clarification=clarification,
+            assessed_at=assessed_at,
+            readings_snapshot=snapshot(state.get("readings")),
+            assessment=assessment_summary(
+                d, urgency, action, interp, state.get("events", []),
+                state["request"].astronaut_id, bool(state.get("sos")),
+            ) if urgency else None,
         )
     }
 
@@ -171,13 +180,13 @@ def respond_alarm(state: MedicalState, readings: ReadingsProvider) -> dict:
     """The alarm is decided from the cards, events and request. Readings (local SQLite,
     never Ollama/ChromaDB) only add evidence and the report; they never change urgency."""
     hits = state["alarm_hits"]
-    ctx = _safe_load(readings, state)
+    ctx, at = _safe_load(readings, state)
     decision = decide(hits, load_catalog(), ctx) if hits else None
     if state.get("sos"):
         decision = _with_sos(decision, state["request"].source, ctx)
     notices = [*state.get("notices", []), prompts.ALARM_NOTICE, *_reading_notices(ctx, decision)]
-    state = {**state, "readings": ctx, "notices": notices}
-    return {"route": "alarm", "decision": decision, "readings": ctx,
+    state = {**state, "readings": ctx, "assessed_at": at, "notices": notices}
+    return {"route": "alarm", "decision": decision, "readings": ctx, "assessed_at": at,
             **_response(state, decision.summary, decision)}
 
 
@@ -203,15 +212,19 @@ def understand_turn(state: MedicalState, llm: LLM) -> dict:
 # --- Non-alarm branch. ---
 
 
-def _safe_load(readings: ReadingsProvider, state: MedicalState) -> ReadingsContext:
+def _safe_load(readings: ReadingsProvider, state: MedicalState) -> tuple[ReadingsContext, datetime]:
+    """Freshness is judged against the onboard clock now, not at request start: a
+    sample captured while the interpreter ran is current, not future-dated."""
+    at = state["clock"]() if "clock" in state else state["now"]
     try:
-        return readings.load(state["request"].astronaut_id, state["now"])
+        return readings.load(state["request"].astronaut_id, at), at
     except Exception:  # providers should not raise; never let one break the reply
-        return ReadingsContext(available=False, warnings=[prompts.NOTICE_READINGS_FAILED])
+        return ReadingsContext(available=False, warnings=[prompts.NOTICE_READINGS_FAILED]), at
 
 
 def load_context(state: MedicalState, readings: ReadingsProvider) -> dict:
-    return {"readings": _safe_load(readings, state)}
+    ctx, at = _safe_load(readings, state)
+    return {"readings": ctx, "assessed_at": at}
 
 
 def _reading_notices(readings: ReadingsContext, decision: Decision | None) -> list[str]:
@@ -356,7 +369,8 @@ def compose_answer(state: MedicalState, llm: LLM) -> dict:
     draft = None
     if chunks:  # without chunks the card text already says everything we can back
         card = _card(state)
-        report = build_report(state["request"], state["now"], state["interpretation"],
+        report = build_report(state["request"], state.get("assessed_at") or state["now"],
+                              state["interpretation"],
                               state.get("events", []), state.get("readings"), decision,
                               decision.urgency, decision.action, notices) if decision else None
         user = prompts.build_user_prompt(

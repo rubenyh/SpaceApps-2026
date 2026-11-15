@@ -1,11 +1,12 @@
 """Parent graph assembly: one entry point, routed to workflow subgraphs."""
 
+from collections.abc import Callable
 from datetime import datetime
 from functools import lru_cache, partial
 
 from langgraph.graph import END, START, StateGraph
 
-from onboard_api.assistant import routing
+from onboard_api.assistant import routing, status
 from onboard_api.assistant.state import AssistantDeps, AssistantState
 from onboard_api.assistant.workflows.medical.graph import build_medical_graph
 from onboard_api.schemas.assistant import AssistantRequest, AssistantResponse
@@ -19,14 +20,22 @@ def build_assistant_graph(deps: AssistantDeps):
     g.add_node("medical", partial(routing.run_medical, medical_graph=medical))
     g.add_node("clarify", routing.respond_clarify)
     g.add_node("unsupported", routing.respond_unsupported)
+    g.add_node("status", partial(status.respond_status, readings=deps.readings))
     g.add_edge(START, "select_intent")
     g.add_conditional_edges(
-        "select_intent", routing.route_after_intent, ["medical", "clarify", "unsupported"]
+        "select_intent", routing.route_after_intent, ["medical", "clarify", "unsupported", "status"]
     )
-    for node in ("medical", "clarify", "unsupported"):
+    for node in ("medical", "clarify", "unsupported", "status"):
         g.add_edge(node, END)
     return g.compile()
 
 
-def respond(graph, request: AssistantRequest, now: datetime) -> AssistantResponse:
-    return graph.invoke({"request": request, "now": now})["response"]
+def respond(
+    graph, request: AssistantRequest, now: datetime, clock: Callable[[], datetime] | None = None
+) -> AssistantResponse:
+    """`clock` is read again when readings load (after any LLM wait); without it the
+    request-start `now` is used."""
+    state = {"request": request, "now": now}
+    if clock is not None:
+        state["clock"] = clock
+    return graph.invoke(state)["response"]
