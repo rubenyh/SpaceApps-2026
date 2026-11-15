@@ -38,7 +38,7 @@ Planned, not in the repo yet: hardware collectors for real sensors (pySerial, Op
 | `services/*` | `uv add <pkg>` / `uv add --dev <pkg>` | Always commit `uv.lock` together with `pyproject.toml`. |
 | repo root | `python3 firmware/simulator.py` | Live device feed for the console (needs onboard-api running). `--urine-every 120` for faster samples, `--real-urine ast-01` when the ESP32 sends that urine. Self-check: `cd firmware && python3 test_simulator.py`. On Windows use `python` if `python3` is older than 3.11. |
 | `services/onboard-api` | `uv run --with pyserial python ../../firmware/serial_bridge.py` | ESP32 urine analyser → `/readings` (`--astronaut`, default `ast-01`; `--port` to skip auto-detect). Run the simulator with `--real-urine` alongside. |
-| repo root | `python firmware/muscle_live.py` | Phone-slider demo feed for the Muscle screen's live graph (port 8765, prints LAN URL). Memory only, never posts to onboard-api. Self-check: `--check`. |
+| repo root | `python firmware/muscle_live.py` | Phone-slider live muscle feed for the Muscle and Status screens (port 8765, prints LAN URL). Memory only, never posts to onboard-api. Self-check: `--check`. |
 | `apps/spaceship-app` | `npm run build` | `tsc && vite build`. |
 | `apps/spaceship-app/src-tauri` | `cargo check` | On Git Bash, cargo is at `~/.cargo/bin/cargo.exe` (not on PATH). |
 | `apps/spaceship-app` | `npm run tauri dev` | Not run by Claude (opens a window). Vite port 1420. |
