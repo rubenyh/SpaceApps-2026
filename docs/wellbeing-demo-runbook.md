@@ -282,6 +282,7 @@ Después levanta la API. `demo_reset.py` hace un respaldo cada vez que corre, as
 - [ ] Prueba de cámara sin enviar nada: `uv run wellbeing-vision bitacora --astronaut ast-01 --seconds 10 --dry-run`. Se abre la vista, la cara se detecta y pasa el neutral.
 - [ ] Luz frontal, cámara a ~50 cm, fondo tranquilo, notificaciones de Windows apagadas, cargador conectado.
 - [ ] Tripulación registrada con la cámara de la demo, e `identify` en cada cámara da el nombre correcto (sección 1).
+- [ ] Si visión corre en otra laptop: la de visión imprime `API OK` con la IP de la API y la diferencia de reloj está entre -5 y 5 s (sección 5).
 - [ ] Prueba de ambiente sin enviar nada: `uv run wellbeing-vision ambiente --cameras 0 1 --flip 1 --seconds 30 --dry-run`. Al cerrar debe decir 10 FPS o más por cámara.
 - [ ] Consola abierta y conectada a la API (o, si no está la pestaña, esta guía abierta en el paso 2.1).
 - [ ] Plan B a mano: hay respaldos en `services\onboard-api\data\backups\` (los crea `demo_reset.py`) y esta guía abierta en la sección 3.
@@ -310,6 +311,8 @@ Para la demo, visión corre en la laptop de Hiram (cámaras y caras registradas 
    New-NetFirewallRule -DisplayName "onboard-api 8000 (demo)" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow -Profile Private
    Get-NetConnectionProfile | Select-Object InterfaceAlias, Name, NetworkCategory
    ```
+
+   Si al levantar la API Windows pregunta si permite Python, acepta para redes privadas. Si alguna vez se canceló ese aviso, quedó una regla que **bloquea** `python.exe`, y esa gana sobre la que permite el puerto. Bórrala en *Firewall de Windows Defender → Configuración avanzada → Reglas de entrada*: es la de Python con acción *Bloquear*.
 
    Si la red sale como `Public`, la regla no aplica. Cámbiala con `Set-NetConnectionProfile -InterfaceAlias "Wi-Fi" -NetworkCategory Private` (como administrador). Después de la demo, quita la regla con `Remove-NetFirewallRule -DisplayName "onboard-api 8000 (demo)"`.
 
