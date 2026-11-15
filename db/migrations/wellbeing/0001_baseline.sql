@@ -1,7 +1,7 @@
 -- Wellbeing database (wellbeing.db), version 1. Separate file from onboard.db.
 -- Applied by onboard_api.repositories.database.init_db, which also writes
 -- PRAGMA user_version. Timestamps: UTC YYYY-MM-DDTHH:MM:SS.ffffffZ.
--- Days: YYYY-MM-DD (UTC mission day). astronaut_id refers to onboard.db
+-- Days: YYYY-MM-DD (mission day in WELLBEING_MISSION_TZ). astronaut_id refers to onboard.db
 -- (or is "unknown-<track>"), so there are no foreign keys to astronauts.
 -- No images, video or face templates are ever stored: only derived metrics.
 

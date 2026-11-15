@@ -18,6 +18,8 @@ interface Props {
   showPoints?: boolean;
   /** Dotted reference line at this value, e.g. the first reading. */
   baseline?: number | null;
+  /** Fixed y-axis range; the top is also a cap. Data outside it still widens the axis. */
+  yDomain?: [number, number];
   /** Design size in px. The chart takes its container width and keeps this aspect ratio. */
   width?: number;
   height?: number;
@@ -74,6 +76,7 @@ export function LineChart({
   status,
   showPoints = false,
   baseline = null,
+  yDomain,
   width = 564,
   height = 200,
   label,
@@ -90,15 +93,17 @@ export function LineChart({
   const visible = span > 2 * DAY ? dailyMean(inWindow) : inWindow;
   const scale = niceScale(
     visible.map((p) => p.v),
-    [normalMin, normalMax, baseline],
-    cap,
-    Y_TICKS,
+    [normalMin, normalMax, baseline, ...(yDomain ?? [])],
+    yDomain ? yDomain[1] : cap,
+    // One more tick lands a 0-5 domain on whole steps (0, 1 … 5) instead of rounding up to 6.
+    yDomain ? Y_TICKS + 1 : Y_TICKS,
   );
   const decimals = stepDecimals(scale.step);
   const x = linear(start, end, X0, X1);
   const y = linear(scale.lo, scale.hi, Y0, Y1);
   const xTicks = Array.from({ length: X_TICKS }, (_, i) => start + (span * i) / (X_TICKS - 1));
-  const tickText = (t: number) => (span <= 2 * DAY ? formatUtcTime(t) : formatUtcDay(t));
+  const tickText = (t: number) =>
+    span <= 2 * DAY ? formatUtcTime(t, span <= 10 * 60_000) : formatUtcDay(t);
   const last = visible[visible.length - 1];
   const hasZone = normalMin !== null || normalMax !== null;
   const zoneTop = y(normalMax ?? scale.hi);

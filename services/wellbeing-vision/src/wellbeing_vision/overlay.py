@@ -62,13 +62,21 @@ def render(
     footer: str,
     notice: Notice | None = None,
     points: list[tuple[float, float]] = (),
+    boxes: list[tuple[float, float, float, float, str, tuple]] = (),
+    lines: list[tuple[tuple[float, float], tuple[float, float]]] = (),
 ) -> np.ndarray:
-    """Video scaled to 720 px high with a dark panel on its right. points: normalized landmark x, y."""
+    """Video scaled to 720 px high with a dark panel on its right. points: normalized landmark x, y.
+    boxes: normalized (x0, y0, x1, y1, label, color); lines: normalized skeleton segments."""
     h, w = frame_bgr.shape[:2]
     vw = round(w * H / h)
     video = cv2.cvtColor(cv2.resize(frame_bgr, (vw, H)), cv2.COLOR_BGR2RGB)
     for x, y in points:
         cv2.circle(video, (int(x * vw), int(y * H)), 2, (200, 230, 255), -1, cv2.LINE_AA)
+    px = lambda x, y: (int(x * vw), int(y * H))  # noqa: E731
+    for a, b in lines:
+        cv2.line(video, px(*a), px(*b), (200, 230, 255), 2, cv2.LINE_AA)
+    for x0, y0, x1, y1, _, color in boxes:
+        cv2.rectangle(video, px(x0, y0), px(x1, y1), color, 3, cv2.LINE_AA)
     canvas = np.empty((H, vw + PANEL_W, 3), np.uint8)
     canvas[:, :vw] = video
     canvas[:, vw:] = BG
@@ -81,6 +89,11 @@ def render(
 
     img = Image.fromarray(canvas)
     d = ImageDraw.Draw(img)
+    for x0, y0, _, _, label, color in boxes:  # label chip on a solid background, never bare on the video
+        lx, ly = int(x0 * vw), max(int(y0 * H) - 34, 0)
+        tw = d.textlength(label, font=font(22, True))
+        d.rounded_rectangle((lx, ly, lx + tw + 16, ly + 32), radius=6, fill=color)
+        d.text((lx + 8, ly + 3), label, font=font(22, True), fill=BG)
 
     if notice:
         cx = bx + bw // 2
@@ -97,10 +110,17 @@ def render(
     y += 48
     d.line((x0, y, x1, y), fill=TRACK, width=2)
     y += 18
+    limit = H - M - 60  # rows stop above the footer, whatever the content
     for header, rows in sections:
+        if y > limit:
+            break
         d.text((x0, y), header, font=font(20, True), fill=MUTED)
         y += 32
-        for r in rows:
+        for i, r in enumerate(rows):
+            if y > limit:
+                d.text((x0, y), f"+{len(rows) - i} more", font=font(20), fill=MUTED)
+                y += 34
+                break
             d.text((x0, y), r.label, font=font(24), fill=WHITE)
             d.text((x1, y), r.value, font=font(24, True), fill=r.color, anchor="ra")
             y += 34

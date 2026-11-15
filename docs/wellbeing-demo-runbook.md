@@ -61,6 +61,35 @@ uv run wellbeing-vision models
 
 La bitácora en vivo se graba durante la demo (paso 2.4).
 
+**Registrar a la tripulación** (una vez, antes de la demo, en la Terminal 3)
+
+Las plantillas de cara se quedan en `services\wellbeing-vision\data\faces\` (local, nunca se envían ni se suben a git). Regístralas con la **cámara, la distancia y la luz de la demo**:
+
+- Una sola persona en cuadro, sentada donde va a estar en la demo.
+- `--samples 30`, girando la cabeza despacio (izquierda, derecha, arriba, abajo) mientras se llena la barra.
+- La cámara del teléfono (cam 1) llega en espejo: lleva `--flip 1` en **todos** los comandos.
+
+```powershell
+uv run wellbeing-vision enroll --astronaut ast-01 --camera 1 --flip 1 --samples 30
+uv run wellbeing-vision enroll --astronaut ast-02 --camera 1 --flip 1 --samples 30
+uv run wellbeing-vision enroll --astronaut ast-03 --camera 0 --samples 30
+```
+
+Sin `--append`, registrar **reemplaza** las plantillas de esa persona. Si alguien va a salir en las dos cámaras, regístralo después en la otra con `--append`, que suma plantillas:
+
+```powershell
+uv run wellbeing-vision enroll --astronaut ast-01 --camera 0 --samples 30 --append
+```
+
+Si la cara nueva coincide con otro astronauta (o, con `--append`, no coincide con las plantillas que ya tiene), pregunta antes de guardar. Contesta `n` y revisa quién está frente a la cámara.
+
+Comprueba cada cámara con `identify` (no envía nada; `q` termina e imprime `Recognized: ...`). Cada quien debe salir con su nombre, no como `unknown-N`. En la prueba del 15 de noviembre salieron 0.85 a 0.95 a 1280x720:
+
+```powershell
+uv run wellbeing-vision identify --camera 1 --flip 1
+uv run wellbeing-vision identify --camera 0
+```
+
 **Terminal 4 (opcional): consola**
 
 ```powershell
@@ -125,11 +154,13 @@ Mensaje: su checklist dice "estoy bien", pero las señales pasivas (cámara, fis
 
 ### 2.4 ast-01: bitácora EN VIVO
 
-En la **Terminal 3**, frente a la cámara a ~50 cm, con buena luz:
+En la **Terminal 3**, frente a la cámara a ~50 cm, con buena luz. Con la cámara del teléfono:
 
 ```powershell
-uv run wellbeing-vision bitacora --astronaut ast-01 --seconds 60
+uv run wellbeing-vision bitacora --astronaut ast-01 --camera 1 --flip 1 --seconds 60
 ```
+
+Con la cámara de la laptop, quita `--camera 1 --flip 1`.
 
 Los primeros 3 s son el neutral del día: hay que mirar a la cámara sin hablar. `q` o `Esc` terminan antes.
 
@@ -143,7 +174,26 @@ $w | Format-List level, latest_origin, live_days, simulated_days, mixed_days
 
 Mensaje: la bitácora de hoy se compara contra su línea base, con z cerca de 0 en reposo. Si actúas cansancio o tensión (ojos entrecerrados, ceño fruncido), suben PERCLOS y el pico de ceño. Un solo día **no** genera alerta.
 
-### 2.5 Envío al psicólogo en Tierra (consentimiento)
+### 2.5 Modo ambiente EN VIVO
+
+En la **Terminal 3**, cada cámara es un módulo (cam 0 = `modulo-a`, cam 1 = `modulo-b`):
+
+```powershell
+uv run wellbeing-vision ambiente --cameras 0 1 --flip 1 --window 60
+```
+
+Déjalo correr al menos un minuto. Cada ventana de 60 s envía, por módulo, quién estuvo y con quién (co-presencia) y una sesión de movimiento por persona (con 10 s o más de pose). `q` termina; una ventana cortada se envía si duró 10 s o más. Si las dos cámaras ven la misma zona, agrega `--overlap`: si no, la misma persona sale en las dos como "seen from …" y aparecen traslados entre módulos.
+
+Consola: actividad y vida social de ast-01 marcadas LIVE.
+
+```powershell
+$w = Invoke-RestMethod "$B/astronauts/ast-01/wellbeing"
+($w.indicators | Where-Object kind -in "activation","social").components | Format-Table component, latest_value, latest_origin
+```
+
+Mensaje: las cámaras de ambiente no guardan video, sólo números: tiempo acompañado, distancia y movimiento. `social.accompanied_minutes` sale LIVE cuando dos astronautas reconocidos comparten módulo.
+
+### 2.6 Envío al psicólogo en Tierra (consentimiento)
 
 ```powershell
 $today = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date), "Pacific Standard Time").ToString("yyyy-MM-dd")
@@ -231,6 +281,8 @@ Después levanta la API. `demo_reset.py` hace un respaldo cada vez que corre, as
 - [ ] `demo_reset.py --tz America/Tijuana` corrido hoy, y su tabla con los 4 casos como en la sección 1.
 - [ ] Prueba de cámara sin enviar nada: `uv run wellbeing-vision bitacora --astronaut ast-01 --seconds 10 --dry-run`. Se abre la vista, la cara se detecta y pasa el neutral.
 - [ ] Luz frontal, cámara a ~50 cm, fondo tranquilo, notificaciones de Windows apagadas, cargador conectado.
+- [ ] Tripulación registrada con la cámara de la demo, e `identify` en cada cámara da el nombre correcto (sección 1).
+- [ ] Prueba de ambiente sin enviar nada: `uv run wellbeing-vision ambiente --cameras 0 1 --flip 1 --seconds 30 --dry-run`. Al cerrar debe decir 10 FPS o más por cámara.
 - [ ] Consola abierta y conectada a la API (o, si no está la pestaña, esta guía abierta en el paso 2.1).
 - [ ] Plan B a mano: hay respaldos en `services\onboard-api\data\backups\` (los crea `demo_reset.py`) y esta guía abierta en la sección 3.
 - [ ] Frase lista: "el historial es simulado; la bitácora de hoy es real; el sistema no diagnostica, apoya".

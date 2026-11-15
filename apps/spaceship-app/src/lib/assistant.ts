@@ -1,8 +1,10 @@
 import type {
   ActionStep,
+  AssessmentSummary,
   AssistantRequest,
   AssistantResponse,
   CandidateStatus,
+  ReportTransmission,
   ReportedSymptom,
   SymptomCode,
   SymptomStatus,
@@ -94,6 +96,27 @@ export const STEP_GROUPS: { who: ActionStep["who"]; label: string }[] = [
   { who: "crew", label: "Needs another crew member" },
   { who: "equipment", label: "Needs equipment" },
 ];
+
+export const TRANSMISSION_LABELS: Record<ReportTransmission, string> = {
+  draft: "Draft",
+  queued: "Queued",
+  received: "Received by base",
+  failed: "Failed",
+};
+
+/** The card head: the server's summary, or one built from urgency/action for older servers. */
+export function assessmentOf(
+  r: Pick<AssistantResponse, "assessment" | "urgency" | "action">,
+): AssessmentSummary | null {
+  if (r.assessment) return r.assessment;
+  if (!r.urgency) return null;
+  return { urgency: r.urgency, urgency_label: URGENCY_LABELS[r.urgency], reported: "", action: r.action, escalation: [] };
+}
+
+/** True when the scroll position is within `threshold` px of the bottom. */
+export function isNearBottom(scrollTop: number, scrollHeight: number, clientHeight: number, threshold = 80): boolean {
+  return scrollHeight - scrollTop - clientHeight <= threshold;
+}
 
 /**
  * The reply text minus what the card already shows above it: the leading action and the

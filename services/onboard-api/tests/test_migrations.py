@@ -15,7 +15,8 @@ from onboard_api.repositories.database import (
 BASELINE = MIGRATIONS_DIR / "0001_baseline.sql"
 INCIDENTS = MIGRATIONS_DIR / "0002_incidents.sql"
 ORIGIN = MIGRATIONS_DIR / "0003_incident_origin.sql"
-LATEST = 3
+REPORTS = MIGRATIONS_DIR / "0004_case_reports.sql"
+LATEST = 4
 REPO_ROOT = MIGRATIONS_DIR.parents[2]
 # Last main commit before the move to db/migrations.
 OLD_SCHEMA_REF = "2d157f7:services/onboard-api/src/onboard_api/repositories/schema.sql"
@@ -87,7 +88,7 @@ def test_fresh_db_gets_baseline(tmp_path: Path) -> None:
         (k, u, s, mn, mx, role, src) for k, u, s, mn, mx, role, src in OLD_SEED
     ]
     assert all(r["provisional"] == 1 and len(r["updated_at"]) == 27 for r in rows)
-    assert _schema(conn) == schema_of(LEGACY_DDL + INCIDENTS.read_text("utf-8") + ORIGIN.read_text("utf-8"))
+    assert _schema(conn) == schema_of(LEGACY_DDL + INCIDENTS.read_text("utf-8") + ORIGIN.read_text("utf-8") + REPORTS.read_text("utf-8"))
     assert conn.execute("SELECT count(*) FROM incidents").fetchone()[0] == 0
     conn.close()
 
@@ -129,7 +130,7 @@ def test_version_1_db_gets_0002_and_keeps_data(tmp_path: Path) -> None:
     assert set(before) <= set(dump(db))  # every existing row and table kept
     assert incident_tables(db) == {"incidents", "incident_events"}
     conn = connect(db)
-    assert _schema(conn) == schema_of(LEGACY_DDL + INCIDENTS.read_text("utf-8") + ORIGIN.read_text("utf-8"))
+    assert _schema(conn) == schema_of(LEGACY_DDL + INCIDENTS.read_text("utf-8") + ORIGIN.read_text("utf-8") + REPORTS.read_text("utf-8"))
     conn.close()
 
 
@@ -168,6 +169,7 @@ def migrations(tmp_path: Path, **extra: str) -> Path:
     shutil.copy(BASELINE, folder)
     shutil.copy(INCIDENTS, folder)
     shutil.copy(ORIGIN, folder)
+    shutil.copy(REPORTS, folder)
     for name, sql in extra.items():
         (folder / f"{name}.sql").write_text(sql, "utf-8")
     return folder
@@ -179,7 +181,7 @@ def test_failing_migration_rolls_back(tmp_path: Path) -> None:
     before = dump(db)
     folder = migrations(
         tmp_path,
-        **{"0004_broken": "CREATE TABLE extra (id INTEGER);\nINSERT INTO nope VALUES (1);"},
+        **{"0005_broken": "CREATE TABLE extra (id INTEGER);\nINSERT INTO nope VALUES (1);"},
     )
     for _ in range(2):  # next run fails cleanly too
         with pytest.raises(sqlite3.OperationalError):
@@ -190,9 +192,9 @@ def test_failing_migration_rolls_back(tmp_path: Path) -> None:
 def test_successful_migration_applied_with_version(tmp_path: Path) -> None:
     db = tmp_path / "onboard.db"
     init_db(db)
-    folder = migrations(tmp_path, **{"0004_add_note": "ALTER TABLE readings ADD COLUMN note TEXT;"})
+    folder = migrations(tmp_path, **{"0005_add_note": "ALTER TABLE readings ADD COLUMN note TEXT;"})
     init_db(db, migrations_dir=folder)
-    assert version(db) == 4
+    assert version(db) == 5
     conn = connect(db)
     assert "note" in [r["name"] for r in conn.execute("PRAGMA table_info(readings)")]
     conn.close()
@@ -202,18 +204,18 @@ def test_newer_db_than_code_fails(tmp_path: Path) -> None:
     db = tmp_path / "onboard.db"
     init_db(db)
     conn = sqlite3.connect(db)
-    conn.execute("PRAGMA user_version = 5")
+    conn.execute("PRAGMA user_version = 6")
     conn.close()
     before = dump(db)
     with pytest.raises(RuntimeError, match="newer"):
         init_db(db)
-    assert dump(db) == before and version(db) == 5
+    assert dump(db) == before and version(db) == 6
 
 
 def test_gap_or_missing_dir_fails(tmp_path: Path) -> None:
     with pytest.raises(RuntimeError, match="not found"):
         init_db(tmp_path / "a.db", migrations_dir=tmp_path / "missing")
-    folder = migrations(tmp_path, **{"0005_gap": "SELECT 1;"})
+    folder = migrations(tmp_path, **{"0007_gap": "SELECT 1;"})
     with pytest.raises(RuntimeError, match="1..N"):
         init_db(tmp_path / "b.db", migrations_dir=folder)
 

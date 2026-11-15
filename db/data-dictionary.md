@@ -1,8 +1,8 @@
 # Data dictionary: onboard database
 
-SQLite database of `services/onboard-api` (`ONBOARD_DB_PATH`, default `data/onboard.db`, relative to the working directory, git-ignored). `ground-api` keeps its own SQLite copy (`GROUND_DB_PATH`, default `data/ground.db`; tables `batches`, `astronauts`, `sensors`, `readings`, `alerts`, `incidents`, `incident_updates`), created in code by [`storage.py`](../services/ground-api/src/ground_api/storage.py) and not described here.
+SQLite database of `services/onboard-api` (`ONBOARD_DB_PATH`, default `data/onboard.db`, relative to the working directory, git-ignored). `ground-api` keeps its own SQLite copy (`GROUND_DB_PATH`, default `data/ground.db`; tables `batches`, `astronauts`, `sensors`, `readings`, `alerts`, `incidents`, `incident_updates`, `case_reports`), created in code by [`storage.py`](../services/ground-api/src/ground_api/storage.py) and not described here.
 
-Schema and reference data: [`migrations/onboard/0001_baseline.sql`](migrations/onboard/0001_baseline.sql) , [`migrations/onboard/0002_incidents.sql`](migrations/onboard/0002_incidents.sql) and [`migrations/onboard/0003_incident_origin.sql`](migrations/onboard/0003_incident_origin.sql). If this document and the SQL differ, the SQL wins.
+Schema and reference data: [`migrations/onboard/0001_baseline.sql`](migrations/onboard/0001_baseline.sql) , [`migrations/onboard/0002_incidents.sql`](migrations/onboard/0002_incidents.sql), [`migrations/onboard/0003_incident_origin.sql`](migrations/onboard/0003_incident_origin.sql) and [`migrations/onboard/0004_case_reports.sql`](migrations/onboard/0004_case_reports.sql). If this document and the SQL differ, the SQL wins.
 
 Readings are informational support only. Diagnosis and treatment decisions stay with qualified personnel.
 
@@ -130,21 +130,47 @@ Indexes: unique `incident_events_created (incident_id) WHERE type = 'created'`; 
 
 `ground_delivery` in the API is computed, never stored: `disabled` when `ONBOARD_TELEMETRY_ENABLED` is false, else `queued` if any event has `delivered_at` NULL, else `delivered`.
 
+## `case_reports` (version 4)
+
+Crew-reviewed case reports ([contract](../contracts/case-report/README.md)) and the ship to ground report queue. A draft is stored for each assistant reply with `report.id`; `POST /case-reports/{id}/send` queues it; the telemetry publisher sends queued rows to ground. Repository: [`case_reports.py`](../services/onboard-api/src/onboard_api/repositories/case_reports.py).
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | TEXT | PK | | Report UUID v4 from the assistant reply (`report.id`); the ground `report_id`. |
+| `astronaut_id` | TEXT | NULL | | Assessed person from the request. No FK. |
+| `reported_by` | TEXT | NULL | | Crewmate who sent the request. No FK. |
+| `urgency` | TEXT | NOT NULL | | Reply urgency; `undetermined` when the reply has none. |
+| `protocol_id` | TEXT | NULL | | Primary protocol card. |
+| `action` | TEXT | NULL | | Reply action. |
+| `assessed_at` | TEXT | NOT NULL | | Timestamp, onboard clock when the readings were loaded (draft time if the reply has none). |
+| `created_at` | TEXT | NOT NULL | | Timestamp, draft stored. |
+| `text` | TEXT | NOT NULL | | Report body as previewed. |
+| `readings_json` | TEXT | NOT NULL | | JSON `list[SnapshotReading]` (`report.readings`). |
+| `knowledge_version_json` | TEXT | NULL | | JSON `{candidate_id, digest}` of the active bundle, or NULL. |
+| `incident_id` | TEXT | NULL | | Onboard incident id for an `immediate` reply. No FK. |
+| `status` | TEXT | NOT NULL | `'draft'` | CHECK `IN ('draft','queued','received','failed')`. Send moves `draft` or `failed` to `queued`; ground's acknowledgement moves `queued` to `received`; a permanent ground rejection to `failed`. |
+| `sent_by` | TEXT | NULL | | Crew member who pressed send. |
+| `queued_at` | TEXT | NULL | | Timestamp of the send; the contract's `sent_at`. |
+| `received_at` | TEXT | NULL | | Ground's receipt time from its acknowledgement. |
+| `error` | TEXT | NULL | | Reason for `failed`; cleared on resend. |
+
+Index `case_reports_queue (queued_at) WHERE status = 'queued'`. `DELETE /demo/incidents?astronaut_id=` deletes the astronaut's rows.
+
 ## Freshness
 
-`stale_after_seconds` is read in two places, with different edge rules:
+`GET /astronauts/{id}/status` ([`services/status.py`](../services/onboard-api/src/onboard_api/services/status.py)) and the assistant `SqliteReadingsProvider` ([`assistant/workflows/medical/context.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/context.py)) share one rule, `freshness()` in `services/status.py`, against the onboard clock when the readings are read:
 
-| | `GET /astronauts/{id}/status` ([`services/status.py`](../services/onboard-api/src/onboard_api/services/status.py)) | Assistant `SqliteReadingsProvider` ([`assistant/workflows/medical/context.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/context.py)) |
-|---|---|---|
-| Age | `now - recorded_at`, clamped to 0. | Same, clamped to 0. |
-| Stale when | `age > stale_after_seconds`. | `age > stale_after_seconds`, or `recorded_at` more than 5 s in the future (`FUTURE_SKEW_SECONDS`; also adds a future-capture warning). |
-| `stale_after_seconds` NULL | Never stale. | Never stale (future rule still applies). |
-| No `sensor_config` row | Kind not listed (rows come from `sensor_config`). | Uses 300 s (`DEFAULT_STALE_AFTER_SECONDS`). |
-| Future `recorded_at` | Only clamped: age 0, evaluated normally. | Stale beyond the 5 s skew. |
+| Case | Result |
+|---|---|
+| `recorded_at` more than 5 s ahead of the clock (`FUTURE_SKEW_SECONDS`) | `future`, age 0. Shown with a clock warning, not evaluated, never current evidence. Status endpoint: status `future`. |
+| `age > stale_after_seconds` (age = `now - recorded_at`, clamped to 0) | `stale`. |
+| Otherwise, or `stale_after_seconds` NULL | `current`. |
+
+Difference: with no `sensor_config` row, the status endpoint does not list the kind; the assistant uses 300 s (`DEFAULT_STALE_AFTER_SECONDS`).
 
 ## Version and migrations
 
-- Schema version is `PRAGMA user_version`. Migration files are `db/migrations/onboard/NNNN_<slug>.sql`; `NNNN` is the `user_version` the database has after that file. `0001_baseline.sql` is version 1, `0002_incidents.sql` is version 2, `0003_incident_origin.sql` is version 3. A database gets only the pending files and keeps its rows.
+- Schema version is `PRAGMA user_version`. Migration files are `db/migrations/onboard/NNNN_<slug>.sql`; `NNNN` is the `user_version` the database has after that file. `0001_baseline.sql` is version 1, `0002_incidents.sql` is version 2, `0003_incident_origin.sql` is version 3, `0004_case_reports.sql` is version 4. A database gets only the pending files and keeps its rows.
 - `init_db` in [`database.py`](../services/onboard-api/src/onboard_api/repositories/database.py) runs at service start-up. Each pending migration runs in one transaction together with its `PRAGMA user_version = N`; on error it rolls back, leaving schema and version unchanged. Rerunning is a no-op. A database newer than the latest file is rejected.
 - Legacy databases (version 0 with the tables already present) are compared with the 0001 schema; on a match only `user_version` is set to 1 (no data change), otherwise start-up fails naming the difference.
 - After migrating, `PRAGMA foreign_key_check` must report no violations, or start-up fails.

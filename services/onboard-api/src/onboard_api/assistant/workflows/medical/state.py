@@ -1,5 +1,6 @@
 """Types shared by the medical subgraph modules (interpret, triage, context, graph)."""
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal, Protocol, TypedDict
@@ -14,6 +15,7 @@ from onboard_api.schemas.assistant import (
     CandidateStatus,
     Clarification,
     Finding,
+    Freshness,
     GuideSource,
     MatchedRule,
     MissionProcedure,
@@ -74,8 +76,10 @@ class VitalReading:
     quality: Literal["good", "suspect", "bad"]
     source: str
     age_seconds: int
-    stale: bool  # older than sensor_config.stale_after_seconds (300 s demo policy)
+    stale: bool  # not current evidence: stale or future-dated (see freshness)
     id: int  # readings.id, so an incident can reference the exact rows
+    received_at: datetime | None = None  # ingest time; None in older fakes
+    freshness: Freshness = "current"
 
 
 @dataclass
@@ -203,7 +207,9 @@ class EventSource(Protocol):
 
 class MedicalState(TypedDict, total=False):
     request: AssistantRequest
-    now: datetime
+    now: datetime  # request start
+    clock: Callable[[], datetime]  # onboard clock, read when readings load
+    assessed_at: datetime  # onboard clock at the moment readings were loaded
     events: list[OperationalEvent]
     # Open case echoed by the console (None when absent or for another astronaut).
     clarification: Clarification | None

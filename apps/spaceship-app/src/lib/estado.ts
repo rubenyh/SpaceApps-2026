@@ -40,10 +40,13 @@ export function healthAlerts(status: AstronautStatus | null): SensorStatus[] {
   );
 }
 
-/** Status to draw: while the service is unreachable, known values are shown as stale. */
+/**
+ * Status to draw: while the service is unreachable, known values are shown as stale.
+ * "future" (captured ahead of the onboard clock) is kept: the clock warning still holds.
+ */
 export function shownStatus(s: SensorStatus | null, offline: boolean): ReadingStatus {
   const st = s?.status ?? "no_data";
-  return offline && st !== "no_data" ? "stale" : st;
+  return offline && st !== "no_data" && st !== "future" ? "stale" : st;
 }
 
 /** One-line plain explanation under the value. */
@@ -51,6 +54,7 @@ export function explain(s: SensorStatus | null, offline: boolean): string {
   const st = s?.status ?? "no_data";
   if (!s || st === "no_data") return "No readings yet";
   if (st === "stale") return "Old data: it may have changed";
+  if (st === "future") return "Captured ahead of the onboard clock: check the clock";
   const side = rangeSide(s);
   if (offline) {
     if (st === "alert" && side === "high") return "Last value received: it was high";
@@ -67,12 +71,12 @@ export function explain(s: SensorStatus | null, offline: boolean): string {
   return "Within normal";
 }
 
-/** State a tab should flag: only problems (alert beats stale), never "all fine". */
+/** State a tab should flag: only problems (alert beats stale), never "all fine". A clock-ahead reading flags like stale. */
 export type TabFlag = "alert" | "stale" | null;
 
 function flag(statuses: ReadingStatus[]): TabFlag {
   if (statuses.includes("alert")) return "alert";
-  return statuses.includes("stale") ? "stale" : null;
+  return statuses.includes("stale") || statuses.includes("future") ? "stale" : null;
 }
 
 /** Worst state behind each detail tab. Sample-validity alerts are not health alerts. */
