@@ -227,3 +227,18 @@ def test_poses_found_on_the_small_copy_land_in_full_frame_pixels(deg):
     (pose,) = detect_poses(Fake(), frame, deg, 0)
     assert max(seen[0][:2]) == 640  # the model got the small copy
     assert pose[0].tolist() == [*unrotate(np.array([[x, y]]), deg, 1280, 720)[0], 1.0]
+
+
+def test_a_recognized_track_keeps_its_name_until_someone_else_is_confident():
+    t = Track(1, _face(0, 0), 0)
+    for i in range(3):
+        t.vote({"ast-01": 0.7, "ast-02": 0.1}, i)
+    resolve([t])
+    for i in range(3, 13):  # head turned: ten votes that match nobody
+        t.vote({"ast-01": 0.2, "ast-02": 0.15}, i)
+        resolve([t])
+        assert t.label == "ast-01"
+    for i in range(13, 23):  # now clearly someone else
+        t.vote({"ast-01": 0.1, "ast-02": 0.8}, i)
+    resolve([t])
+    assert t.label == "ast-02"

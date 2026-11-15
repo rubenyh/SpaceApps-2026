@@ -11,7 +11,7 @@ from wellbeing_vision.identity import Face, Gallery
 V = np.ones(128, np.float32) / np.sqrt(128)
 
 
-def _run(monkeypatch, tmp_path, sees, **kw):
+def _run(monkeypatch, tmp_path, sees, template=lambda self, frame, face: V, **kw):
     """Run the loop with fake cameras; sees(camera, n) says if that camera sees ast-01 at read n."""
     reads = itertools.count()
 
@@ -35,12 +35,12 @@ def _run(monkeypatch, tmp_path, sees, **kw):
             row[14] = 0.95
             return [Face(np.array([300.0, 100, 400, 200]), row, 0)] if frame[0, 0, 0] else []
 
-        def template(self, frame, face):
-            return V
+        template = staticmethod(lambda frame, face: None)  # replaced below
 
     ticks = itertools.count()
     monkeypatch.setattr(amb.time, "monotonic", lambda: next(ticks) * 0.05)
     monkeypatch.setattr(amb, "open_configured", lambda i, *a: Cam(i))
+    FakeID.template = template
     monkeypatch.setattr(amb, "face_id", lambda s: FakeID())
     g = Gallery(tmp_path)
     g.people = {"ast-01": {"enrolled": V[None], "auto": np.empty((0, 128), np.float32)}}
@@ -130,3 +130,19 @@ def test_an_error_in_one_frame_does_not_stop_the_loop(monkeypatch, tmp_path, cap
     co = _run(monkeypatch, tmp_path, lambda cam, n: cam == 0)
     assert len([c for c in co if c.module_id == "modulo-a"]) == 4  # every window still sent
     assert "Frame error" in capsys.readouterr().out
+
+
+def test_a_recognized_track_keeps_its_seconds_under_the_name(monkeypatch, tmp_path):
+    calls = itertools.count()
+    noise = np.random.default_rng(0)
+
+    def template(self, frame, face):  # matches nobody, then 3 good votes, then nobody again (head turned)
+        if 4 <= next(calls) <= 6:
+            return V
+        v = noise.normal(size=128).astype(np.float32)
+        return v / np.linalg.norm(v)
+
+    co = _run(monkeypatch, tmp_path, lambda cam, n: cam == 0, template=template)
+    first = next(c for c in co if c.module_id == "modulo-a")
+    assert [o.astronaut_id for o in first.occupants] == ["ast-01"]  # not unknown-1, before or after
+    assert first.occupants[0].seconds_present > 6

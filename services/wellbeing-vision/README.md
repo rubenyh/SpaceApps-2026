@@ -76,6 +76,9 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
 - A face is an astronaut when the cosine match is at least 0.363 (the threshold published with SFace) and
   0.08 ahead of the runner-up (PROVISIONAL). Each tracked face averages its last 10 templates, needs 3 before
   it gets a name, and one astronaut can only be one face at a time; the rest show as `unknown-<track>`.
+  A named track keeps its name while later templates are inconclusive (head turned, blur); only a
+  confident match with someone else takes it away. In ambient windows the whole track, including the
+  seconds before it was recognized, counts under the name.
 - Orientation: YuNet needs roughly upright faces, so the frame is tried at 0, 180, 90 and 270 degrees,
   starting with the last one that worked. `--rotate N` fixes it (demo: `--rotate 180`). One orientation per
   frame: an upright and an upside-down person are not seen at the same time.

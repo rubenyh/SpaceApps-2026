@@ -212,8 +212,15 @@ class IoUTracker:
 
 
 def resolve(tracks: list[Track]) -> None:
-    """Give each track its astronaut; if two tracks claim the same one, the weaker becomes unknown."""
-    claims = sorted(((tr, *tr.candidate()) for tr in tracks), key=lambda c: -c[2])
+    """Give each track its astronaut; if two tracks claim the same one, the weaker becomes unknown.
+    A named track keeps its name while its votes are inconclusive (head turned, blur): only a confident match
+    with someone else, or a stronger track of the same astronaut, takes it away. Labels apply at window
+    flush, so the seconds a track spent as unknown before being recognized count under the name."""
+    claims = []
+    for tr in tracks:
+        who, score = tr.candidate()
+        claims.append((tr, who, score) if who or not tr.astronaut else (tr, tr.astronaut, tr.score))
+    claims.sort(key=lambda c: -c[2])
     taken = set()
     for tr, who, score in claims:
         tr.score = score
