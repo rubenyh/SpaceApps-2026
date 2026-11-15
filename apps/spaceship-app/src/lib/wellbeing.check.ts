@@ -1,7 +1,10 @@
 // Self-check for lib/wellbeing.ts. Run: node src/lib/wellbeing.check.ts
 import type { ComponentState, CrewMemberSummary, Origin, WellbeingAssessment } from "../api/types";
 import {
+  addDays,
   barFraction,
+  dayCount,
+  validPeriod,
   componentLabel,
   formatDay,
   formatDayLong,
@@ -37,6 +40,14 @@ eq(barFraction(-1), 0, "no negative bar");
 eq(formatDay("2026-11-07"), "Nov 7", "short day");
 eq(formatDayLong("2026-11-07"), "Sat, Nov 7", "long day");
 eq(missionDay("America/Tijuana", new Date("2026-11-15T03:00:00Z")), "2026-11-14", "mission day in zone");
+eq(addDays("2026-11-14", -20), "2026-10-25", "add days back");
+eq(addDays("2026-02-28", 1), "2026-03-01", "add days over month end");
+eq(dayCount("2026-10-25", "2026-11-14"), 21, "inclusive day count");
+eq(dayCount("2026-11-14", "2026-11-14"), 1, "single day");
+eq(validPeriod("2026-10-25", "2026-11-14", "2026-11-14"), true, "period ok");
+eq(validPeriod("2026-11-15", "2026-11-14", "2026-11-20"), false, "from after to");
+eq(validPeriod("2026-11-01", "2026-11-15", "2026-11-14"), false, "period in the future");
+eq(validPeriod("", "2026-11-14", "2026-11-14"), false, "empty from");
 
 const member = (level: CrewMemberSummary["level"]): CrewMemberSummary => ({
   astronaut_id: "a",

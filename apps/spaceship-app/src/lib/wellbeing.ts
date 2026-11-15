@@ -103,6 +103,22 @@ export function missionDay(timeZone: string, now = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone }).format(now);
 }
 
+const DAY_MS = 86_400_000;
+
+/** Calendar arithmetic on YYYY-MM-DD: addDays("2026-11-14", -20) → "2026-10-25". */
+export function addDays(day: string, n: number): string {
+  return new Date(Date.parse(`${day}T00:00:00Z`) + n * DAY_MS).toISOString().slice(0, 10);
+}
+
+/** Days in an inclusive period: dayCount("2026-10-25", "2026-11-14") → 21. */
+export function dayCount(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS) + 1;
+}
+
+/** Valid ground-package period: both set, from ≤ to ≤ today (ISO strings compare as dates). */
+export const validPeriod = (from: string, to: string, today: string) =>
+  from !== "" && to !== "" && from <= to && to <= today;
+
 /** "HH:MM" of an ISO timestamp in the mission time zone. */
 export function formatClock(iso: string, timeZone = "UTC"): string {
   return new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit" }).format(
