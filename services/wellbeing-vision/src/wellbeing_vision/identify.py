@@ -8,7 +8,7 @@ import numpy as np
 from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python.vision import PoseLandmarker, PoseLandmarkerOptions, RunningMode
 
-from wellbeing_vision.capture import open_camera
+from wellbeing_vision.capture import open_configured
 from wellbeing_vision.config import Settings
 from wellbeing_vision.download import model_path
 from wellbeing_vision.identity import MATCH, ORIENTATIONS, FaceID, Gallery, rotate, unrotate
@@ -53,7 +53,7 @@ class _Window:
 def run_enroll(settings: Settings, astronaut_id: str, camera: int, samples: int = ENROLL_SAMPLES) -> bool:
     """Shows the frame as the camera delivers it: only the daily log mirrors (self-view)."""
     faceid, gallery = face_id(settings), gallery_of(settings)
-    cap, window = open_camera(camera, settings.camera_backend), _Window("Enrollment - wellbeing-vision")
+    cap, window = open_configured(camera, settings), _Window("Enrollment - wellbeing-vision")
     title = f"ENROLLMENT · {settings.astronauts.get(astronaut_id, astronaut_id)}"
     templates: list[np.ndarray] = []
     t0, last = time.monotonic(), -ENROLL_GAP_S
@@ -128,8 +128,8 @@ def run_identify(settings: Settings, camera: int, seconds: float = 0.0, rotation
     orientations = (rotation,) if rotation is not None else ORIENTATIONS
     faceid.deg = orientations[0]
     pose = _pose_landmarker(settings)
-    cap, window = open_camera(camera, settings.camera_backend), _Window("Identity - wellbeing-vision")
-    t0, last_ms, i = time.monotonic(), -1, 0
+    cap, window = open_configured(camera, settings), _Window("Identity - wellbeing-vision")
+    t0, last_ms = time.monotonic(), -1
     names: dict[str, float] = {}
     try:
         while not seconds or time.monotonic() - t0 < seconds:
@@ -137,14 +137,14 @@ def run_identify(settings: Settings, camera: int, seconds: float = 0.0, rotation
             if not ok:
                 print("Camera stopped delivering frames.")
                 break
-            i += 1
             h, w = frame.shape[:2]
             faces = faceid.detect(frame, orientations)
-            last_ms = max(int((time.monotonic() - t0) * 1000), last_ms + 1)
-            seen = tracker.update(faces, i, detect_poses(pose, frame, faceid.deg, last_ms))
+            t = time.monotonic() - t0
+            last_ms = max(int(t * 1000), last_ms + 1)
+            seen = tracker.update(faces, t, detect_poses(pose, frame, faceid.deg, last_ms))
             for tr in seen:
-                if gallery.people and tr.needs_template(i):
-                    tr.vote(gallery.scores(faceid.template(frame, tr.face)), i)
+                if gallery.people and tr.needs_template(t):
+                    tr.vote(gallery.scores(faceid.template(frame, tr.face)), t)
             resolve(seen)
 
             boxes, lines, rows = [], [], []

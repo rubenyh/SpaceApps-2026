@@ -24,7 +24,7 @@ class _FakeCap:
 
 def _run(monkeypatch, tmp_path, clock, faces=None, claimed="ast-01"):
     monkeypatch.setattr(b.time, "monotonic", clock)
-    monkeypatch.setattr(b, "open_camera", lambda i, backend: _FakeCap())
+    monkeypatch.setattr(b, "open_configured", lambda i, *a: _FakeCap())
     monkeypatch.setattr(b, "_landmarker", lambda s: type("L", (), {"close": lambda self: None})())
     monkeypatch.setattr(b, "FaceCrop", lambda p: None)
     monkeypatch.setattr(b, "model_path", lambda d, n: n)

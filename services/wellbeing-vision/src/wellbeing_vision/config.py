@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     cameras: dict[int, str] = Field(default={0: "modulo-a", 1: "modulo-b"})
     # auto: DSHOW, then MSMF if DSHOW does not open or gives no frame in 2 s (USB phone webcams need MSMF).
     camera_backend: Literal["auto", "dshow", "msmf"] = "auto"
+    # Per camera, applied to every frame before processing and display, e.g. a phone webcam that arrives
+    # mirrored: WELLBEING_VISION_CAMERA_FLIP='[1]'. Turn is clockwise: WELLBEING_VISION_CAMERA_TURN='{"1": 180}'.
+    camera_flip: list[int] = Field(default_factory=list)
+    camera_turn: dict[int, Literal[0, 90, 180, 270]] = Field(default_factory=dict)
+    # Ambient mode captures smaller: 640x480 is ~3.5x cheaper for face detection than 1280x720.
+    ambient_width: int = 640
+    ambient_height: int = 480
+    min_track_s: float = 3.0  # PROVISIONAL: a track counts as occupant and in pairs only after this long
     astronauts: dict[str, str] = Field(
         default={f"ast-0{i}": f"ast-0{i}" for i in range(1, 5)}
     )

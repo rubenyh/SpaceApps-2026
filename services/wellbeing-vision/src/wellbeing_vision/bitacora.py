@@ -14,7 +14,7 @@ from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python.vision import FaceLandmarker, FaceLandmarkerOptions, RunningMode
 
 from wellbeing_vision.anchor import anchor_file, load_anchor, save_neutral
-from wellbeing_vision.capture import open_camera
+from wellbeing_vision.capture import open_configured
 from wellbeing_vision.config import Settings
 from wellbeing_vision.download import model_path
 from wellbeing_vision.face import (
@@ -110,7 +110,7 @@ def _detect(landmarker: FaceLandmarker, cropper: FaceCrop, frame: np.ndarray, t:
     return face_frame(t, xy, res.face_blendshapes[0], res.facial_transformation_matrixes[0]), xy
 
 
-def _unused(path: Path) -> Path:
+def unused_path(path: Path) -> Path:
     """--trace never overwrites a previous session: t.csv, then t-2.csv, t-3.csv..."""
     candidate, n = path, 2
     while candidate.exists():
@@ -134,7 +134,7 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
     cropper = FaceCrop(model_path(settings.models_dir, "face_detection_yunet_2023mar.onnx"))
     faceid, gallery = face_id(settings), gallery_of(settings)
     id_samples = []  # (scores, template) from the recording, for the identity check
-    cap = open_camera(camera, settings.camera_backend)
+    cap = open_configured(camera, settings)
     cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
     title = f"DAILY LOG · {settings.astronauts.get(astronaut_id, astronaut_id)}"
     min_px = settings.min_face_px
@@ -146,7 +146,7 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
     metrics: SessionMetrics | None = None
     live: dict[str, float] = {}
     started_at = rec_t0 = last_t = mismatch = None
-    trace = _unused(trace) if trace else None
+    trace = unused_path(trace) if trace else None
     trace_file = trace.open("w", newline="", encoding="utf-8") if trace else None
     tracer = csv.writer(trace_file) if trace_file else None
     if tracer:

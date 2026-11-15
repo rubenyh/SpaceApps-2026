@@ -57,7 +57,7 @@ def test_live_rows_show_dash_without_data_and_red_over_threshold():
 
 
 def test_trace_never_overwrites(tmp_path):
-    from wellbeing_vision.bitacora import _unused
+    from wellbeing_vision.bitacora import unused_path as _unused
 
     first = tmp_path / "t.csv"
     assert _unused(first) == first

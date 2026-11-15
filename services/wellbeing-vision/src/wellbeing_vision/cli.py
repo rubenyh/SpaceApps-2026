@@ -47,16 +47,37 @@ def main() -> None:
     amb.add_argument("--rotate", type=int, choices=(0, 90, 180, 270),
                      help="fix the orientation for every camera; default: search all")
     amb.add_argument("--seconds", type=float, default=0.0, help="0 = until q/Esc")
+    amb.add_argument("--overlap", action="store_true",
+                     help="the cameras watch the same space: count them as one module (default: one zone each)")
+    amb.add_argument("--size", default=f"{settings.ambient_width}x{settings.ambient_height}",
+                     help="capture size WxH (default 640x480; the daily log always asks 1280x720)")
+    amb.add_argument("--min-track", type=float, default=settings.min_track_s,
+                     help="seconds a track must live before it counts as occupant or in pairs")
+    amb.add_argument("--trace", type=Path, help="CSV per frame and track (no images) for tuning")
     amb.add_argument("--dry-run", action="store_true", help="print JSON instead of POSTing")
     amb.add_argument("--out", type=Path, help="with --dry-run, also append JSON lines here")
 
     for p in (bit, enr, ide, amb):
         p.add_argument("--backend", choices=("auto", "dshow", "msmf"),
                        help="camera backend (default WELLBEING_VISION_CAMERA_BACKEND or auto: DSHOW, then MSMF)")
+        p.add_argument("--flip", type=int, nargs="+", metavar="CAM",
+                       help="mirror these cameras before processing and display (e.g. a phone webcam: --flip 1)")
+        p.add_argument("--turn", nargs="+", metavar="CAM:DEG",
+                       help="turn these cameras clockwise before processing and display, e.g. --turn 1:180")
 
     args = parser.parse_args()
     if getattr(args, "backend", None):
         settings = settings.model_copy(update={"camera_backend": args.backend})
+    if getattr(args, "flip", None):
+        settings = settings.model_copy(update={"camera_flip": args.flip})
+    if getattr(args, "turn", None):
+        try:
+            turns = {int(c): int(d) for c, d in (x.split(":") for x in args.turn)}
+        except ValueError:
+            parser.error("--turn takes CAM:DEG, e.g. 1:180")
+        if any(d not in (0, 90, 180, 270) for d in turns.values()):
+            parser.error("--turn degrees must be 0, 90, 180 or 270")
+        settings = settings.model_copy(update={"camera_turn": turns})
     if args.cmd == "models":
         download_models(settings.models_dir)
         return
@@ -69,8 +90,13 @@ def main() -> None:
     if args.cmd == "ambiente":
         from wellbeing_vision.ambiente import run_ambiente
 
+        try:
+            w, h = (int(v) for v in args.size.lower().split("x"))
+        except ValueError:
+            parser.error("--size takes WxH, e.g. 640x480")
+        settings = settings.model_copy(update={"ambient_width": w, "ambient_height": h, "min_track_s": args.min_track})
         sink = Sink(settings.api_url, settings.outbox_path, dry_run=args.dry_run, dry_run_file=args.out)
-        run_ambiente(settings, sink, args.cameras, args.window, args.rotate, args.seconds)
+        run_ambiente(settings, sink, args.cameras, args.window, args.rotate, args.seconds, args.overlap, args.trace)
         return
     if args.astronaut not in settings.astronauts:
         parser.error(f"{args.astronaut} is not in the configured crew: {', '.join(settings.astronauts)}")

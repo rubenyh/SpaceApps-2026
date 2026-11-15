@@ -13,7 +13,9 @@ def _unit(seed: int) -> np.ndarray:
 
 def _face(x0, y0, x1=None, y1=None) -> Face:
     x1, y1 = x1 or x0 + 100, y1 or y0 + 100
-    return Face(np.array([x0, y0, x1, y1], float), np.zeros(15, np.float32), 0)
+    row = np.zeros(15, np.float32)
+    row[14] = 0.95  # YuNet confidence
+    return Face(np.array([x0, y0, x1, y1], float), row, 0)
 
 
 @pytest.mark.parametrize("deg", [0, 90, 180, 270])
@@ -158,7 +160,7 @@ def test_identify_shows_the_frame_as_delivered_with_boxes_in_place(monkeypatch):
     monkeypatch.setattr(ident, "gallery_of", lambda s: Gallery(None))
     monkeypatch.setattr(ident, "_pose_landmarker", lambda s: type("P", (), {
         "detect_for_video": lambda self, img, ms: type("R", (), {"pose_landmarks": []})(), "close": lambda self: None})())
-    monkeypatch.setattr(ident, "open_camera", lambda i, backend: type("C", (), {
+    monkeypatch.setattr(ident, "open_configured", lambda i, *a: type("C", (), {
         "read": lambda self: (True, frame), "release": lambda self: None})())
     for name in ("namedWindow", "destroyAllWindows", "setWindowProperty"):
         monkeypatch.setattr(ident.cv2, name, lambda *a, **k: None)
@@ -169,3 +171,30 @@ def test_identify_shows_the_frame_as_delivered_with_boxes_in_place(monkeypatch):
     out = shown[0]  # 1280x720 video at scale 1, panel to the right
     assert out[50, 50].tolist() == [255, 255, 255] and out[670, 1230].tolist() == [0, 0, 0]  # not rotated/mirrored
     assert out[420, 650].tolist() == list(AMBER[::-1])  # bottom edge of the box, where the face is
+
+
+def test_low_frame_rate_jumps_keep_one_track():
+    # 4 FPS, person moving 60 px between frames (face 100 px): IoU drops but the predicted centre matches.
+    tr = IoUTracker()
+    for k in range(20):
+        tr.update([_face(100 + 60 * k, 100)], k * 0.25)
+    assert [t.id for t in tr.tracks] == [1]
+
+
+def test_unknown_coming_back_in_the_same_place_keeps_its_track():
+    tr = IoUTracker()
+    for k in range(10):
+        tr.update([_face(300, 100)], k * 0.1)
+    tr.update([], 4.0)  # gone 3 s: the track ends
+    assert tr.tracks == []
+    (back,) = tr.update([_face(305, 100)], 6.0)
+    assert back.id == 1 and back.mature(6.0)  # same unknown, its age kept
+    (other,) = tr.update([_face(1000, 500)], 6.1)
+    assert other.id == 2 and not other.mature(6.1)
+
+
+def test_phantom_faces_are_dropped():
+    tiny, unsure = _face(0, 0, 20, 20), _face(300, 0)
+    unsure.row[14] = 0.75  # no body and not confident enough
+    assert observations([tiny, unsure], []) == []
+    assert observations([unsure], [_pose(350, 50)])[0][0] is unsure  # with a body it is a person

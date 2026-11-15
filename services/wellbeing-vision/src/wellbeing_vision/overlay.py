@@ -110,10 +110,17 @@ def render(
     y += 48
     d.line((x0, y, x1, y), fill=TRACK, width=2)
     y += 18
+    limit = H - M - 60  # rows stop above the footer, whatever the content
     for header, rows in sections:
+        if y > limit:
+            break
         d.text((x0, y), header, font=font(20, True), fill=MUTED)
         y += 32
-        for r in rows:
+        for i, r in enumerate(rows):
+            if y > limit:
+                d.text((x0, y), f"+{len(rows) - i} more", font=font(20), fill=MUTED)
+                y += 34
+                break
             d.text((x0, y), r.label, font=font(24), fill=WHITE)
             d.text((x1, y), r.value, font=font(24, True), fill=r.color, anchor="ra")
             y += 34
