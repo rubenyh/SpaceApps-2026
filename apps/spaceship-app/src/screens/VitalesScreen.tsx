@@ -65,7 +65,7 @@ function Vital({ title, organ, sensor, readings, age, windowEnd, loaded, offline
       showSource
     >
       <div className="chart-block">
-        <span className="caption">Últimos 15 minutos · horas en UTC</span>
+        <span className="caption">Last 15 minutes · times in UTC</span>
         <LineChart
           points={points}
           start={windowEnd - WINDOW_MS}
@@ -76,8 +76,8 @@ function Vital({ title, organ, sensor, readings, age, windowEnd, loaded, offline
           status={shownStatus(sensor, offline)}
           width={572}
           height={250}
-          label={`${title}, últimos 15 minutos`}
-          emptyText="Sin lecturas en los últimos 15 minutos"
+          label={`${title}, last 15 minutes`}
+          emptyText="No readings in the last 15 minutes"
         />
       </div>
     </SensorCard>
@@ -104,8 +104,8 @@ export function VitalesScreen({ astronautId }: Props) {
       <ServiceBanner error={error} updatedAt={updatedAt} onRetry={refresh} />
       <div className="vitales__grid">
         <Vital
-          title="Pulso"
-          organ="Corazón"
+          title="Heart rate"
+          organ="Heart"
           sensor={heart}
           readings={data?.heart ?? []}
           age={liveAge(heart, updatedAt, now)}
@@ -114,8 +114,8 @@ export function VitalesScreen({ astronautId }: Props) {
           offline={offline}
         />
         <Vital
-          title="Oxígeno en sangre"
-          organ="SpO₂ · pulmones"
+          title="Blood oxygen"
+          organ="SpO₂ · lungs"
           sensor={spo2}
           readings={data?.spo2 ?? []}
           age={liveAge(spo2, updatedAt, now)}

@@ -20,17 +20,17 @@ export function ServiceBanner({ error, updatedAt, onRetry }: Props) {
         <span className="banner__title">
           {error instanceof HttpError
             ? `Error ${error.status}: ${error.detail}`
-            : "SERVICIO ONBOARD NO DISPONIBLE"}
+            : "ONBOARD SERVICE UNAVAILABLE"}
         </span>
         <span>
           {updatedAt !== null
-            ? `No llegan datos nuevos desde las ${formatUtcSeconds(updatedAt)} UTC. Abajo ves los últimos valores recibidos. `
-            : "Todavía no se ha recibido ningún dato. "}
-          Se reintenta automáticamente.
+            ? `No new data since ${formatUtcSeconds(updatedAt)} UTC. The last values received are shown below. `
+            : "No data has been received yet. "}
+          Retrying automatically.
         </span>
       </div>
       <button type="button" className="btn" onClick={onRetry}>
-        Reintentar ahora
+        Retry now
       </button>
     </div>
   );

@@ -29,7 +29,7 @@ export function TabBar<K extends string>({ tabs, active, onChange, flags, disabl
   };
 
   return (
-    <div className="tabbar" role="tablist" aria-label="Pantallas" onKeyDown={onKeyDown}>
+    <div className="tabbar" role="tablist" aria-label="Screens" onKeyDown={onKeyDown}>
       {tabs.map((t, i) => {
         const selected = t.key === active;
         const flag = flags?.[t.key] ?? null;

@@ -19,12 +19,12 @@ import { VitalesScreen } from "./screens/VitalesScreen";
 type TabKey = "estado" | "vitales" | "musculo" | "orina" | "asistente" | "registros";
 
 const TABS: TabDef<TabKey>[] = [
-  { key: "estado", label: "Estado" },
-  { key: "vitales", label: "Signos vitales" },
-  { key: "musculo", label: "Músculo" },
-  { key: "orina", label: "Orina" },
-  { key: "asistente", label: "Asistente" },
-  { key: "registros", label: "Registros" },
+  { key: "estado", label: "Status" },
+  { key: "vitales", label: "Vital signs" },
+  { key: "musculo", label: "Muscle" },
+  { key: "orina", label: "Urine" },
+  { key: "asistente", label: "Assistant" },
+  { key: "registros", label: "Records" },
 ];
 
 const LEGEND = ["alert", "stale", "no_data", "no_range", "normal"] as const;
@@ -121,13 +121,13 @@ function Console({ connection }: { connection: ConnectionState }) {
   const recheck = (
     <>
       <button type="button" className="btn" onClick={astronauts.refresh}>
-        Volver a comprobar
+        Check again
       </button>
       <span className="empty__foot">
         {astronauts.updatedAt
-          ? `Comprobado por última vez a las ${formatUtcSeconds(astronauts.updatedAt)} UTC. `
+          ? `Last checked at ${formatUtcSeconds(astronauts.updatedAt)} UTC. `
           : ""}
-        Se comprueba cada 30 s.
+        Checked every 30 s.
       </span>
     </>
   );
@@ -147,25 +147,25 @@ function Console({ connection }: { connection: ConnectionState }) {
     );
   } else if (list && list.length === 0) {
     content = (
-      <EmptyState title="No hay tripulantes registrados">
+      <EmptyState title="No crew members registered">
         <p>
-          El servicio de a bordo está conectado, pero todavía no tiene ningún tripulante. Esta consola
-          solo muestra datos: los tripulantes se dan de alta en el servicio de a bordo.
+          The onboard service is connected but has no crew members yet. This console only shows
+          data: crew members are registered in the onboard service.
         </p>
         {recheck}
       </EmptyState>
     );
   } else if (astronauts.error) {
     content = (
-      <EmptyState title="SERVICIO ONBOARD NO DISPONIBLE">
-        <p>No se ha podido obtener la lista de tripulantes, así que no hay datos que mostrar.</p>
+      <EmptyState title="ONBOARD SERVICE UNAVAILABLE">
+        <p>Could not load the crew list, so there is no data to show.</p>
         {recheck}
       </EmptyState>
     );
   } else {
     content = (
-      <EmptyState title="Cargando tripulación…">
-        <p>Conectando con el servicio de a bordo. Suele tardar unos segundos.</p>
+      <EmptyState title="Loading crew…">
+        <p>Connecting to the onboard service. This usually takes a few seconds.</p>
       </EmptyState>
     );
   }
@@ -185,7 +185,7 @@ function Console({ connection }: { connection: ConnectionState }) {
       </main>
       <footer className="footer">
         <div className="footer__legend">
-          <span>Estados:</span>
+          <span>States:</span>
           {LEGEND.map((s) => (
             <span key={s} className={`footer__state footer__state--${s}`}>
               <StateIcon state={s} size={15} />
@@ -195,8 +195,8 @@ function Console({ connection }: { connection: ConnectionState }) {
         </div>
         <span>
           {selected
-            ? "Los rangos marcados PROV. son provisionales"
-            : "Las pestañas se activan cuando haya un tripulante"}
+            ? "Ranges marked PROV. are provisional"
+            : "Tabs become available once there is a crew member"}
         </span>
       </footer>
     </div>

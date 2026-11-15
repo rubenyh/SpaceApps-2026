@@ -1,27 +1,25 @@
 import type { Quality, Reading, SensorConfig, SensorKind } from "../api/types";
 
 export const SENSOR_LABELS: Record<SensorKind, string> = {
-  heart_rate: "Pulso",
+  heart_rate: "Heart rate",
   spo2: "SpO₂",
-  muscle_density: "Densidad muscular",
-  urine_ph: "Orina · pH",
-  urine_salinity: "Orina · salinidad",
-  urine_color: "Orina · color",
-  urine_temperature: "Orina · temperatura",
-  urine_radiation_marker: "Orina · radiación",
+  muscle_density: "Muscle density",
+  urine_ph: "Urine · pH",
+  urine_salinity: "Urine · salinity",
+  urine_color: "Urine · color",
+  urine_temperature: "Urine · temperature",
+  urine_radiation_marker: "Urine · radiation",
 };
 
 export const QUALITY_LABELS: Record<Quality, string> = {
-  good: "Buena",
-  suspect: "Dudosa",
-  bad: "Mala",
+  good: "Good",
+  suspect: "Suspect",
+  bad: "Bad",
 };
 
-/** Display label for a unit coming from the API. Only `bpm` is relabelled. */
+/** Display label for a unit coming from the API. */
 export function unitLabel(unit: string | null | undefined): string {
-  if (!unit) return "";
-  if (unit === "bpm") return "lpm";
-  return unit;
+  return unit ?? "";
 }
 
 /** Round to at most `maxDecimals` without padding zeros. */
@@ -47,21 +45,21 @@ export function readingValueText(reading: Reading | null | undefined): string {
   return "---";
 }
 
-/** Length of time in Spanish: «12 s», «3 min», «26 h», «3 días». */
+/** Length of time: "12 s", "3 min", "26 h", "3 days". */
 export function formatDuration(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
   if (s < 60) return `${s} s`;
   if (s < 3600) return `${Math.floor(s / 60)} min`;
   if (s < 48 * 3600) return `${Math.floor(s / 3600)} h`;
   const days = Math.floor(s / 86400);
-  return `${days} ${days === 1 ? "día" : "días"}`;
+  return `${days} ${days === 1 ? "day" : "days"}`;
 }
 
-/** Relative age in Spanish: «hace 12 s», «hace 26 h», «hace 3 días». Empty when unknown. */
+/** Relative age: "12 s ago", "26 h ago", "3 days ago". Empty when unknown. */
 export function formatAge(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) return "";
-  if (seconds < 0) return "fecha futura";
-  return `hace ${formatDuration(seconds)}`;
+  if (seconds < 0) return "future date";
+  return `${formatDuration(seconds)} ago`;
 }
 
 export function ageSecondsFrom(iso: string, nowMs: number = Date.now()): number | null {
@@ -84,9 +82,9 @@ export function formatUtcDateTime(iso: string): string {
   );
 }
 
-const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** "14 nov" in UTC. */
+/** "14 Nov" in UTC. */
 export function formatUtcDay(ms: number): string {
   const d = new Date(ms);
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;

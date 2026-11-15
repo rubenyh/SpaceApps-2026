@@ -9,7 +9,7 @@ interface Props {
   end: number;
   normalMin?: number | null;
   normalMax?: number | null;
-  /** Text inside the normal zone, e.g. "Normal 60–100 lpm · PROV.". */
+  /** Text inside the normal zone, e.g. "Normal 60–100 bpm · PROV.". */
   zoneLabel?: string;
   /** Status of the latest point: sets the shape of the end marker. */
   status?: ReadingStatus;
@@ -82,7 +82,7 @@ export function LineChart({
       className="linechart"
       viewBox={`0 0 ${W} ${H}`}
       role="img"
-      aria-label={`${label}: ${visible.length} lecturas`}
+      aria-label={`${label}: ${visible.length} readings`}
     >
       {yTicks.map((v) => (
         <g key={`y${v}`}>

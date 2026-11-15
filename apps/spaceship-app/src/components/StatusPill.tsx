@@ -4,12 +4,12 @@ import type { ReadingStatus } from "../api/types";
 export type VisualState = ReadingStatus | "doubtful";
 
 export const STATE_LABELS: Record<VisualState, string> = {
-  alert: "Alerta",
+  alert: "Alert",
   normal: "Normal",
-  stale: "Dato viejo",
-  no_data: "Sin datos",
-  no_range: "Sin rango",
-  doubtful: "Muestra dudosa",
+  stale: "Old data",
+  no_data: "No data",
+  no_range: "No range",
+  doubtful: "Doubtful sample",
 };
 
 const LINE = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" } as const;

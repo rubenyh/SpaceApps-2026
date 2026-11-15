@@ -49,22 +49,22 @@ export function shownStatus(s: SensorStatus | null, offline: boolean): ReadingSt
 /** One-line plain explanation under the value. */
 export function explain(s: SensorStatus | null, offline: boolean): string {
   const st = s?.status ?? "no_data";
-  if (!s || st === "no_data") return "Todavía no hay lecturas";
-  if (st === "stale") return "Dato antiguo: puede haber cambiado";
+  if (!s || st === "no_data") return "No readings yet";
+  if (st === "stale") return "Old data: it may have changed";
   const side = rangeSide(s);
   if (offline) {
-    if (st === "alert" && side === "high") return "Último valor recibido: estaba alto";
-    if (st === "alert" && side === "low") return "Último valor recibido: estaba bajo";
-    if (st === "normal") return "Último valor recibido: estaba normal";
-    return "Último valor recibido";
+    if (st === "alert" && side === "high") return "Last value received: it was high";
+    if (st === "alert" && side === "low") return "Last value received: it was low";
+    if (st === "normal") return "Last value received: it was normal";
+    return "Last value received";
   }
-  if (st === "no_range") return "Sin rango de referencia";
+  if (st === "no_range") return "No reference range";
   if (st === "alert") {
-    if (side === "high") return "Por encima de lo normal";
-    if (side === "low") return "Por debajo de lo normal";
-    return "Fuera de lo normal";
+    if (side === "high") return "Above normal";
+    if (side === "low") return "Below normal";
+    return "Outside normal";
   }
-  return "Dentro de lo normal";
+  return "Within normal";
 }
 
 /** State a tab should flag: only problems (alert beats stale), never "all fine". */
