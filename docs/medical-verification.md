@@ -1,6 +1,6 @@
 # Medical assistant verification
 
-Run date: 2026-11-15. Code commit measured: `698a7ef` (branch `agent/rubenyh/medical-traceability`).
+Run date: 2026-11-15. Code commit measured: `d0eeb78` (branch `agent/rubenyh/incident-outage-flow`).
 Environment: Windows 11, Python 3.12.7, `uv sync --locked`, `PYTHONUTF8=1`, run from `services/onboard-api`.
 All assistant tests use a fake LLM, a fake retriever and fake or temporary SQLite readings. No live Ollama or ChromaDB server was used.
 
@@ -8,30 +8,25 @@ All assistant tests use a fake LLM, a fake retriever and fake or temporary SQLit
 
 | Command | Collected | Passed | Failed | Skipped | Time |
 |---|---|---|---|---|---|
-| `uv run pytest tests/assistant` | 296 | 296 | 0 | 0 | 77.96 s |
-| `uv run pytest --durations=15` (full suite) | 397 | 396 | 0 | 1 | 129.96 s |
+| `uv run pytest tests/assistant` | 296 | 296 | 0 | 0 | 71.72 s |
+| `uv run pytest -q --durations=10` (full suite) | 418 | 417 | 0 | 1 | 125.34 s |
 
-The skipped test is `tests/test_migrations.py:139` ("no local data/onboard.db"). It is not part of the assistant tests.
+The skipped test is `tests/test_migrations.py:156` ("no local data/onboard.db"). It is not part of the assistant tests.
 
-Slowest 15 (full-suite run):
+Slowest 10 (full-suite run):
 
 | Time | Phase | Test |
 |---|---|---|
-| 6.98 s | call | `tests/test_wellbeing_simulator.py::test_simulated_crew_tells_the_demo_story` |
-| 2.48 s | call | `tests/assistant/test_retrieval.py::test_index_built_by_another_process_is_seen_after_empty_search` |
-| 1.78 s | setup | `tests/assistant/test_retrieval.py::test_matching_query_hits_best_first` |
-| 1.24 s | call | `tests/assistant/test_no_clinician.py::test_no_ground_link` |
-| 1.20 s | call | `tests/test_readings.py::test_persistence_across_app_instances` |
-| 1.14 s | setup | `tests/assistant/test_post_cases.py::test_all_dependencies_down_alarm_still_immediate` |
-| 1.10 s | setup | `tests/assistant/test_post_cases.py::test_ollama_down_states_missing_mission_guidance[review]` |
-| 1.05 s | setup | `tests/assistant/test_post_cases.py::test_educational_abstains_without_chunks[failing]` |
-| 1.04 s | setup | `tests/assistant/test_post_cases.py::test_ollama_failing_falls_back_to_card` |
-| 0.92 s | setup | `tests/assistant/test_clarification.py::test_follow_up_qualifies_the_open_symptom` |
-| 0.89 s | setup | `tests/assistant/test_post_cases.py::test_headache_clarification_round_trip[structured]` |
-| 0.83 s | setup | `tests/assistant/test_post_cases.py::test_ollama_down_states_missing_mission_guidance[immediate]` |
-| 0.83 s | setup | `tests/assistant/test_clarification.py::test_sos_keeps_the_card_alarms_of_the_case` |
-| 0.82 s | setup | `tests/assistant/test_clarification.py::test_bare_answers_work_with_the_interpreter_down[sí, un poco]` |
-| 0.79 s | setup | `tests/test_astronauts_sensors.py::test_invalid_astronaut_id_is_422` |
+| 6.06 s | call | `tests/test_wellbeing_simulator.py::test_simulated_crew_tells_the_demo_story` |
+| 2.44 s | setup | `tests/assistant/test_retrieval.py::test_matching_query_hits_best_first` |
+| 2.22 s | call | `tests/assistant/test_retrieval.py::test_index_built_by_another_process_is_seen_after_empty_search` |
+| 1.27 s | call | `tests/test_readings.py::test_persistence_across_app_instances` |
+| 1.14 s | call | `tests/test_telemetry.py::test_queued_update_survives_restart` |
+| 1.04 s | call | `tests/test_incidents.py::test_incident_survives_restart` |
+| 0.93 s | call | `tests/assistant/test_no_clinician.py::test_no_ground_link` |
+| 0.89 s | setup | `tests/assistant/test_post_cases.py::test_evidence_flags_on_reading_findings[demo-review]` |
+| 0.86 s | setup | `tests/assistant/test_post_cases.py::test_evidence_flags_on_reading_findings[demo-immediate]` |
+| 0.80 s | setup | `tests/assistant/test_post_cases.py::test_simultaneous_alarms` |
 
 ## What the fixtures cover
 

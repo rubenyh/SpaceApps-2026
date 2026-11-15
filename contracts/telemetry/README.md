@@ -28,7 +28,7 @@ HTTP. The onboard publisher sends `POST {ground}/telemetry/v1/batches` every few
 | `readings` | `[Reading]` | Same shape as onboard `Reading`: `id` (onboard id), `astronaut_id, kind, value, value_text, unit, recorded_at, received_at, quality, source`. Oldest first. May be empty (heartbeat). |
 | `incident_updates` | `[IncidentUpdate]` | Optional (added in v1, absent = `[]`), max 500, oldest first. Heartbeats carry them too. Example: [`batch-incident.json`](examples/batch-incident.json). |
 
-`IncidentUpdate` (one onboard incident event): `id` (event UUID), `incident_id`, `astronaut_id` (nullable), `type` (`created`, `acknowledged` or `closed`)\| `acknowledged` \| `closed`), `occurred_at` (original onboard event time), `urgency`, `protocol_id`, `protocol_version` (version of the primary protocol), `matched_rules: [{rule_id, protocol_id, protocol_version}]`, `action` (immediate action text), `acknowledged_by` (only for `acknowledged`). Nullable fields are always present. No other fields are allowed.
+`IncidentUpdate` (one onboard incident event): `id` (event UUID), `incident_id`, `astronaut_id` (nullable), `type` (`created`, `acknowledged` or `closed`), `occurred_at` (original onboard event time), `urgency`, `protocol_id`, `protocol_version` (version of the primary protocol), `matched_rules: [{rule_id, protocol_id, protocol_version}]`, `action` (immediate action text), `acknowledged_by` (only for `acknowledged`). Nullable fields are always present. No other fields are allowed.
 
 ## Ground read API (for `apps/base-app`)
 

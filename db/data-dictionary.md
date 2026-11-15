@@ -1,6 +1,6 @@
 # Data dictionary: onboard database
 
-SQLite database of `services/onboard-api` (`ONBOARD_DB_PATH`, default `data/onboard.db`, relative to the working directory, git-ignored). `ground-api` has no database.
+SQLite database of `services/onboard-api` (`ONBOARD_DB_PATH`, default `data/onboard.db`, relative to the working directory, git-ignored). `ground-api` keeps its own SQLite copy (`GROUND_DB_PATH`, default `data/ground.db`; tables `batches`, `astronauts`, `sensors`, `readings`, `alerts`, `incidents`, `incident_updates`), created in code by [`storage.py`](../services/ground-api/src/ground_api/storage.py) and not described here.
 
 Schema and reference data: [`migrations/onboard/0001_baseline.sql`](migrations/onboard/0001_baseline.sql) and [`migrations/onboard/0002_incidents.sql`](migrations/onboard/0002_incidents.sql). If this document and the SQL differ, the SQL wins.
 
@@ -96,7 +96,7 @@ One urgent medical incident. Created by `POST /assistant/messages` when the resp
 | `astronaut_id` | TEXT | NULL | | Assessed person from the request. No FK: the request may name an unknown or no astronaut. |
 | `reported_by` | TEXT | NULL | | Crewmate who sent the request, from the request. No FK. |
 | `began_at` | TEXT | NOT NULL | | Timestamp, onboard server clock when the incident was created. |
-| `closed_at` | TEXT | NULL | | Timestamp, set when closed. |
+| `closed_at` | TEXT | NULL | | Timestamp, set by `POST /incidents/{id}/close`. |
 | `urgency` | TEXT | NOT NULL | | Response urgency (`immediate`). |
 | `action` | TEXT | NULL | | Immediate action of the response. |
 | `protocol_id` | TEXT | NULL | | Primary protocol card. |
@@ -111,7 +111,7 @@ Unique partial index `incidents_open_trigger (trigger_key) WHERE status = 'open'
 
 ## `incident_events` (version 2)
 
-Status history of each incident and the queue of incident updates for ground telemetry. The `incidents` row and its `created` event are inserted in one transaction.
+Status history of each incident (`created` by the assistant, `acknowledged` by `POST /incidents/{id}/acknowledgments`, `closed` by `POST /incidents/{id}/close`) and the queue of incident updates for ground telemetry. The `incidents` row and its `created` event are inserted in one transaction.
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
