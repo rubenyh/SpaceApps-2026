@@ -2801,6 +2801,283 @@ textarea {
   pointer-events: none;
 }
 
+/* Sub-pages (share, check-in): shared top row, inputs, actions. */
+.wb-back {
+  gap: 6px;
+  padding: 0 var(--space-3);
+  color: var(--color-text-muted);
+}
+
+.wb-h1 {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+
+.wb-callout {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 14px var(--space-4);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  font-size: var(--text-md);
+}
+
+.wb-callout > .state-icon {
+  color: var(--color-accent);
+}
+
+.wb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.wb-error {
+  padding: var(--space-3);
+  border: var(--border-alert);
+  border-radius: var(--radius-lg);
+  background: var(--state-alert-tint);
+  color: var(--color-text);
+}
+
+.wb-label {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.wb-fieldset {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.wb-input {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.wb-input input,
+.wb-input textarea {
+  min-height: var(--target-min);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--text-md);
+}
+
+.wb-input textarea {
+  padding: var(--space-3);
+  font-family: inherit;
+  line-height: var(--leading-body);
+  resize: vertical;
+}
+
+.wb-input input[type="date"] {
+  font-family: var(--font-mono);
+  color-scheme: dark;
+}
+
+.wb-hint-warn {
+  font-size: var(--text-xs);
+  color: var(--state-stale);
+}
+
+/* Checkbox rows: checked = solid accent border, unchecked = dashed, so state is not color alone. */
+.wb-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 52px;
+  padding: 0 14px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+
+.wb-check input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
+.wb-check > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.wb-check--on {
+  border: 1px solid var(--color-accent);
+  background: var(--color-surface-2);
+}
+
+.wb-check--disabled {
+  cursor: default;
+  color: var(--color-text-muted);
+}
+
+.wb-check__hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.wb-check--consent {
+  border: 2px solid var(--color-accent);
+  background: var(--color-bg);
+  font-size: var(--text-md);
+}
+
+.wb-check--consent input {
+  width: 24px;
+  height: 24px;
+}
+
+/* Share with the ground psychologist */
+.wb-ground {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--gap);
+}
+
+.wb-ground__main {
+  flex: 999 1 560px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.wb-ground__side {
+  flex: 1 1 340px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.wb-ground__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.wb-ground__fields > .wb-input {
+  flex: 1 1 150px;
+}
+
+.wb-ground__fields > .wb-input--name {
+  flex-basis: 200px;
+}
+
+.wb-includes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.wb-consent__text {
+  max-width: 70ch;
+  font-size: var(--text-md);
+  line-height: var(--leading-body);
+}
+
+.wb-preview {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+.wb-preview dt {
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+}
+
+.wb-preview dd {
+  margin: 0;
+}
+
+.wb-pkgs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Padding shrinks as the border grows so every item keeps the same outer size. */
+.wb-pkg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.wb-pkg--queued {
+  padding: 13px;
+  border: 2px solid var(--color-accent);
+}
+
+.wb-pkg--withdrawn {
+  border-style: dashed;
+}
+
+.wb-pkg__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.wb-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+}
+
+.wb-status--queued {
+  color: var(--color-accent);
+}
+
+.wb-status--withdrawn {
+  border-style: dashed;
+  color: var(--color-text-faint);
+}
+
+.wb-status--sent {
+  color: var(--state-normal);
+}
+
+.wb-pkg .btn[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  background: var(--color-surface-2);
+}
+
 /* ---------- minimum window (1024 px) ---------- */
 
 @media (max-width: 1150px) {
