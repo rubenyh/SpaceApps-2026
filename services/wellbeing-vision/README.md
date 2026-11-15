@@ -1,6 +1,6 @@
 # wellbeing-vision
 
-Camera analysis for the crew wellbeing module. Runs as its own process next to `onboard-api`.
+Camera analysis for the crew wellbeing module (optional). Runs as its own process next to `onboard-api` and posts to `POST /wellbeing/vision-sessions` ([contract](../../docs/wellbeing-contract.md)). Only the daily video log (`bitacora`) is implemented; identity, co-presence and demo modes are planned.
 Only derived metrics leave the process: no frames are stored or sent.
 
 ## Setup (Windows, PowerShell)
@@ -50,15 +50,9 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
 - `--trace t.csv` writes per-frame derived numbers (face px, EAR and its ratio, eyeBlink, jaw/brow/lip deltas,
   talking flag) to tune thresholds. No images.
 
-## Settings (env vars)
+## Settings
 
-| Variable | Default |
-|---|---|
-| `WELLBEING_VISION_API_URL` | `http://127.0.0.1:8000` |
-| `WELLBEING_VISION_CAMERAS` | `{"0":"modulo-a","1":"modulo-b"}` |
-| `WELLBEING_VISION_ASTRONAUTS` | `{"ast-01":"ast-01", ... "ast-04":"ast-04"}` |
-| `WELLBEING_VISION_MIN_FACE_PX` | `160` (PROVISIONAL) |
-| `WELLBEING_VISION_MODELS_DIR` / `_DATA_DIR` | `models` / `data` |
+Environment variables `WELLBEING_VISION_*` (API URL, cameras, astronauts, minimum face size, directories): [docs/CONFIGURATION.md](../../docs/CONFIGURATION.md#wellbeing-vision-wellbeing_vision_).
 
 ## Thresholds
 

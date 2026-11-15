@@ -7,9 +7,9 @@ El asistente médico es soporte informativo. **La misión no lleva personal clí
 ## Estado actual
 
 - Envío: `sendAssistantMessage()` en [`apps/spaceship-app/src/api/assistant.ts`](../apps/spaceship-app/src/api/assistant.ts) hace `POST /assistant/messages`.
-- URL base: `API_BASE_URL` en [`apps/spaceship-app/src/api/client.ts`](../apps/spaceship-app/src/api/client.ts). Usa `VITE_ONBOARD_API_URL` y, si no existe, `http://127.0.0.1:8000`. Tiempo de espera: 10 s.
+- URL base: `API_BASE_URL` en [`apps/spaceship-app/src/api/client.ts`](../apps/spaceship-app/src/api/client.ts). Usa `VITE_ONBOARD_API_URL` y, si no existe, `http://127.0.0.1:8000`. Tiempo de espera: 60 s para el asistente (`ASSISTANT_TIMEOUT_MS` en `api/assistant.ts`) y 10 s para las demás peticiones.
 - [`AsistenteScreen.tsx`](../apps/spaceship-app/src/screens/AsistenteScreen.tsx) envía `message`, `astronaut_id`, `reported_by` (selector "Informa") y `reported_symptoms` (selector de síntoma con Sí / No / No se sabe). Muestra todos los campos de la respuesta en el orden indicado abajo, con `matched_rules` en un detalle plegado. Los selectores no envían `onset`, `severity`, `persistence`, `started_at` ni `context`.
-- Aclaraciones: tras una respuesta con `needs_clarification`, el siguiente mensaje se envía con `buildRequest()` de [`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts): el mensaje original más el texto nuevo, la misma persona evaluada y la misma persona que informa, y los síntomas anteriores combinados con los nuevos. "Nuevo reporte" cancela la aclaración. Prueba: `node src/lib/assistant.check.ts`. Todavía no reenvía `clarification` (ver [Aclaraciones](#aclaraciones-endpoint-sin-estado)).
+- Aclaraciones: tras una respuesta con `needs_clarification`, el siguiente mensaje se envía con `buildRequest()` de [`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts). Si la respuesta traía `clarification`, la reenvía sin cambios y `message` lleva solo el texto nuevo. Si no, une el mensaje original y el texto nuevo. En ambos casos conserva la persona evaluada y la que informa, y combina los síntomas anteriores con los nuevos. "Nuevo reporte" cancela la aclaración. Prueba: `node src/lib/assistant.check.ts`. Detalle: [Aclaraciones](#aclaraciones-endpoint-sin-estado).
 
 **Nada se transmite.** `notify` indica a quién contárselo (tripulación, control de misión si hay enlace). `report.transmission` es siempre `not_sent`: el informe se copia a mano. Solo un mecanismo de envío real que confirme la entrega podrá usar otro valor; el envío automático queda fuera de este cambio.
 
@@ -47,14 +47,14 @@ Cuando `needs_clarification` es `true`, se muestra `clarifying_question` y se es
 | `astronaut_id` | Persona del caso. Si el siguiente POST trae otro `astronaut_id`, el caso se ignora y empieza uno nuevo. |
 | `observations` | Observaciones acumuladas: `symptom`, `status`, `origin` (`text`, `llm`, `structured`), `evidence` (palabras del usuario) y calificadores. |
 
-### Cómo la retomará Tauri (pendiente en la consola)
+### Cómo la retoma la consola
 
 1. Guardar `clarification` de la última respuesta junto a la pregunta mostrada.
 2. Al responder, enviar `message` **solo con el texto nuevo**, el mismo `astronaut_id` y `reported_by`, y `clarification` sin modificar. Los `reported_symptoms` de los selectores se siguen enviando igual.
 3. Si la nueva respuesta trae otra `clarification`, sustituir la guardada. Si trae `null` (acción, alarma o fuera de cobertura), el caso terminó.
 4. "Nuevo reporte" o cambiar de astronauta borra la `clarification` guardada.
 
-Hoy `buildRequest()` en [`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts) concatena el mensaje original con la respuesta y no envía `clarification`. Ese modo sigue funcionando (por ejemplo, el mensaje `hola` + salto de línea + `malestar físico` pregunta qué siente), pero no permite interpretar un "sí" o un "no" según la pregunta. Cambio previsto en `types.ts`: añadir `clarification?: Clarification | null` a `AssistantRequest` y `AssistantResponse`.
+`buildRequest()` en [`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts) sigue estos pasos cuando la respuesta trae `clarification` (campo de `AssistantRequest` y `AssistantResponse` en `types.ts`). Si una respuesta pide aclaración sin `clarification`, concatena el mensaje original con la respuesta. Ese modo de respaldo funciona (por ejemplo, `hola` + salto de línea + `malestar físico` pregunta qué siente), pero no permite interpretar un "sí" o un "no" según la pregunta.
 
 Ejemplo. Primer envío: `{"astronaut_id": "ana", "message": "Me duele la cabeza"}` devuelve `question_id: "neurologic_red_flags.headache_red_flags"` y la pregunta del ejemplo de aclaración de abajo. Reenvío:
 

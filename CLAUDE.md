@@ -1,27 +1,28 @@
 # space-apps-2026
 
-NASA Space Apps 2026 monorepo. An astronaut console (Tauri) talks to an onboard FastAPI service that runs a local assistant and collects crew readings. A ground service receives telemetry.
+NASA Space Apps 2026 monorepo. An astronaut console (Tauri) talks to an onboard FastAPI service that runs a local assistant and collects crew readings. A ground service receives telemetry and serves a ground console. Human docs: `README.md` (quickstart), `docs/` (architecture, configuration, RAG and evaluation, troubleshooting), `CONTRIBUTING.md`.
 
 ## Repo map
 
 | Path | What | Status |
 |---|---|---|
-| `apps/spaceship-app/` | Astronaut console. Tauri 2 + React 19 + Vite 8 + TypeScript 6. Rust crate `spaceship_app_lib`. Shares one visual identity with base-app (tokens: `src/styles/tokens.css`). | Status, vitals, muscle, urine, assistant, records, wellbeing |
-| `apps/base-app/` | Ground console, same stack and visual identity. | Crew, astronaut, alerts, incidents, medical eval, link |
+| `apps/spaceship-app/` | Astronaut console. Tauri 2 + React 19 + Vite 8 + TypeScript 6. Rust crate `spaceship_app_lib`. Vite port 1420. Shares one visual identity with base-app (tokens: `src/styles/tokens.css`). | Status, vitals, muscle, urine, assistant, records, wellbeing |
+| `apps/base-app/` | Ground console, same stack and visual identity. Talks only to ground-api. Vite port 1421. | Crew, astronaut, alerts, incidents, medical eval, link |
 | `apps/watch-app/` | Apple Watch app, watchOS 10+ SwiftUI, watch-only (no iPhone app). Polls onboard-api status and open incidents; 2 s hold sends SOS to `POST /assistant/messages`. Replaces ARCHeR (no live API). Setup: `apps/watch-app/README.md`. | Readings, SOS, incident alert |
-| `services/onboard-api/` | FastAPI 0.163, Python 3.12, uv. Package `onboard_api` in `src/`. App `onboard_api.main:app`. | Readings API, SQLite repository, `POST /assistant/messages` (LangGraph medical workflow, Ollama, ChromaDB), pytest |
-| `services/ground-api/` | FastAPI 0.163, Python 3.12, uv. Package `ground_api` in `src/`. App `ground_api.main:app`. | Health route only |
+| `services/onboard-api/` | FastAPI 0.163, Python 3.12, uv. Package `onboard_api` in `src/`. App `onboard_api.main:app`. | Readings API, SQLite repository, `POST /assistant/messages` (LangGraph medical workflow, Ollama, ChromaDB), incidents, wellbeing, telemetry publisher, knowledge gate, eval runner, pytest |
+| `services/ground-api/` | FastAPI 0.163, Python 3.12, uv. Package `ground_api` in `src/`. App `ground_api.main:app`. | Telemetry receiver, ground read API, medical-eval review, pytest |
 | `services/wellbeing-vision/` | Camera collector for the wellbeing module. Python 3.12, uv, OpenCV + MediaPipe. Own process, CLI `wellbeing-vision`. Sends derived metrics only (never frames) to onboard-api `POST /wellbeing/vision-sessions`. | Daily video log; identity, co-presence and demo mode planned |
 | `firmware/` | `simulator.py`: software stand-in for the biomonitor device (pulse-ox, urine analyser, muscle scanner). Posts to onboard-api `/readings` with source `simulated:*`; buffers while the API is down. Stdlib only. | Simulated until real hardware exists |
-| `db/` | SQLite migrations (`db/migrations/onboard/`, applied at onboard-api startup) and `db/data-dictionary.md` (tables, columns, allowed values). Only onboard-api has a database. | |
+| `db/` | SQLite migrations (`db/migrations/onboard/` applied at onboard-api startup, `db/migrations/wellbeing/` on first wellbeing use) and `db/data-dictionary.md`. ground-api creates its own tables in code. | |
+| `contracts/`, `eval/medical/` | Telemetry v1 and medical-eval contracts; synthetic medical eval cases (all `draft`). | |
 | `.claude/agents/`, `.claude/skills/` | Claude Code subagents and skills. | |
 
-Planned, not in the repo yet: hardware collectors (pySerial, OpenCV, MediaPipe), telemetry publisher/receiver and contract.
+Planned, not in the repo yet: hardware collectors for real sensors (pySerial, OpenCV, MediaPipe pose).
 
 ## Architecture decisions
 
-- **One assistant, one entry point.** The console calls one onboard endpoint (planned: `POST /assistant/messages`). A parent LangGraph graph routes to workflow subgraphs inside `onboard_api.assistant`. The request/response contract is shared by every workflow. Details: `langgraph-workflows` skill.
-- **Medical workflow** (planned): readings from the SQLite repository, guides from ChromaDB, answer from Ollama. Missing or stale data is stated explicitly, never filled in. Answers are informational support only; diagnosis and treatment decisions stay with qualified personnel.
+- **One assistant, one entry point.** The console calls one onboard endpoint, `POST /assistant/messages`. A parent LangGraph graph routes to workflow subgraphs inside `onboard_api.assistant`. The request/response contract is shared by every workflow. Details: `langgraph-workflows` skill.
+- **Medical workflow:** rules and protocol cards decide urgency; readings from the SQLite repository, guides from ChromaDB, answer from Ollama. Missing or stale data is stated explicitly, never filled in. Answers are informational support only; diagnosis and treatment decisions stay with qualified personnel.
 - **Routing:** unclear intent gets one focused clarifying question. Unsupported intent gets a fixed reply that lists what the assistant can do.
 - **Psychological support workflow:** possible future work. Do not add its package, routing branch, prompts or Claude Code config until the user confirms scope.
 - **Everything runs locally.** No cloud LLM or vector DB calls from the services.
