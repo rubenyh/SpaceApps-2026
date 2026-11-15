@@ -4,15 +4,15 @@ import type { Point } from "./chartScale";
 import { LineChart } from "./LineChart";
 import { Panel } from "./Panel";
 
-// Demo feed from firmware/muscle_live.py (phone slider). Separate from onboard-api on purpose:
+// Live feed from firmware/muscle_live.py (phone slider). Separate from onboard-api on purpose:
 // it is not stored, not sent to ground and not seen by the assistant.
 const FEED_URL = (import.meta.env.VITE_MUSCLE_LIVE_URL || "http://127.0.0.1:8765").replace(/\/+$/, "");
 const WINDOW_MS = 60_000;
 
 type Feed = "waiting" | "live" | "disconnected";
 
-/** Polls the demo feed once per second; retries forever, so it reconnects on its own. */
-function useMuscleFeed() {
+/** Polls the live feed once per second; retries forever, so it reconnects on its own. */
+export function useMuscleFeed() {
   const [points, setPoints] = useState<Point[]>([]);
   const [feed, setFeed] = useState<Feed>("waiting");
   useEffect(() => {
@@ -52,7 +52,7 @@ export function MuscleLivePanel() {
   return (
     <Panel
       title="Live muscle reading"
-      aside={<span className="pill pill--no_data" title="Demo feed from the phone slider">Simulated</span>}
+      aside={<span className="pill pill--no_data">Real time</span>}
     >
       <div className="panel__caption">
         <span className="caption">Value in kg · 1 sample per second · last 60 s · times in UTC</span>
@@ -72,5 +72,25 @@ export function MuscleLivePanel() {
         emptyText={`${feed === "disconnected" ? "Feed disconnected" : "Waiting for feed"} · run python firmware/muscle_live.py`}
       />
     </Panel>
+  );
+}
+
+/** Compact latest value for the Status screen's muscle card. */
+export function MuscleLiveStat() {
+  const { points, feed } = useMuscleFeed();
+  const last = feed === "live" ? points[points.length - 1] : undefined;
+  return (
+    <div className="stats">
+      <div className="stat" role="status">
+        <span>Live muscle reading</span>
+        <strong className="musculo__live-value">
+          {last ? `${last.v.toFixed(2)} kg` : feed === "waiting" ? "Waiting…" : "Disconnected"}
+        </strong>
+      </div>
+      <div className="stat">
+        <span>Feed</span>
+        <strong>{feed === "live" ? "Real time" : "Retrying"}</strong>
+      </div>
+    </div>
   );
 }
