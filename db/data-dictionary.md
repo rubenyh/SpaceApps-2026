@@ -118,7 +118,7 @@ The module supports people and never diagnoses. No images, video or face templat
 ## Conventions
 
 - **Timestamps**: same format and helpers as `onboard.db` (see [Conventions](#conventions)).
-- **Days** (`day`) are `TEXT` `YYYY-MM-DD`, the UTC mission day. Fixed width, so text order is chronological.
+- **Days** (`day`) are `TEXT` `YYYY-MM-DD`, the mission day in `WELLBEING_MISSION_TZ` (IANA name, default `UTC`). Fixed width, so text order is chronological. Only `checkins.day` is stored; every other day is derived from the UTC timestamps at query time, so changing the zone regroups them without migrating data.
 - **`astronaut_id`** refers to `onboard.db` `astronauts(id)`, which is in another file, so there is no foreign key. The API checks existence (404). Vision rows may carry `unknown-<track>` for an unidentified person: stored, never used in any baseline.
 - **`body`** columns hold the request JSON exactly as the API validated it (Pydantic models in [`wellbeing/schemas.py`](../services/onboard-api/src/onboard_api/wellbeing/schemas.py)). Field limits live there, not in SQLite.
 - **`source`**: origin of the row. `simulated`, `demo` or `simulated:*` mark simulated data (`is_simulated_source`).

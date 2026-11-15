@@ -1,12 +1,14 @@
+from datetime import date, datetime
 from functools import lru_cache
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASIS = (
-    "Parámetros de diseño del equipo, sin validación clínica. "
-    "Se comparan desviaciones contra la línea base personal."
+    "Team design parameters, not clinically validated. "
+    "Deviations are measured against each person's own baseline."
 )
 
 
@@ -29,6 +31,12 @@ class WellbeingSettings(BaseSettings):
         validation_alias=AliasChoices("ONBOARD_DB_PATH", "WELLBEING_ONBOARD_DB_PATH"),
     )
 
+    # IANA zone that defines the mission day (YYYY-MM-DD) every input is grouped
+    # by: check-ins, signals, vision, co-presence, baselines, timeline, onset.
+    # Timestamps are still stored in UTC. UTC by default (the ISS runs on UTC);
+    # e.g. "America/Tijuana" for a demo in Mexicali.
+    mission_tz: str = "UTC"
+
     z_threshold: float = Field(default=1.5, gt=0)
     sustain_days: int = Field(default=3, ge=1)
     baseline_days: int = Field(default=7, ge=1)
@@ -40,6 +48,23 @@ class WellbeingSettings(BaseSettings):
     z_cap: float = Field(default=5.0, gt=0)
     # Minimum good heart_rate readings in a day to derive the daily low.
     min_heart_rate_readings: int = Field(default=10, ge=1)
+
+    @field_validator("mission_tz")
+    @classmethod
+    def _known_zone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            raise ValueError(f"unknown time zone {value!r} (use an IANA name)") from exc
+        return value
+
+    @property
+    def tz(self) -> ZoneInfo:
+        return ZoneInfo(self.mission_tz)
+
+    def day_of(self, moment: datetime) -> date:
+        """Mission day of an aware timestamp."""
+        return moment.astimezone(self.tz).date()
 
 
 @lru_cache

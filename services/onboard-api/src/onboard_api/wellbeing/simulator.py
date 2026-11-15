@@ -12,7 +12,7 @@ log recorded today is judged alone against an already formed baseline.
 """
 
 import random
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta, tzinfo
 from itertools import combinations
 
 from onboard_api.wellbeing.repository import WellbeingRepository
@@ -63,8 +63,9 @@ VISION_ALTERED = {
 }
 
 
-def _at(day: date, hour: int, minute: int = 0) -> datetime:
-    return datetime.combine(day, time(hour, minute), tzinfo=UTC)
+def _at(day: date, hour: int, minute: int = 0, tz: tzinfo = UTC) -> datetime:
+    """Local clock time on a mission day (stored later in UTC)."""
+    return datetime.combine(day, time(hour, minute), tzinfo=tz)
 
 
 def clear_simulated(repo: WellbeingRepository) -> None:
@@ -96,9 +97,12 @@ def simulate(
     days: int = 21,
     seed: int = 7,
     perclos: tuple[float, float] | None = None,
+    tz: tzinfo = UTC,
 ) -> None:
     """Replace previous simulated rows with `days` days of history ending today.
 
+    today: mission day in `tz` (the API's WELLBEING_MISSION_TZ). Every record
+    gets a local clock time on its day, so it never slips into the next day.
     perclos: resting PERCLOS range for the daily logs (default VISION_REST).
     """
     vision_rest, vision_altered = _vision_ranges(perclos)
@@ -132,7 +136,7 @@ def simulate(
                     crew_connection=1 if down else jitter(3),
                     source=SOURCE,
                 ),
-                submitted_at=_at(day, 21),
+                submitted_at=_at(day, 21, tz=tz),
             )
             passive_low = low or derailed.get(aid, False) and aid == "ast-03"
             for kind, value, unit, hour in (
@@ -146,17 +150,17 @@ def simulate(
                         kind=kind,
                         value=round(max(0.0, value), 1),
                         unit=unit,
-                        recorded_at=_at(day, hour),
+                        recorded_at=_at(day, hour, tz=tz),
                         quality="good",
                         source=SOURCE,
                     ),
-                    received_at=_at(day, hour, 5),
+                    received_at=_at(day, hour, 5, tz=tz),
                 )
             if i < days - 1:  # leave today free for a live log
                 altered = passive_low or bad_day
                 repo.create_vision_session(
-                    _bitacora(aid, day, vision_altered if altered else vision_rest, rng),
-                    received_at=_at(day, 8, 2),
+                    _bitacora(aid, _at(day, 8, tz=tz), vision_altered if altered else vision_rest, rng),
+                    received_at=_at(day, 8, 2, tz=tz),
                 )
 
         # Six 30-minute shared slots per day (meals, briefings, leisure).
@@ -167,7 +171,7 @@ def simulate(
             present = [aid for aid in CREW if aid not in withdrawn or joined[aid] == slot]
             if not present:
                 continue
-            begin = _at(day, 8 + 2 * slot)
+            begin = _at(day, 8 + 2 * slot, tz=tz)
             repo.create_co_presence(
                 CoPresenceCreate(
                     module_id="modulo-a" if slot % 2 == 0 else "modulo-b",
@@ -185,7 +189,7 @@ def simulate(
 
 
 def _bitacora(
-    aid: str, day: date, ranges: dict[str, tuple[float, float]], rng: random.Random
+    aid: str, begin: datetime, ranges: dict[str, tuple[float, float]], rng: random.Random
 ) -> VisionSessionCreate:
     def u(key: str) -> float:
         return round(rng.uniform(*ranges[key]), 3)
@@ -193,7 +197,6 @@ def _bitacora(
     def n(key: str) -> int:
         return rng.randint(*map(int, ranges[key]))
 
-    begin = _at(day, 8)
     return VisionSessionCreate(
         astronaut_id=aid,
         session_type="bitacora",

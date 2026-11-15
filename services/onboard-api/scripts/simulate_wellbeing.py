@@ -13,6 +13,8 @@ import urllib.error
 import urllib.request
 from datetime import UTC, datetime
 
+from import_apple_health import mission_tz
+
 from onboard_api.wellbeing.database import connect_wellbeing
 from onboard_api.wellbeing.repository import WellbeingRepository
 from onboard_api.wellbeing.settings import WellbeingSettings
@@ -48,21 +50,27 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    base = args.base.rstrip("/")
     for astronaut_id, name in CREW.items():
-        ensure_astronaut(args.base.rstrip("/"), astronaut_id, name)
-    settings = WellbeingSettings()
+        ensure_astronaut(base, astronaut_id, name)
+    tz = mission_tz(base)  # write on the same mission days the API reads
+    settings = WellbeingSettings(mission_tz=tz.key)
     conn = connect_wellbeing(settings.db_path)
     try:
         simulate(
             WellbeingRepository(conn),
-            datetime.now(UTC).date(),
+            settings.day_of(datetime.now(UTC)),
             days=args.days,
             seed=args.seed,
             perclos=tuple(args.perclos) if args.perclos else None,
+            tz=settings.tz,
         )
     finally:
         conn.close()
-    print(f"Historial SIMULADO de {args.days} días cargado en {settings.db_path}")
+    print(
+        f"Historial SIMULADO de {args.days} días cargado en {settings.db_path}"
+        f" (zona de misión {settings.mission_tz})"
+    )
 
 
 if __name__ == "__main__":
