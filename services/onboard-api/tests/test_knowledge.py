@@ -94,19 +94,39 @@ def test_verify_and_activate(tmp_path: Path) -> None:
     s = knowledge.sync(root, Ground(V1).client())
     assert s["active"] == {"candidate_id": "c1", "digest": V1["digest"]} and s["previous"] is None
     assert s["last_sync"]["outcome"] == "activated"
-    assert (root / "active" / "files" / RULES).read_bytes() == b"RULES = 1\n"
-    assert (root / "active" / "files" / PROTOCOLS / "sub" / "fever.json").exists()
-    assert (root / "active" / "files" / MEDICAL / "triage.py").read_bytes() == b"TRIAGE = 1\r\n"  # stored as sent, verified as LF
+    assert knowledge.bundle_file(root / "active", RULES).read_bytes() == b"RULES = 1\n"
+    assert knowledge.bundle_file(root / "active", f"{PROTOCOLS}/sub/fever.json").exists()
+    assert knowledge.bundle_file(root / "active", f"{MEDICAL}/triage.py").read_bytes() == b"TRIAGE = 1\r\n"  # stored as sent, verified as LF
     assert knowledge.sync(root, Ground(V1).client())["last_sync"]["outcome"] == "already_active"
     s = knowledge.sync(root, Ground(V2).client())
     assert (s["active"]["candidate_id"], s["previous"]["candidate_id"]) == ("c2", "c1")
     assert not [p for p in root.iterdir() if p.name.startswith(".")]  # no staging left behind
+    # Short on-disk names: deep repo paths must not hit the Windows 260-character limit.
+    assert max(len(p.relative_to(root).as_posix()) for p in root.rglob("*")) <= len("previous/files/") + 16
+
+
+def test_write_failure_keeps_active(store: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def disk_full(self: Path, data: bytes) -> int:
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(Path, "write_bytes", disk_full)
+    assert "OSError" in failed(store, Ground(V2).client())
+    assert knowledge.state(store)["last_sync"]["ok"] is False  # the reason is on disk too
+    assert not (store / ".stage").exists() and knowledge.state(store)["previous"] is None
+
+
+def test_unexpected_error_is_recorded(store: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def boom(bundle: dict, approved: str) -> None:
+        raise RuntimeError("unexpected")
+
+    monkeypatch.setattr(knowledge, "verify", boom)
+    assert "RuntimeError: unexpected" in failed(store, Ground(V2).client())
 
 
 def failed(root: Path, ground: httpx.Client) -> str:
     s = knowledge.sync(root, ground)
     assert s["last_sync"]["ok"] is False and s["active"]["candidate_id"] == "c1"
-    assert (root / "active" / "files" / RULES).read_bytes() == b"RULES = 1\n"
+    assert knowledge.bundle_file(root / "active", RULES).read_bytes() == b"RULES = 1\n"
     return s["last_sync"]["error"]
 
 
@@ -148,7 +168,7 @@ def test_rollback_swaps_active_and_previous(store: Path, tmp_path: Path) -> None
     knowledge.sync(store, Ground(V2).client())
     s = knowledge.rollback(store)
     assert (s["active"]["candidate_id"], s["previous"]["candidate_id"]) == ("c1", "c2")
-    assert (store / "active" / "files" / RULES).read_bytes() == b"RULES = 1\n"
+    assert knowledge.bundle_file(store / "active", RULES).read_bytes() == b"RULES = 1\n"
 
 
 def test_routes_and_report_knowledge_version(tmp_path: Path) -> None:

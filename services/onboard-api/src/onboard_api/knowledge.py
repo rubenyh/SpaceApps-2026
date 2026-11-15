@@ -4,7 +4,8 @@ Ground stages the approved bundle (manifest + component files). Onboard activate
 when the manifest digest is the canonical digest of its components, equals the digest
 ground approved, and every component sha256 verifies. Any failure leaves `active` as is.
 
-Layout under Settings.knowledge_dir: active/ and previous/ (manifest.json + files/),
+Layout under Settings.knowledge_dir: active/ and previous/ (manifest.json, index.json,
+files/<short key>), .stage/ while writing,
 last_sync.json. Ordinary telemetry does not go through here.
 
 CLI (from services/onboard-api): uv run python -m onboard_api.knowledge sync|rollback|active
@@ -15,7 +16,6 @@ import hashlib
 import json
 import shutil
 import sys
-import uuid
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
@@ -30,6 +30,7 @@ from onboard_api.schemas.assistant import KnowledgeVersion
 
 MANIFEST = "manifest.json"
 LAST_SYNC = "last_sync.json"
+INDEX = "index.json"
 
 
 class GateError(Exception):
@@ -107,24 +108,43 @@ def verify(bundle: dict, approved_digest: str) -> tuple[dict, dict[str, bytes]]:
 
 
 def _write_bundle(target: Path, manifest: dict, files: dict[str, bytes]) -> None:
+    """Files are stored flat as files/<16 hex of their raw sha256>, with index.json mapping
+    repo path -> key, so deep repo paths never hit the Windows 260-character limit."""
+    (target / "files").mkdir(parents=True)
+    index = {}
     for path, data in files.items():
-        f = target / "files" / path
-        f.parent.mkdir(parents=True, exist_ok=True)
-        f.write_bytes(data)
+        index[path] = key = _sha(data)[:16]
+        (target / "files" / key).write_bytes(data)
+    (target / INDEX).write_text(json.dumps(index, indent=2, sort_keys=True), encoding="utf-8")
     (target / MANIFEST).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
 
+def bundle_file(bundle_dir: Path, path: str) -> Path:
+    """On-disk location of a component file (repo posix path) inside active/ or previous/."""
+    return bundle_dir / "files" / json.loads((bundle_dir / INDEX).read_text(encoding="utf-8"))[path]
+
+
 def _activate(root: Path, manifest: dict, files: dict[str, bytes]) -> None:
-    staging = root / f".staging-{uuid.uuid4().hex}"
-    _write_bundle(staging, manifest, files)
-    active, previous = root / "active", root / "previous"
+    staging, active, previous = root / ".stage", root / "active", root / "previous"
+    if staging.exists():  # left over from an interrupted sync
+        shutil.rmtree(staging)
+    try:
+        _write_bundle(staging, manifest, files)
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
     # ponytail: two renames, not one atomic swap; a crash between them leaves only
     # previous/. Use a symlink flip if that window ever matters.
     if active.exists():
         if previous.exists():
             shutil.rmtree(previous)
         active.rename(previous)
-    staging.rename(active)
+    try:
+        staging.rename(active)
+    except BaseException:
+        if previous.exists() and not active.exists():
+            previous.rename(active)  # put the old active back
+        raise
 
 
 def _version(bundle_dir: Path) -> dict | None:
@@ -150,9 +170,9 @@ def state(root: Path) -> dict:
 
 def sync(root: Path, ground: httpx.Client) -> dict:
     """Pull the approved bundle from ground and activate it if it verifies."""
-    root.mkdir(parents=True, exist_ok=True)
     record: dict = {"at": datetime.now(UTC).isoformat(), "ok": False, "outcome": None, "error": None, "digest": None}
     try:
+        root.mkdir(parents=True, exist_ok=True)
         r = ground.get("/medical-eval/approved")
         if r.status_code == 404:
             raise GateError("ground has no approved candidate")
@@ -168,15 +188,18 @@ def sync(root: Path, ground: httpx.Client) -> dict:
             _activate(root, manifest, files)
             record["outcome"] = "activated"
         record["ok"] = True
-    except (httpx.HTTPError, GateError, ValueError, KeyError, TypeError, AttributeError) as exc:
+    except Exception as exc:  # any failure (link, verification, disk) leaves active as is
         record["error"] = f"{type(exc).__name__}: {exc}"
-    (root / LAST_SYNC).write_text(json.dumps(record), encoding="utf-8")
-    return state(root)
+    try:
+        (root / LAST_SYNC).write_text(json.dumps(record), encoding="utf-8")
+    except OSError as exc:
+        record["error"] = f"{record['error'] or ''} (last_sync not saved: {exc})".lstrip()
+    return {**state(root), "last_sync": record}
 
 
 def rollback(root: Path) -> dict:
     """Swap active and previous (a second rollback rolls forward again)."""
-    active, previous, tmp = root / "active", root / "previous", root / f".rollback-{uuid.uuid4().hex}"
+    active, previous, tmp = root / "active", root / "previous", root / ".rb"
     if not previous.exists():
         raise GateError("no previous bundle to roll back to")
     if active.exists():
@@ -213,6 +236,8 @@ def post_rollback(settings: SettingsDep) -> dict:
         return rollback(settings.knowledge_dir)
     except GateError as exc:
         raise HTTPException(409, str(exc)) from exc
+    except OSError as exc:
+        raise HTTPException(500, f"rollback failed: {exc}") from exc
 
 
 def main(argv: list[str]) -> int:
@@ -226,7 +251,7 @@ def main(argv: list[str]) -> int:
     if command == "rollback":
         try:
             print(json.dumps(rollback(settings.knowledge_dir), indent=2))
-        except GateError as exc:
+        except (GateError, OSError) as exc:
             print(exc, file=sys.stderr)
             return 1
         return 0
