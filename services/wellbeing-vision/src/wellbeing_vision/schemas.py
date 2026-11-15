@@ -27,6 +27,9 @@ class Fatigue(BaseModel):
 class Tension(BaseModel):
     brow_lower_delta: float | None = Field(ge=0, le=1)
     lip_press_delta: float | None = Field(ge=0, le=1)
+    # Optional in the contract: highest level held >= 1 s; None if never held 1 s with the face visible.
+    brow_lower_peak_1s: float | None = Field(None, ge=0, le=1)
+    lip_press_peak_1s: float | None = Field(None, ge=0, le=1)
 
 
 class Motion(BaseModel):

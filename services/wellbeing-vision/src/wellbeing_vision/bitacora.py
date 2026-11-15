@@ -205,5 +205,4 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
         tension=metrics.tension(),
     )
     sink.send("/wellbeing/vision-sessions", session)
-    print(f"Tension sustained peaks (local only, not in the contract yet): {metrics.tension_peaks()}")
     return session

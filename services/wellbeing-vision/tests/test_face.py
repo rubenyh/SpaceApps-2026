@@ -91,15 +91,15 @@ def test_sustained_peak_catches_brief_grimace_the_mean_dilutes():
     # 1.5 s frown at +0.4 in a 20 s log: mean ~0.03, sustained peak 0.4.
     m = _run(lambda t: _frame(t, brow_down=0.5 if 8 <= t < 9.5 else 0.10))
     assert m.tension().brow_lower_delta < 0.05
-    assert m.tension_peaks()["brow_lower_peak_1s"] == 0.4
+    assert m.tension().brow_lower_peak_1s == 0.4
 
 
 def test_peak_needs_a_continuous_hold():
     # 0.6 s spikes never last 1 s; a face dropout also breaks the hold.
     spikes = _run(lambda t: _frame(t, lip_press=0.6 if (t % 2) < 0.6 else 0.10))
-    assert spikes.tension_peaks()["lip_press_peak_1s"] == 0.0
+    assert spikes.tension().lip_press_peak_1s == 0.0
     gap = _run(lambda t: None if 5.5 <= t < 5.6 else _frame(t, lip_press=0.6 if 5 <= t < 6 else 0.10))
-    assert gap.tension_peaks()["lip_press_peak_1s"] == 0.0
+    assert gap.tension().lip_press_peak_1s == 0.0
 
 
 def test_yawn_at_new_threshold_and_face_width():

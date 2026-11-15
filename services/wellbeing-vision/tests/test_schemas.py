@@ -11,7 +11,8 @@ BITACORA = {
     "valid_frame_ratio": 0.94, "identity": {"method": "face", "match_score": 0.71}, "neutral_ok": True,
     "fatigue": {"blink_rate_per_min": 18.2, "perclos": 0.07, "eye_openness_vs_neutral": 0.88,
                 "yawn_count": 1, "nod_count": 0},
-    "tension": {"brow_lower_delta": 0.12, "lip_press_delta": 0.05},
+    "tension": {"brow_lower_delta": 0.12, "lip_press_delta": 0.05, "brow_lower_peak_1s": 0.31,
+                "lip_press_peak_1s": None},
     "motion": None, "provisional": True,
 }
 AMBIENTE_MOTION = {"speed": 0.35, "stationary_ratio": 0.6, "fidget_index": 0.12, "torso_angle_dev": 14.0}

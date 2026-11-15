@@ -182,12 +182,10 @@ class SessionMetrics:
     def tension(self) -> Tension:
         if self.frames_valid == 0:
             return Tension(brow_lower_delta=None, lip_press_delta=None)
+        r = lambda v: None if v is None else round(v, 3)  # noqa: E731
         return Tension(
             brow_lower_delta=round(self.brow_delta_sum / self.frames_valid, 3),
             lip_press_delta=round(self.lip_delta_sum / self.frames_valid, 3),
+            brow_lower_peak_1s=r(self.brow_peak.peak),
+            lip_press_peak_1s=r(self.lip_peak.peak),
         )
-
-    def tension_peaks(self) -> dict[str, float | None]:
-        """Sustained (>= TENSION_HOLD_S) peaks. Not in the contract yet: printed, not sent."""
-        r = lambda v: None if v is None else round(v, 3)  # noqa: E731
-        return {"brow_lower_peak_1s": r(self.brow_peak.peak), "lip_press_peak_1s": r(self.lip_peak.peak)}
