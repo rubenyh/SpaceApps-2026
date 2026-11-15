@@ -21,7 +21,7 @@ The repo lives in OneDrive: if `.venv` files get locked during `uv sync`, pause 
 | `uv run wellbeing-vision bitacora --astronaut ast-01 [--camera 0] [--seconds 60] [--no-mirror] [--trace t.csv] [--dry-run]` | Daily video log: 3 s neutral, then fatigue and tension with a live preview. Sends one summary. Keys: `f` fullscreen, `q`/Esc end. |
 | `uv run wellbeing-vision enroll --astronaut ast-01 [--camera 0] [--samples 10]` | Enroll a face: 10 templates while turning the head a little. Replaces the previous enrollment. Not mirrored: only the daily log mirrors (self-view, `--no-mirror` to turn it off). |
 | `uv run wellbeing-vision identify [--camera 0] [--rotate 180] [--seconds 0]` | Multi-person preview: one box per tracked face with its name or `unknown-<n>`, and the linked pose. Sends nothing. |
-| `uv run wellbeing-vision ambiente [--cameras 0 1] [--window 60] [--rotate 180] [--seconds 0] [--dry-run]` | Ambient mode: each camera is a module; every window sends co-presence and one motion session per person. Preview with both cameras stacked. |
+| `uv run wellbeing-vision ambiente [--cameras 0 1] [--flip 1] [--overlap] [--size 640x480] [--window 60] [--trace t.csv] [--dry-run]` | Ambient mode: each camera is a module; every window sends co-presence and one motion session per person. Preview with both cameras stacked. |
 | `uv run pytest` | Unit tests (no camera needed). |
 
 `--dry-run` prints the JSON instead of posting it (add `--out file.jsonl` to also save it).
@@ -88,10 +88,22 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
 
 ## Ambient mode
 
-- One process, one camera per module (`WELLBEING_VISION_CAMERAS`, default cam 0 = `modulo-a`, cam 1 =
-  `modulo-b`), processed in parallel threads. Each camera has its own tracker, orientation and pose model.
-- Identity is resolved across cameras: one astronaut is one face at a time. Seeing them in the other module
-  is a transfer (preview and console). Unidentified people are `unknown-<track>`, unique across cameras.
+- **Point each camera at a different zone** (cam 0 = `modulo-a`, cam 1 = `modulo-b` by default,
+  `WELLBEING_VISION_CAMERAS`). If both see the same space, run with `--overlap`: the cameras then feed one
+  module (the first camera's) and an astronaut seen by both is counted once; there are no transfers.
+- Captures at 640x480 by default (`--size`; the daily log always asks 1280x720). Cameras run in parallel
+  threads; each keeps only its newest frame. Face detection runs at 640 px at most, the other orientations
+  are tried on the first frame without a face and then every 10 frames, and face recognition runs only for
+  new or unconfirmed tracks (an identified one is re-checked every 2 s, an unknown one every 1 s).
+- Tracks follow the face or the body: each pose is paired with the face that holds its nose, and a pose
+  with visible shoulders and no face is still a person. Tracks are matched by overlap or by centre distance
+  after a constant-velocity prediction, survive 2 s unseen, and an unknown that comes back in the same place
+  within 10 s gets its old track back. Faces under 24 px, or with no body and a detection score under 0.85,
+  are dropped. A track counts as occupant and in pairs only after `--min-track` s (3, PROVISIONAL); younger
+  ones show in grey.
+- One astronaut, one count: identity is unique within a camera, and an astronaut seen by two cameras at once
+  stays in the module they belong to; the other camera shows "ast-01 (seen from modulo-a)" in grey and does
+  not count them. A transfer needs them unseen in the old module for 3 s and steadily in the new one for 3 s.
 - Every window (60 s) and module: `POST /wellbeing/co-presence` with occupants (1 s or more), pairs
   (seconds together, mean distance in shoulder widths, facing ratio) and quality (camera coverage). Empty
   windows are not sent. A window cut short by quitting is sent if it lasted 10 s or more.
@@ -101,12 +113,12 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
   `torso_angle_dev` (degrees of the head against the shoulder line, from its median in the window). All
   relative to the body, so the numbers do not change with the camera or the astronaut upside down.
   Steps over 5 sw/s are tracking jumps and are skipped. PROVISIONAL.
-- Tracks follow the face or the body: each pose is paired with the face that holds its nose, and a pose
-  with visible shoulders and no face is still a person. Someone identified who turns away or loses the face
-  keeps the track, the name and the presence; identity votes only come from frames with the face. A track
-  that never showed its face stays `unknown-<track>`.
-- Preview: cameras stacked top to bottom, shown as delivered (no mirror, no rotation); boxes, skeletons,
-  per-module occupants and pairs, transfers, FPS per camera and the window countdown.
+- `facing_ratio` is the share of the pair's time with both poses where both heads are turned toward each
+  other (nose 0.15 shoulder widths toward the other, 2D). `null` when the two were never seen with a pose at
+  the same time. `--trace t.csv` writes, per frame and track, whether it had a face and a pose, the shoulder
+  width and the head turn, to check it.
+- Preview: cameras stacked top to bottom after the per-camera flip/turn; boxes, skeletons, per-module named
+  people, unknowns as one row, the longest pairs, transfers, FPS per camera and the window countdown.
 
 ## Settings (env vars)
 
@@ -117,6 +129,7 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
 | `WELLBEING_VISION_ASTRONAUTS` | `{"ast-01":"ast-01", ... "ast-04":"ast-04"}` |
 | `WELLBEING_VISION_MIN_FACE_PX` | `160` (PROVISIONAL) |
 | `WELLBEING_VISION_CAMERA_BACKEND` | `auto` (DSHOW, then MSMF); `dshow` or `msmf` to force one. Also `--backend` on every camera command. |
+| `WELLBEING_VISION_CAMERA_FLIP` / `_CAMERA_TURN` | `[]` / `{}`: mirror or turn (clockwise) cameras before processing and display, e.g. `'[1]'`, `'{"1": 180}'`. Also `--flip 1` and `--turn 1:180` on every camera command; the orientation applied is printed at start. |
 | `WELLBEING_VISION_MODELS_DIR` / `_DATA_DIR` | `models` / `data` |
 
 ## Thresholds
