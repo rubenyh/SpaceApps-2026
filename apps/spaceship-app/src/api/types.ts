@@ -388,3 +388,232 @@ export interface AssistantResponse {
   /** Set only when urgency is "immediate". Optional for older servers. */
   incident?: IncidentRef | null;
 }
+
+// --- Wellbeing (mental health): docs/wellbeing-contract.md ---
+// Ingestion-only types (signals, vision sessions, co-presence) are left out: the console never posts them.
+
+
+export type SupportLevel =
+  | "ok"
+  | "attention"
+  | "needs_support"
+  | "baseline_pending"
+  | "stale"
+  | "no_data";
+export type IndicatorStatus = "ok" | "attention" | "baseline_pending" | "stale" | "no_data";
+export type IndicatorKind = "sleep" | "fatigue" | "stress" | "activation" | "social" | "mood";
+export type WellbeingSource = "checkin" | "vision" | "physiology" | "social";
+export type Confidence = "low" | "medium" | "high";
+export type Trend = "improving" | "stable" | "worsening" | "unknown";
+export type AdverseDirection = "low" | "high" | "both";
+/** Where a value came from. "mixed": live and simulated data on the same day. */
+export type Origin = "live" | "simulated" | "mixed";
+export type GroundRequester = "self" | "captain" | "ground_psychologist";
+export type GroundInclude = "assessment" | "timeline" | "checkins" | "comments";
+export type GroundPackageStatus = "queued" | "withdrawn" | "sent";
+
+/** Indicators always come in this order. */
+export const INDICATOR_KINDS: IndicatorKind[] = [
+  "sleep",
+  "fatigue",
+  "stress",
+  "activation",
+  "social",
+  "mood",
+];
+
+export interface ComponentParameter {
+  component: string;
+  source: WellbeingSource;
+  indicator: IndicatorKind;
+  adverse_direction: AdverseDirection;
+  scale_floor: number;
+  unit: string;
+}
+
+export interface WellbeingParameters {
+  /** Always true in v1: design parameters, not clinical thresholds. */
+  provisional: boolean;
+  basis: string;
+  /** IANA zone of the mission day every input is grouped by, e.g. "UTC" or "America/Tijuana". */
+  mission_tz: string;
+  z_threshold: number;
+  sustain_days: number;
+  baseline_days: number;
+  baseline_min_days: number;
+  adaptation_days: number;
+  stale_after_days: number;
+  trend_window_days: number;
+  trend_min_delta: number;
+  z_cap: number;
+  components: ComponentParameter[];
+}
+
+export interface CheckinFormItem {
+  key: string;
+  prompt: string;
+  kind: "hours" | "scale" | "text";
+  min?: number;
+  max?: number;
+  step?: number;
+  min_label?: string;
+  max_label?: string;
+  higher_is_better?: boolean;
+  max_length?: number;
+  optional?: boolean;
+}
+
+export interface CheckinForm {
+  version: string;
+  estimated_seconds: number;
+  items: CheckinFormItem[];
+}
+
+export interface CheckinUpsert {
+  /** Hours, 0–24, step 0.5. */
+  sleep_hours: number;
+  /** 0–4 scales. In `stress`, 4 is worse; in the rest, 4 is better. */
+  sleep_quality: number;
+  energy: number;
+  mood: number;
+  interest: number;
+  stress: number;
+  crew_connection: number;
+  /** Optional, max 500 chars. Private: never shown in the crew view. */
+  comment?: string | null;
+  /** Default "crew". */
+  source?: string;
+}
+
+export interface Checkin extends Required<Omit<CheckinUpsert, "comment">> {
+  astronaut_id: string;
+  /** YYYY-MM-DD, mission day in WellbeingParameters.mission_tz. */
+  day: string;
+  comment: string | null;
+  submitted_at: string;
+  simulated: boolean;
+}
+
+export interface CrewMemberSummary {
+  astronaut_id: string;
+  display_name: string;
+  level: SupportLevel;
+  trend: Trend;
+  /** Origin of the latest day with data. Show LIVE for "live"/"mixed". */
+  latest_origin: Origin | null;
+}
+
+export interface CrewWellbeing {
+  generated_at: string;
+  provisional: boolean;
+  members: CrewMemberSummary[];
+}
+
+export interface ComponentState {
+  component: string;
+  source: WellbeingSource;
+  latest_value: number | null;
+  unit: string;
+  /** Adverse z: positive = worse than the personal baseline. */
+  z: number | null;
+  baseline_median: number | null;
+  baseline_scale: number | null;
+  baseline_days: number;
+  baseline_from: string | null;
+  baseline_to: string | null;
+  baseline_ready: boolean;
+  latest_day: string | null;
+  /** Origin of this component's latest value: the finest LIVE / SIMULATED mark. */
+  latest_origin: Origin | null;
+}
+
+export interface IndicatorState {
+  kind: IndicatorKind;
+  status: IndicatorStatus;
+  z: number | null;
+  deviant_since: string | null;
+  sources: WellbeingSource[];
+  latest_day: string | null;
+  latest_origin: Origin | null;
+  provisional: boolean;
+  components: ComponentState[];
+}
+
+export interface WellbeingAssessment {
+  astronaut_id: string;
+  generated_at: string;
+  level: SupportLevel;
+  confidence: Confidence;
+  trend: Trend;
+  /** First day of the oldest sustained change ("since when"). */
+  onset_date: string | null;
+  sustained_days: number;
+  /** Self-report looks fine while passive signals show a sustained change. */
+  discrepancy: boolean;
+  sustained_sources: WellbeingSource[];
+  latest_day: string | null;
+  /** Always the 6 indicators, in INDICATOR_KINDS order. */
+  indicators: IndicatorState[];
+  /** English, support language. Personal view only. */
+  support_notes: string[];
+  data_notices: string[];
+  latest_origin: Origin | null;
+  /** Disjoint day counts: only live, only simulated, or both. */
+  live_days: number;
+  simulated_days: number;
+  mixed_days: number;
+  provisional: boolean;
+}
+
+export interface TimelineDay {
+  day: string;
+  level: SupportLevel;
+  has_data: boolean;
+  has_checkin: boolean;
+  /** null when the day has no data. */
+  origin: Origin | null;
+  indicators: Record<IndicatorKind, number | null>;
+  sources: Record<WellbeingSource, number | null>;
+}
+
+export interface WellbeingTimeline {
+  astronaut_id: string;
+  generated_at: string;
+  onset_date: string | null;
+  z_threshold: number;
+  provisional: boolean;
+  days: TimelineDay[];
+}
+
+export interface GroundPackageCreate {
+  astronaut_id: string;
+  requested_by: GroundRequester;
+  requested_by_name: string;
+  consent: { astronaut_confirmed: boolean; statement_version: string };
+  period_from: string;
+  period_to: string;
+  include: GroundInclude[];
+  note?: string | null;
+}
+
+export interface GroundPackage {
+  id: string;
+  astronaut_id: string;
+  requested_by: GroundRequester;
+  requested_by_name: string;
+  period_from: string;
+  period_to: string;
+  include: GroundInclude[];
+  note: string | null;
+  status: GroundPackageStatus;
+  consent_statement_version: string;
+  consent_recorded_at: string;
+  created_at: string;
+}
+
+export interface GroundPackageContent {
+  package: GroundPackage;
+  assessment: WellbeingAssessment | null;
+  timeline: WellbeingTimeline | null;
+  checkins: Checkin[] | null;
+}
