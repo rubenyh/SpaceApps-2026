@@ -43,6 +43,12 @@ TENSION_HOLD_S = 1.0  # a grimace must be held this long to count as a peak
 SPEECH_JAW_OPEN = 0.03  # PROVISIONAL: jawOpen over neutral that counts as one opening
 SPEECH_MIN_OPENINGS = 2  # talking opens the jaw again and again: 2 openings within SPEECH_WINDOW_S
 SPEECH_WINDOW_S = 1.0  # on the S3 trace: 33 % talking -> 6 %
+# Talking to the camera barely moves jawOpen (p90 0.003-0.01 in the R1-R3 traces), so mouthPress swings count
+# too. A held press also moves, but with the lips above neutral: then the swings do not count.
+# R1-R3 talking: 7/1/6 % -> 59/67/83 %; silent press L2: 0 % -> 0 %, its peak 0.466 kept.
+SPEECH_LIP_SWING = 0.08  # PROVISIONAL: mouthPress reversal of at least this much
+SPEECH_MIN_SWINGS = 2  # within SPEECH_WINDOW_S
+SPEECH_PRESS_LEVEL = 0.1  # PROVISIONAL: lips this far over neutral (median of the window) = pressing
 SPEECH_HANGOVER_S = 0.5  # lips close between words: keep excluding a moment after the jaw stops
 MIN_VALID_S = 10.0  # below this, rates are not measurable -> None
 MAX_DT_S = 0.2  # cap frame gaps so a stalled camera does not inflate durations
@@ -186,25 +192,46 @@ class _SustainedPeak:
 
 @dataclass
 class _Speech:
-    """Talking opens the jaw again and again; one opening (a swallow, a sigh) is not talking."""
+    """Talking moves the mouth again and again: jaw openings, or mouthPress swinging below a held press.
+    One opening or one swing (a swallow, a sigh, starting a press) is not talking."""
 
     rises: deque = field(default_factory=deque)
     armed: bool = True
+    swings: deque = field(default_factory=deque)
+    lips: deque = field(default_factory=deque)
+    extreme: float | None = None
+    direction: int = 0
     until: float = -math.inf
 
-    def update(self, jaw_delta: float | None, t: float) -> bool:
-        if jaw_delta is None:
+    def update(self, jaw_delta: float | None, lip_delta: float | None, t: float) -> bool:
+        if jaw_delta is None or lip_delta is None:
             self.rises.clear()
-            self.armed = True
+            self.swings.clear()
+            self.lips.clear()
+            self.armed, self.extreme, self.direction = True, None, 0
             return False
         if self.armed and jaw_delta > SPEECH_JAW_OPEN:
             self.rises.append(t)
             self.armed = False
         elif jaw_delta < SPEECH_JAW_OPEN / 2:  # closed again: the next opening counts
             self.armed = True
-        while self.rises and self.rises[0] < t - SPEECH_WINDOW_S:
-            self.rises.popleft()
-        if len(self.rises) >= SPEECH_MIN_OPENINGS:
+        if self.extreme is None:
+            self.extreme = lip_delta
+        elif self.direction >= 0 and lip_delta > self.extreme:
+            self.extreme, self.direction = lip_delta, 1
+        elif self.direction <= 0 and lip_delta < self.extreme:
+            self.extreme, self.direction = lip_delta, -1
+        elif abs(lip_delta - self.extreme) >= SPEECH_LIP_SWING:  # turned back by a full swing
+            self.swings.append(t)
+            self.extreme, self.direction = lip_delta, -self.direction
+        self.lips.append((t, lip_delta))
+        for q in (self.rises, self.swings):
+            while q and q[0] < t - SPEECH_WINDOW_S:
+                q.popleft()
+        while self.lips[0][0] < t - SPEECH_WINDOW_S:
+            self.lips.popleft()
+        pressing = statistics.median(v for _, v in self.lips) >= SPEECH_PRESS_LEVEL
+        if len(self.rises) >= SPEECH_MIN_OPENINGS or (len(self.swings) >= SPEECH_MIN_SWINGS and not pressing):
             self.until = t + SPEECH_HANGOVER_S
         return t <= self.until
 
@@ -281,7 +308,7 @@ class SessionMetrics:
         if frame is None:
             self.brow_peak.update(None, t)
             self.lip_peak.update(None, t)
-            self.speaking = self.speech.update(None, t)
+            self.speaking = self.speech.update(None, None, t)
             return
         dt = min(t - last, MAX_DT_S) if last is not None else 0.0
         bar = max(EYE_BLINK_CLOSED, n.eye_blink + EYE_BLINK_OVER_NEUTRAL)
@@ -299,7 +326,7 @@ class SessionMetrics:
         brow, lip = max(0.0, frame.brow_down - n.brow_down), max(0.0, frame.lip_press - n.lip_press)
         self.brow_delta_sum += brow
         self.brow_peak.update(brow, t)
-        self.speaking = self.speech.update(frame.jaw_open - n.jaw_open, t)
+        self.speaking = self.speech.update(frame.jaw_open - n.jaw_open, frame.lip_press - n.lip_press, t)
         self.lip_peak.update(None if self.speaking else lip, t)
         if not self.speaking:
             self.lip_delta_sum += lip

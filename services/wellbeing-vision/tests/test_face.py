@@ -208,3 +208,12 @@ def test_single_mouth_openings_are_not_talking():
     # One short opening every 2 s (swallowing, a sigh): never two within 1 s.
     m = _run(lambda t: _frame(t, jaw_open=0.15 if (t % 2) < 0.15 else 0.05))
     assert m.quiet_s > 19
+
+
+def test_talking_with_a_still_jaw_is_caught_by_lip_swings_but_a_held_press_is_not():
+    # Traced: talking to the camera barely moves jawOpen, but mouthPress swings below neutral (~ -0.15).
+    talk = _run(lambda t: _frame(t, lip_press=0.10 + (-0.25 if int(t * 6) % 2 else -0.05)))
+    assert talk.quiet_s < 2
+    # A held press: rises to +0.4 over neutral with small jitter, 3 s, twice.
+    press = _run(lambda t: _frame(t, lip_press=0.5 + 0.03 * (int(t * 10) % 2) if (t % 10) < 3 else 0.10))
+    assert press.talking_s < 1 and press.tension().lip_press_peak_1s >= 0.4
