@@ -48,9 +48,9 @@ El módulo `onboard_api.wellbeing` detecta **cambios sostenidos de cada astronau
 - `WellbeingAssessment.live_days`, `simulated_days` y `mixed_days`: días con datos, sin traslape (sólo en vivo, sólo simulados, o ambos).
 
 Regla de interfaz sugerida para la demo:
-- Resaltar como **EN VIVO** cualquier valor con origen `"live"`; en la lista de componentes, usar `latest_origin` de cada uno.
-- El historial con `"simulated"` lleva la etiqueta SIMULADO.
-- Un indicador o día `"mixed"` muestra las dos etiquetas, o marca EN VIVO sólo en los componentes que lo son.
+- Resaltar como **LIVE** cualquier valor con origen `"live"`; en la lista de componentes, usar `latest_origin` de cada uno.
+- El historial con `"simulated"` lleva la etiqueta SIMULATED.
+- Un indicador o día `"mixed"` muestra las dos etiquetas, o marca LIVE sólo en los componentes que lo son.
 
 **PROVISIONAL.** Todos los umbrales de la fusión son parámetros de diseño, **sin validación clínica**. Por eso:
 
@@ -706,7 +706,7 @@ export interface CrewMemberSummary {
   display_name: string;
   level: SupportLevel;
   trend: Trend;
-  /** Origin of the latest day with data. Show EN VIVO for "live"/"mixed". */
+  /** Origin of the latest day with data. Show LIVE for "live"/"mixed". */
   latest_origin: Origin | null;
 }
 
@@ -730,7 +730,7 @@ export interface ComponentState {
   baseline_to: string | null;
   baseline_ready: boolean;
   latest_day: string | null;
-  /** Origin of this component's latest value: the finest EN VIVO / SIMULADO mark. */
+  /** Origin of this component's latest value: the finest LIVE / SIMULATED mark. */
   latest_origin: Origin | null;
 }
 
@@ -831,7 +831,7 @@ export interface GroundPackageContent {
 ## Notas para la integración
 
 - El router está registrado en `main.py`: todos los endpoints viven en el mismo servidor onboard (`http://127.0.0.1:8000`) y aparecen en `/docs` bajo la etiqueta `wellbeing`.
-- **EN VIVO frente a SIMULADO (Cedric):** en la demo el historial es simulado y la bitácora de hoy es real. Resalta como **EN VIVO** todo valor con origen `"live"`, usando `ComponentState.latest_origin` en el detalle y `TimelineDay.origin` en la línea de tiempo, y marca SIMULADO el resto. Nunca etiquetes un día entero como SIMULADO si su origen es `"mixed"`.
+- **LIVE frente a SIMULATED (Cedric):** en la demo el historial es simulado y la bitácora de hoy es real. Resalta como **LIVE** todo valor con origen `"live"`, usando `ComponentState.latest_origin` en el detalle y `TimelineDay.origin` en la línea de tiempo, y marca SIMULATED el resto. Nunca etiquetes un día entero como SIMULATED si su origen es `"mixed"`. Los textos del backend (`support_notes`, `data_notices`, preguntas del checklist) ya vienen en inglés.
 - Flujo sugerido para la pantalla de consentimiento: el astronauta revisa el periodo e `include` → `POST` con `astronaut_confirmed: true` → `GET …/content` para mostrar lo que va en cola → botón "retirar" con `POST …/withdraw`.
 - Simulador de historial: `uv run python scripts/simulate_wellbeing.py` (en `services/onboard-api`). Crea `ast-01`…`ast-04` vía `POST /astronauts` si no existen, y escribe en `wellbeing.db` con `source: "simulated"`: checklists, señales tipo Watch, co-presencia y bitácoras de visión. Las bitácoras simuladas llegan hasta ayer, así que una bitácora en vivo de hoy se evalúa sola contra una línea base ya formada. Los rangos de visión están en `VISION_REST` y `VISION_ALTERED` de `wellbeing/simulator.py`; los medidos y los supuestos están marcados ahí. **Todos son provisionales**: vienen de 3 bitácoras de reposo de la versión nueva de visión y se recalibran cuando lleguen las de la versión corregida. PERCLOS en reposo (0.06–0.19) es amplio a propósito, porque varía con la calibración neutral de cada sesión. Se puede cambiar sin tocar código con `--perclos LOW HIGH`.
 - Configuración (variables de entorno): `WELLBEING_MISSION_TZ` (zona del día de misión, por defecto `UTC`), `WELLBEING_DB_PATH` (por defecto `data/wellbeing.db`), `ONBOARD_DB_PATH` (la base de Rubén, sólo lectura), `WELLBEING_Z_THRESHOLD`, `WELLBEING_SUSTAIN_DAYS`, etc. (ver `onboard_api/wellbeing/settings.py`).
