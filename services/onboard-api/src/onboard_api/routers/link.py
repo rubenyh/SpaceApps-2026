@@ -55,17 +55,19 @@ def get_link(request: Request) -> EarthLink:
 
 
 @router.post("/telemetry/pause", response_model=EarthLink, dependencies=DEMO)
-def pause(request: Request) -> EarthLink:
+async def pause(request: Request) -> EarthLink:
     return _set_paused(request, True)
 
 
 @router.post("/telemetry/resume", response_model=EarthLink, dependencies=DEMO)
-def resume(request: Request) -> EarthLink:
+async def resume(request: Request) -> EarthLink:
     return _set_paused(request, False)
 
 
 @router.delete("/demo/incidents", dependencies=DEMO)
-def reset_incidents(astronaut_id: str, conn: Connection, request: Request) -> dict[str, int]:
+async def reset_incidents(astronaut_id: str, conn: Connection, request: Request) -> dict[str, int]:
+    # async so the publisher state below is touched on the event loop thread.
+    # ponytail: the small SQLite delete blocks the loop briefly; fine for a demo-only route.
     """Delete one astronaut's incidents and their queued events (idempotent).
     Readings stay: they are history, and ground already has them."""
     conn.execute("BEGIN IMMEDIATE")

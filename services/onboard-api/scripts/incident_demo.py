@@ -9,7 +9,7 @@
 Everything uses the scenario-only astronaut `scn-01`, so the live simulator (ast-*)
 can keep running. The reading is posted with source `simulated:scenario` and both
 consoles label it as simulated. The urgent message is scripted, as typed by the crew.
-Needs the demo controls on (docker compose turns them on; natively set
+Needs the demo controls on (docker compose: DEMO_CONTROLS_ENABLED=true; natively set
 ONBOARD_DEMO_CONTROLS_ENABLED=true and GROUND_DEMO_CONTROLS_ENABLED=true).
 """
 

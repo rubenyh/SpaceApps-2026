@@ -166,22 +166,23 @@ class TelemetryPublisher:
         if self.pending is None:
             # SQLite read off the event loop so a slow disk never stalls requests.
             self.pending = await asyncio.to_thread(self._build_batch)
+        batch = self.pending  # local: a demo reset may drop self.pending meanwhile
         # Same batch_id on retry; sent_at stays the first attempt's time.
         response = await self._client.post(
-            "/telemetry/v1/batches", json=self.pending.model_dump(mode="json")
+            "/telemetry/v1/batches", json=batch.model_dump(mode="json")
         )
         response.raise_for_status()
         # Only after ground confirmed. If this fails the batch stays pending and is
         # resent; ground dedups it by batch_id.
-        if self.pending.incident_updates:
+        if batch.incident_updates:
             await asyncio.to_thread(
-                self._mark_delivered, [u.id for u in self.pending.incident_updates]
+                self._mark_delivered, [u.id for u in batch.incident_updates]
             )
-        if self.pending.readings:
-            self.cursor = self.pending.readings[-1].id
+        if batch.readings:
+            self.cursor = batch.readings[-1].id
         full = (
-            len(self.pending.readings) >= BATCH_SIZE
-            or len(self.pending.incident_updates) >= INCIDENT_BATCH_SIZE
+            len(batch.readings) >= BATCH_SIZE
+            or len(batch.incident_updates) >= INCIDENT_BATCH_SIZE
         )
         self.pending = None
         self.batches_sent += 1
@@ -211,8 +212,8 @@ class TelemetryPublisher:
 
     async def _wait(self, delay: float) -> None:
         """Sleep `delay` seconds, or less when resume sets `wake`."""
-        self.wake.clear()
         try:
             await asyncio.wait_for(self.wake.wait(), delay)
         except TimeoutError:
             pass
+        self.wake.clear()  # after waiting, so a resume during a send is not lost

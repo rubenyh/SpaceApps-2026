@@ -62,14 +62,14 @@ Language: both consoles use English for this flow. The ground tab bar, top bar, 
 
 ### Headless script time (measured 2026-11-15)
 
-Setup: ground-api and onboard-api run natively (`uv run uvicorn`) on ports 18001 and 18000, with temporary databases, telemetry interval 5 s, and no Ollama (the SOS path does not need it). Each run was `reset` followed by `run --auto-ack`. "Total" is wall time from the start of reset to ground returning the incident with both updates, including two `uv run` process starts.
+Setup: ground-api and onboard-api run natively (`uv run uvicorn`) on ports 18001 and 18000, with temporary databases, telemetry interval 5 s, and no Ollama (the SOS path does not need it). Each run was `reset` followed by `run --auto-ack`. Times are as recorded by the independent QA rerun for each command.
 
-| Run | Script time, beat 1 to ground | Total, reset to ground | Ground result |
+| Run | Reset | Run, beat 1 to ground | Ground result |
 |---|---|---|---|
-| 1 | 1.2 s | 2.0 s | 1 incident (`scn-01`), updates `created` and `acknowledged` once each, 1 acknowledgment; onboard `ground_delivery` `delivered` |
-| 2 | 4.3 s | 5.0 s | Same as run 1 |
+| 1 | 0.2 s | 0.8 s | 1 incident (`scn-01`), updates `created` and `acknowledged` once each, 1 acknowledgment; onboard `ground_delivery` `delivered` |
+| 2 | 0.3 s | 0.3 s | Same as run 1 |
 
-Two earlier runs gave 4.3 s each, also with the same result. The spread comes from where the publisher was in its 5-second interval when the link was restored. In every run, `received_at` was at or after `occurred_at`.
+Measured by the QA rerun on 2026-11-15 after resume started cutting the retry wait short. Before that change, runs took 1.2–4.3 s, depending on where the publisher was in its 5-second interval. In every run, `received_at` was at or after `occurred_at`.
 
 ### Pending human verification
 
