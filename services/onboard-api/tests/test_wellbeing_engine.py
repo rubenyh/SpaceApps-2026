@@ -249,16 +249,45 @@ def test_tension_peaks_are_dropped_without_a_neutral() -> None:
     assert not any(k.startswith("vision.") for k in inputs.values)
 
 
-def test_lip_press_is_stored_but_not_scored() -> None:
-    # Talking alone drives lip peaks to 0.41-0.49, so a lip-only change must not alert.
-    sessions = [
-        bitacora(i, 0.02, 0.4 if i >= DERAIL else 0.05, 0.08, 0.49 if i >= DERAIL else 0.1)
-        for i in range(DAYS)
-    ]
+def test_lip_press_stays_out_of_stress() -> None:
+    """Why lips are not scored yet (real logs: rest ~0, pressed 0.164 / 0.466)."""
+    from onboard_api.wellbeing.engine import COMPONENTS, ComponentDef
+
+    pressed = [bitacora(i, 0.02, 0.164 if i >= DERAIL else 0.002, 0.08, 0.466 if i >= DERAIL else 0.0)
+               for i in range(DAYS)]
+    inputs = build_daily_inputs("ast-01", [], [], pressed, [], [], SETTINGS)
+    assert not any(k.startswith("vision.lip_press") for k in inputs.values)  # stored, not scored
+    assert evaluate(inputs, TODAY, SETTINGS).level == "ok"  # talking or pressing lips never fire stress
+
+    # The data behind the decision: as extra stress components, lips (~0 at rest)
+    # would average a brow-only grimace below the threshold.
+    lips = (ComponentDef("vision.lip_press_delta", "vision", "stress", "high", 0.10, "0-1"),
+            ComponentDef("vision.lip_press_peak_1s", "vision", "stress", "high", 0.20, "0-1"))
+    grimace = [bitacora(i, 0.035 if i >= DERAIL else 0.03 + 0.005 * (i % 2), 0.002,
+                        0.45 if i >= DERAIL else 0.10 + 0.02 * (i % 3), 0.0) for i in range(DAYS)]
+
+    def brow_grimace_status(components):
+        import onboard_api.wellbeing.engine as engine
+        saved = engine.COMPONENTS
+        engine.COMPONENTS = components
+        try:
+            ev = evaluate(_inputs_with_lips(grimace), TODAY, SETTINGS)
+        finally:
+            engine.COMPONENTS = saved
+        return next(i for i in ev.indicators if i.kind == "stress").status
+
+    assert brow_grimace_status(COMPONENTS) == "attention"
+    assert brow_grimace_status(COMPONENTS + lips) == "ok"
+
+
+def _inputs_with_lips(sessions):
+    """Daily inputs that keep the lip values, to measure their effect."""
     inputs = build_daily_inputs("ast-01", [], [], sessions, [], [], SETTINGS)
-    assert not any(k.startswith("vision.lip_press") for k in inputs.values)
-    ev = evaluate(inputs, TODAY, SETTINGS)
-    assert ev.level == "ok"
+    for s in sessions:
+        d = s.started_at.date()
+        inputs.values["vision.lip_press_delta"][d] = s.tension.lip_press_delta
+        inputs.values["vision.lip_press_peak_1s"][d] = s.tension.lip_press_peak_1s
+    return inputs
 
 
 def test_brow_peak_floor_matches_real_rest_spread() -> None:

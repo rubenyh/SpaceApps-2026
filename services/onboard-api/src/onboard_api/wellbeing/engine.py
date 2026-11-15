@@ -68,9 +68,12 @@ COMPONENTS: tuple[ComponentDef, ...] = (
     # Peaks keep brief grimaces that the session mean dilutes. Floor 0.08 ~ the
     # spread of real rest peaks (0.046-0.129, 3 logs): PROVISIONAL.
     ComponentDef("vision.brow_lower_peak_1s", "vision", "stress", "high", 0.08, "0-1"),
-    # lip_press_* is stored but not scored: talking peaks at 0.41-0.49 at rest,
-    # above deliberate lip pressing (real logs, 2026-11-15). Re-add once vision
-    # filters speech.
+    # lip_press_* is stored but not scored. Vision now drops speech frames (rest
+    # ~0, pressed 0.164 / 0.466, 2026-11-15), but there is one pressed-lips log
+    # only, and as two more `stress` components the lips dilute the brow, the
+    # validated signal: a brow-only grimace stops crossing the threshold (see
+    # test_lip_press_stays_out_of_stress). Revisit with more pressed-lips logs
+    # and a combination that does not average the brow away.
     ComponentDef("vision.speed", "vision", "activation", "both", 0.05, "shoulders/s"),
     ComponentDef("vision.stationary_ratio", "vision", "activation", "both", 0.05, "ratio"),
     ComponentDef("vision.fidget_index", "vision", "activation", "high", 0.05, "index"),

@@ -212,7 +212,7 @@ One camera summary from the vision process: one per daily log (`bitacora`) or on
 | `id` | INTEGER | PK AUTOINCREMENT | | |
 | `astronaut_id` | TEXT | NOT NULL | | Known id or `unknown-<track>`. |
 | `started_at` | TEXT | NOT NULL | | Timestamp, copied from the body for indexing. The session counts for this day. |
-| `body` | TEXT | NOT NULL | | `VisionSessionCreate` JSON: `session_type`, `module_id`, `ended_at`, `quality`, `valid_frame_ratio`, `identity`, `neutral_ok`, `fatigue`, `tension`, `motion`, `provisional`. `tension` may carry the optional `brow_lower_peak_1s` and `lip_press_peak_1s` (0-1, highest level held ≥ 1 s); older rows without them read as null, so no migration was needed. `lip_press_*` is stored but not scored (speech triggers it). Fields and ranges: contract section 6. |
+| `body` | TEXT | NOT NULL | | `VisionSessionCreate` JSON: `session_type`, `module_id`, `ended_at`, `quality`, `valid_frame_ratio`, `identity`, `neutral_ok`, `fatigue`, `tension`, `motion`, `provisional`. `tension` may carry the optional `brow_lower_peak_1s` and `lip_press_peak_1s` (0-1, highest level held ≥ 1 s); older rows without them read as null, so no migration was needed. `lip_press_*` is stored but not scored: vision now filters speech, but one pressed-lips log is not enough evidence, and as extra stress components the lips would dilute the brow signal. Fields and ranges: contract section 6. |
 | `received_at` | TEXT | NOT NULL | | Timestamp, set by the server. |
 
 Index `idx_vision_lookup (astronaut_id, started_at)`.
