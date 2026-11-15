@@ -26,9 +26,11 @@ The demo link pause (`POST /telemetry/pause`) also holds case reports.
 `POST /case-reports/v1` with body `CaseReportV1`, answers `200 {"report_id": "<id>", "received_at": "<ground receipt time>"}`.
 Idempotent on `(ship_id, report_id)`: a resend (for example after a lost acknowledgement) stores nothing new and returns the original `received_at`.
 
-`GET /case-reports` (newest first, optional `astronaut_id`, `incident_id`, `urgency` filters) and `GET /case-reports/{report_id}` return the stored report plus `received_at`.
+`GET /case-reports` (newest `received_at` first, optional `astronaut_id`, `incident_id`, `urgency` filters) and `GET /case-reports/{report_id}` return the stored report plus `received_at`. Ground incidents (`GET /incidents`) carry `report_ids` of the case reports with that `incident_id`.
 
 ### `CaseReportV1`
+
+JSON Schema: `case-report.v1.schema.json`. Example: `examples/report-basic.json` (both services parse every file in `examples/`).
 
 | Field | Type | Notes |
 |---|---|---|
