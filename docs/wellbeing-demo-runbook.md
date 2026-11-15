@@ -38,7 +38,7 @@ cd services\onboard-api
 uv run python scripts/demo_reset.py --tz America/Tijuana
 ```
 
-Respalda `data\wellbeing.db` en `data\backups\`. Carga el historial SIMULADO (semilla 7) y el export de ejemplo del Watch para ast-01, y termina con esta tabla, que debe salir así:
+Respalda `data\wellbeing.db` en `data\backups\`. Registra a los 4 con sus nombres; si alguno ya existía con otro nombre (por ejemplo, del simulador de sensores), lo renombra con `PATCH /astronauts/{id}` e imprime `Nombres cambiados: ...`. Carga el historial SIMULADO (semilla 7) y el export de ejemplo del Watch para ast-01, y termina con esta tabla, que debe salir así:
 
 ```
 ast-01     ok               -           no            -
