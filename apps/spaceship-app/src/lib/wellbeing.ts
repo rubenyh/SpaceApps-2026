@@ -115,6 +115,15 @@ export function dayCount(from: string, to: string): number {
   return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS) + 1;
 }
 
+/** Hint for an old indicator: "Last data Nov 11 — 3 days old." The age needs today's mission day. */
+export function staleHint(latestDay: string | null, today?: string): string {
+  if (latestDay === null) return "Last data ---.";
+  const age = today ? dayCount(latestDay, today) - 1 : null;
+  return age !== null && age > 0
+    ? `Last data ${formatDay(latestDay)} — ${age} ${age === 1 ? "day" : "days"} old.`
+    : `Last data ${formatDay(latestDay)}.`;
+}
+
 /** Valid ground-package period: both set, from ≤ to ≤ today (ISO strings compare as dates). */
 export const validPeriod = (from: string, to: string, today: string) =>
   from !== "" && to !== "" && from <= to && to <= today;

@@ -4,6 +4,7 @@ import { getWellbeing, getWellbeingParameters, getWellbeingTimeline, listCheckin
 import { IndicatorRow } from "../../components/IndicatorRow";
 import { Panel } from "../../components/Panel";
 import { ConfidenceMeter, OriginMark, TrendMark, WellbeingIcon, WellbeingPill } from "../../components/WellbeingMarks";
+import { WellbeingServiceBanner } from "../../components/WellbeingServiceBanner";
 import { WellbeingTimeline } from "../../components/WellbeingTimeline";
 import { usePolling } from "../../hooks/usePolling";
 import { formatClock, formatDay, formatDayLong, missionDay, sourcesText, TIMELINE_DAYS } from "../../lib/wellbeing";
@@ -82,26 +83,7 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
         </button>
       </div>
 
-      {error ? (
-        <div className="banner banner--stale" role="alert">
-          <WellbeingIcon kind="service_off" size={30} />
-          <div className="banner__text">
-            <span className="banner__title">Wellbeing service unavailable</span>
-            <span>
-              {assessment.updatedAt !== null
-                ? `Showing the last data received, at ${formatClock(
-                    new Date(assessment.updatedAt).toISOString(),
-                    params.data?.mission_tz,
-                  )}. `
-                : "No data has been received yet. "}
-              Physical health tabs are not affected.
-            </span>
-          </div>
-          <button type="button" className="btn btn--ghost" onClick={retry}>
-            Retry
-          </button>
-        </div>
-      ) : null}
+      <WellbeingServiceBanner error={error} updatedAt={assessment.updatedAt} onRetry={retry} timeZone={tz} />
 
       {!a || threshold === null ? (
         error ? null : (
@@ -148,6 +130,7 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
                   key={ind.kind}
                   indicator={ind}
                   threshold={threshold}
+                  today={today}
                   expanded={open[ind.kind] ?? false}
                   onToggle={() => setOpen((o) => ({ ...o, [ind.kind]: !o[ind.kind] }))}
                 />

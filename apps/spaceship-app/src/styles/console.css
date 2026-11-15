@@ -1854,7 +1854,7 @@ textarea {
 }
 
 /* ---------- Wellbeing ---------- */
-/* Reference: docs/design/wellbeing. Same grammar as the physical tabs, but nothing pulses. */
+/* Reference: docs/design/wellbeing. Same grammar as the physical tabs, but no animation. */
 
 .wellbeing__bar {
   display: flex;
@@ -2305,6 +2305,47 @@ textarea {
 
 .wb-private__who {
   color: var(--color-text-muted);
+}
+
+/* PIN gate before Personal, Check-in and Ground */
+.wb-lock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  border: var(--border-normal);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.wb-lock > .state-icon {
+  color: var(--color-text);
+}
+
+.wb-lock h2 {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+
+.wb-lock p:not(.wb-error) {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.wb-lock__field input {
+  width: 200px;
+  height: 52px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+.wb-lock__btn {
+  min-height: 48px;
+  padding: 0 var(--space-6);
 }
 
 .wb-share {

@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import type { CrewMemberSummary, WellbeingParameters } from "../../api/types";
 import { getCrewWellbeing, getWellbeing, getWellbeingParameters } from "../../api/wellbeing";
 import { Panel } from "../../components/Panel";
-import { ServiceBanner } from "../../components/ServiceBanner";
 import { OriginMark, TrendMark, WellbeingIcon, WellbeingPill } from "../../components/WellbeingMarks";
+import { WellbeingServiceBanner } from "../../components/WellbeingServiceBanner";
 import { ZTrack } from "../../components/ZTrack";
 import { usePolling } from "../../hooks/usePolling";
 import { firstName, formatClock, formatZ, missionDay, supportSuggestion, videoLogZ } from "../../lib/wellbeing";
@@ -51,7 +51,7 @@ export function CrewView({ toggle }: { toggle: ReactNode }) {
       </div>
 
       {crew.error ? (
-        <ServiceBanner error={crew.error} updatedAt={crew.updatedAt} onRetry={crew.refresh} />
+        <WellbeingServiceBanner error={crew.error} updatedAt={crew.updatedAt} onRetry={crew.refresh} timeZone={tz} />
       ) : !data ? (
         <div className="banner" role="status">
           <div className="banner__text">
@@ -66,7 +66,7 @@ export function CrewView({ toggle }: { toggle: ReactNode }) {
           <h2>No wellbeing data yet</h2>
         </section>
       ) : data ? (
-        <div className="wb-crew">
+        <div className={`wb-crew${crew.error ? " wellbeing--stale" : ""}`}>
           <Panel title="Crew wellbeing" className="wb-crew__main">
             <p className="wellbeing__faint">Overall level and trend only. Personal detail stays private.</p>
             <div className="wb-cards">

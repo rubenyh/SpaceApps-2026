@@ -4,6 +4,7 @@ import type { Checkin, CheckinUpsert } from "../../api/types";
 import { getCheckinForm, getWellbeingParameters, listCheckins, putCheckin } from "../../api/wellbeing";
 import { HoursStepper } from "../../components/HoursStepper";
 import { ScaleInput } from "../../components/ScaleInput";
+import { WellbeingServiceBanner } from "../../components/WellbeingServiceBanner";
 import { Arrow, CHEVRON, WellbeingIcon } from "../../components/WellbeingMarks";
 import { usePolling } from "../../hooks/usePolling";
 import { firstName, formatClock, formatDayLong, missionDay } from "../../lib/wellbeing";
@@ -103,26 +104,16 @@ export function CheckinView({ astronautId, displayName, onBack }: Props) {
         ) : null}
       </div>
 
-      {loadError ? (
-        <div className="banner banner--stale" role="alert">
-          <WellbeingIcon kind="service_off" size={30} />
-          <div className="banner__text">
-            <span className="banner__title">Wellbeing service unavailable</span>
-            <span>The check-in cannot be loaded or saved right now.</span>
-          </div>
-          <button
-            type="button"
-            className="btn btn--ghost"
-            onClick={() => {
-              form.refresh();
-              params.refresh();
-              existing.refresh();
-            }}
-          >
-            Retry
-          </button>
-        </div>
-      ) : null}
+      <WellbeingServiceBanner
+        error={loadError}
+        updatedAt={form.updatedAt}
+        timeZone={tz}
+        onRetry={() => {
+          form.refresh();
+          params.refresh();
+          existing.refresh();
+        }}
+      />
 
       {!ready ? (
         loadError ? null : (
@@ -147,7 +138,7 @@ export function CheckinView({ astronautId, displayName, onBack }: Props) {
           {back}
         </section>
       ) : (
-        <form className="wb-ci" aria-label="Daily check-in" onSubmit={onSubmit}>
+        <form className={`wb-ci${loadError ? " wellbeing--stale" : ""}`} aria-label="Daily check-in" onSubmit={onSubmit}>
           {items.map((i) => {
             if (i.kind === "scale") {
               return <ScaleInput key={i.key} item={i} value={numberOf(i.key)} onChange={(v) => set(i.key, v)} />;

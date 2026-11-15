@@ -16,6 +16,7 @@ import {
 } from "../../api/wellbeing";
 import { Panel } from "../../components/Panel";
 import { SegmentedControl } from "../../components/SegmentedControl";
+import { WellbeingServiceBanner } from "../../components/WellbeingServiceBanner";
 import { Arrow, CHEVRON, OriginMark, WellbeingIcon } from "../../components/WellbeingMarks";
 import { usePolling } from "../../hooks/usePolling";
 import {
@@ -189,25 +190,15 @@ export function GroundView({ astronautId, displayName, onBack }: Props) {
         </span>
       </div>
 
-      {loadError ? (
-        <div className="banner banner--stale" role="alert">
-          <WellbeingIcon kind="service_off" size={30} />
-          <div className="banner__text">
-            <span className="banner__title">Wellbeing service unavailable</span>
-            <span>Packages cannot be created or listed right now.</span>
-          </div>
-          <button
-            type="button"
-            className="btn btn--ghost"
-            onClick={() => {
-              params.refresh();
-              packages.refresh();
-            }}
-          >
-            Retry
-          </button>
-        </div>
-      ) : null}
+      <WellbeingServiceBanner
+        error={loadError}
+        updatedAt={packages.updatedAt}
+        timeZone={tz}
+        onRetry={() => {
+          params.refresh();
+          packages.refresh();
+        }}
+      />
 
       {today === null ? (
         loadError ? null : (
@@ -339,7 +330,7 @@ export function GroundView({ astronautId, displayName, onBack }: Props) {
               <PreviewBody preview={preview} />
             </Panel>
 
-            <Panel title="Your packages">
+            <Panel title="Your packages" className={loadError ? "wellbeing--stale" : undefined}>
               {listError ? (
                 <p className="wb-error" role="alert">
                   {listError}

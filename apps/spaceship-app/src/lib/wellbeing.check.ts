@@ -12,6 +12,7 @@ import {
   formatZ,
   missionDay,
   snapToStep,
+  staleHint,
   supportSuggestion,
   videoLogZ,
   zPercent,
@@ -103,5 +104,10 @@ eq(formatValue(null, "h"), "---", "missing value");
 eq(formatValue(4.5, "h"), "4.5 h", "value with unit");
 eq(formatValue(3, "0-4"), "3 / 4", "scale value");
 eq(formatValue(0.6667, "ratio"), "0.67 ratio", "rounded value");
+
+eq(staleHint("2026-11-11", "2026-11-14"), "Last data Nov 11 — 3 days old.", "stale hint with age");
+eq(staleHint("2026-11-13", "2026-11-14"), "Last data Nov 13 — 1 day old.", "stale hint singular");
+eq(staleHint("2026-11-11"), "Last data Nov 11.", "stale hint without today");
+eq(staleHint(null, "2026-11-14"), "Last data ---.", "stale hint without day");
 
 console.log("wellbeing.check: ok");
