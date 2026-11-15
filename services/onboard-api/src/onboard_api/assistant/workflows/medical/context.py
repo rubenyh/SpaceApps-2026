@@ -111,6 +111,7 @@ class SqliteReadingsProvider:
                 source=row.source,
                 age_seconds=age,
                 stale=stale,
+                id=row.id,
             )
             if future:
                 warn(

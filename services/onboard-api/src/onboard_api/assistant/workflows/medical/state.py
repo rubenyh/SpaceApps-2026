@@ -75,6 +75,7 @@ class VitalReading:
     source: str
     age_seconds: int
     stale: bool  # older than sensor_config.stale_after_seconds (300 s demo policy)
+    id: int  # readings.id, so an incident can reference the exact rows
 
 
 @dataclass
