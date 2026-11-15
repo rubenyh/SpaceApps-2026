@@ -141,7 +141,7 @@ Run onboard-api, ground-api and the simulator as local processes: [README, local
 3. Ask the assistant a question. An SOS message gets its immediate reply even when `ollama` is stopped.
 4. base-app shows the same astronauts and alerts within a few seconds, and the link is up.
 
-Outage demo (urgent incident while the Earth link is down, about 30 s): see [demo-outage.md](demo-outage.md). Its controls (link pause/resume, incident reset) are off by default and answer 403. Start the stack with `$env:DEMO_CONTROLS_ENABLED="true"` in PowerShell (or `DEMO_CONTROLS_ENABLED=true docker compose up -d`) to turn them on. Reset with `python services/onboard-api/scripts/incident_demo.py reset`, then run it with `python services/onboard-api/scripts/incident_demo.py run --step`.
+Outage demo (urgent incident while the Earth link is down, about 30 s) and the case report demo (ship to base across an outage and an onboard restart): see [demo-outage.md](demo-outage.md). Its controls (link pause/resume, incident reset) are off by default and answer 403. Start the stack with `$env:DEMO_CONTROLS_ENABLED="true"` in PowerShell (or `DEMO_CONTROLS_ENABLED=true docker compose up -d`) to turn them on. Reset with `python services/onboard-api/scripts/incident_demo.py reset`, then run it with `python services/onboard-api/scripts/incident_demo.py run --step`.
 
 ## Stop
 

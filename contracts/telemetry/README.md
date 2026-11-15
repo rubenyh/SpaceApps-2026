@@ -4,6 +4,8 @@ Source of truth for data sent from `onboard-api` to `ground-api`, and for the re
 The JSON Schema is [`telemetry.v1.schema.json`](telemetry.v1.schema.json); fixtures live in [`examples/`](examples/).
 Only additive changes inside v1. A breaking change means `v2` schema and route.
 
+Crew-reviewed case reports use a separate contract, [`../case-report/README.md`](../case-report/README.md) (`POST /case-reports/v1`), delivered by the same publisher loop. Telemetry v1 is unchanged by it.
+
 ## Transport
 
 HTTP. The onboard publisher sends `POST {ground}/telemetry/v1/batches` every few seconds.
@@ -13,7 +15,7 @@ HTTP. The onboard publisher sends `POST {ground}/telemetry/v1/batches` every few
 - Incident updates are deduplicated by `(ship_id, update.id)`, independent of `batch_id`. The onboard queue is the `incident_events` table: the publisher sends up to 500 rows with `delivered_at IS NULL` per batch and sets `delivered_at` (onboard clock) only after ground answers 2xx for that batch.
 - On start the publisher asks `GET {ground}/telemetry/v1/cursor?ship_id=<id>` → `{"last_reading_id": <int|null>}` and resumes after it. No onboard migration needed.
 - A lost link never blocks onboard work. The publisher retries with backoff and simply sends everything after the cursor when the link returns (bounded batch size, e.g. 500 readings).
-- Never sent: camera frames, assistant conversations (message or reply text), `CaseReport.text`, findings detail text, wellbeing data.
+- Never sent in batches: camera frames, assistant conversations (message or reply text), `CaseReport.text` (only the crew-sent case report carries it, see the case-report contract), findings detail text, wellbeing data.
 
 ## Batch envelope
 
@@ -44,6 +46,6 @@ All JSON, all timestamps ISO 8601 UTC. Ground computes status with **its own clo
 | `GET /incidents/{id}` | `GroundIncident`. 404 for unknown id. |
 | `GET /alerts?limit=` | Newest first (default 50, max 500). One row per stored reading that was outside its **health** range when it arrived: `{reading, normal_min, normal_max, side: "high"\|"low"}`. Sample-validity ranges and `urine_radiation_marker` never produce alerts. |
 
-`GroundIncident` = `{ship_id, id, astronaut_id, began_at (null until the created update arrives), urgency, protocol_id, protocol_version, matched_rules, action, reported_via, readings: [GroundReading], missing_reading_ids, acknowledgments: [{acknowledged_by, acknowledged_at (onboard time), received_at}], updates: [{id, type, occurred_at, received_at, acknowledged_by}]}`. `reported_via` and the reading ids come from the `created` update (null / `[]` until it arrives). `readings` are the stored readings joined by `(ship_id, reading_id)`, in `reading_ids` order, same shape as `GET /astronauts/{id}/readings`; ids not received yet are omitted and counted in `missing_reading_ids` (int). `updates` sorted by `occurred_at`. `received_at` is the ground clock at ingest, stored next to the original onboard time; the delay is `received_at - occurred_at`.
+`GroundIncident` = `{ship_id, id, astronaut_id, began_at (null until the created update arrives), urgency, protocol_id, protocol_version, matched_rules, action, reported_via, readings: [GroundReading], missing_reading_ids, acknowledgments: [{acknowledged_by, acknowledged_at (onboard time), received_at}], updates: [{id, type, occurred_at, received_at, acknowledged_by}], report_ids}`. `report_ids`: ids of received case reports with this `incident_id`, newest received first ([case-report](../case-report/README.md)). `reported_via` and the reading ids come from the `created` update (null / `[]` until it arrives). `readings` are the stored readings joined by `(ship_id, reading_id)`, in `reading_ids` order, same shape as `GET /astronauts/{id}/readings`; ids not received yet are omitted and counted in `missing_reading_ids` (int). `updates` sorted by `occurred_at`. `received_at` is the ground clock at ingest, stored next to the original onboard time; the delay is `received_at - occurred_at`.
 
 CORS: ground allows `http://localhost:1421` (base-app Vite dev), `tauri://localhost`, `http://tauri.localhost`.
