@@ -2,20 +2,20 @@ import type { GroundReading, Quality, SensorConfig, SensorKind } from "../api/ty
 
 /** Plain-text sensor names (also for <option>, where markup is not allowed). */
 export const SENSOR_LABELS: Record<SensorKind, string> = {
-  heart_rate: "Pulso",
+  heart_rate: "Heart rate",
   spo2: "SpO2",
-  muscle_density: "Músculo",
-  urine_ph: "pH orina",
-  urine_salinity: "Salinidad",
-  urine_color: "Color orina",
-  urine_temperature: "Temp. orina",
-  urine_radiation_marker: "Marcador radiación",
+  muscle_density: "Muscle density",
+  urine_ph: "Urine pH",
+  urine_salinity: "Urine salinity",
+  urine_color: "Urine color",
+  urine_temperature: "Urine temp.",
+  urine_radiation_marker: "Radiation marker",
 };
 
 export const QUALITY_LABELS: Record<Quality, string> = {
-  good: "Buena",
-  suspect: "Dudosa",
-  bad: "Mala",
+  good: "Good",
+  suspect: "Suspect",
+  bad: "Bad",
 };
 
 /** Round to at most `maxDecimals` without padding zeros. */
@@ -67,13 +67,13 @@ export function utcMinutes(ms: number): string {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** "14 nov" in UTC. */
+/** "14 Nov" in UTC. */
 export function utcDay(ms: number): string {
   const d = new Date(ms);
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
 }
 
-/** "14 nov 18:02:11Z" or "--" for null/invalid. */
+/** "14 Nov 18:02:11Z" or "--" for null/invalid. */
 export function utcStamp(iso: string | null | undefined): string {
   if (!iso) return "--";
   const t = Date.parse(iso);
