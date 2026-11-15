@@ -49,6 +49,7 @@ On macOS, from the repo root:
 ./run.sh                 # stack + both consoles (one Terminal window each) + watch app in the watchOS simulator
 ./run.sh --no-apps       # only the Docker stack
 ./run.sh --watch-device  # also publishes onboard-api on the LAN and opens the watch project in Xcode
+./run.sh --urine-device  # also reads ast-01's urine pH/salinity/temperature from the ESP32 on USB (bridge in its own Terminal window)
 ./run.sh --down          # stop the Docker stack (keeps the volumes)
 ```
 
