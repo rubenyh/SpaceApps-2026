@@ -197,7 +197,7 @@ _SUDDEN = re.compile(r"\b(de repente|repentin\w*|subit\w*|de golpe|de pronto|sin
 _GRADUAL = re.compile(r"\b(poco a poco|de a poco|gradual\w*|progresiv\w*|lentamente|slowly)\b")
 _SEVERE = re.compile(
     r"\b((?<!poco )intens\w*|much[oa]s?|muchisim\w*|grave|muy fuerte|insoportable|sever[oa]|terrible|horrible"
-    r"|el peor|la peor|severe|very bad|unbearable|extreme\w*|worst)\b"
+    r"|el peor|la peor|severe|very bad|unbearable|extreme\w*|worst|a lot|very much)\b"
 )
 _MODERATE = re.compile(r"\b((?<!poco )fuerte|moderad[oa]|bastante|moderate)\b")
 _MILD = re.compile(r"\b(leve|un poco|poquito|liger[oa]|algo de|suave|es poco(?! a poco)|poco (intens\w*|fuerte|dolor\w*)"

@@ -30,7 +30,7 @@ Variables de entorno con prefijo `ONBOARD_` (`src/onboard_api/config.py`). No se
 | `ONBOARD_DB_PATH` | `data/onboard.db` | Archivo SQLite. |
 | `ONBOARD_CORS_ORIGINS` | orígenes de Vite (1420) y Tauri | Lista JSON, p. ej. `'["http://localhost:1420"]'`. |
 | `ONBOARD_OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Servidor Ollama local. |
-| `ONBOARD_OLLAMA_CHAT_MODEL` | `qwen2.5:0.5b` | Modelo que redacta la explicación. |
+| `ONBOARD_OLLAMA_CHAT_MODEL` | `qwen2.5:3b` | Modelo que redacta la explicación. |
 | `ONBOARD_OLLAMA_EMBED_MODEL` | `bge-m3` | Embeddings de ingesta y consulta. Si cambia, hay que reingestar. Debe coincidir con `corpus/manifest.json`. |
 | `ONBOARD_OLLAMA_TIMEOUT_SECONDS` | `20.0` | Tiempo de espera por llamada a Ollama. |
 | `ONBOARD_CHROMA_PATH` | `data/chroma` | Índice persistente de ChromaDB. |
@@ -44,7 +44,7 @@ Variables de entorno con prefijo `ONBOARD_` (`src/onboard_api/config.py`). No se
 
 ```sh
 ollama pull bge-m3
-ollama pull qwen2.5:0.5b
+ollama pull qwen2.5:3b
 ```
 
 Sin el modelo de chat, la respuesta usa el texto de la ficha o de la guía y lo indica en `data_notices`.

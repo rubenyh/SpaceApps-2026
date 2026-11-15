@@ -92,8 +92,8 @@ def test_yes_a_little_means_mild_shortness_of_breath(ask, breathing) -> None:
     llm = qwen(("shortness_of_breath", "present", "sí, un poco"))
     body, *_ = ask("sí, un poco", breathing, llm=llm)
     assert body["urgency"] == "review_required" and body["protocol_id"] == "breathing_difficulty"
-    assert any(f["detail"].startswith("Falta de aire") for f in body["findings"])
-    assert "falta de aire" in llm.json_calls[0]  # Qwen got the pending question
+    assert any(f["detail"].startswith("Shortness of breath") for f in body["findings"])
+    assert "shortness of breath" in llm.json_calls[0]  # Qwen got the pending question
 
 
 def test_no_means_absent_and_keeps_the_reading_question(ask, breathing) -> None:
@@ -114,7 +114,21 @@ def test_bare_yes_never_applies_to_a_symptom_that_was_not_asked(ask, breathing) 
     body, *_ = ask("sí", breathing, llm=qwen(("chest_pain", "present", "sí")))
     assert body["urgency"] == "review_required" and body["protocol_id"] == "breathing_difficulty"
     assert "chest_pain" not in body["additional_protocol_ids"]
-    assert not any("torácica" in f["detail"] for f in body["findings"])
+    assert not any("Chest pain" in f["detail"] for f in body["findings"])
+
+
+@pytest.mark.parametrize(
+    ("answer", "status", "urgency"),
+    [("yes, a little", "present", "review_required"), ("no", "absent", "undetermined"),
+     ("not sure", "unknown", "undetermined"), ("I don't know", "unknown", "undetermined"),
+     ("yes, a lot", "present", "immediate")],
+)
+def test_english_short_replies_are_read_by_the_rules(ask, breathing, answer, status, urgency) -> None:
+    """English bare answers work with the interpreter silent (rules only)."""
+    body, *_ = ask(answer, breathing, llm=qwen())
+    assert body["urgency"] == urgency and body["protocol_id"] == "breathing_difficulty"
+    if body.get("clarification"):
+        assert symptoms(body)["shortness_of_breath"] == status
 
 
 @pytest.mark.parametrize("answer", ["sí, un poco", "no", "sí, mucho"])

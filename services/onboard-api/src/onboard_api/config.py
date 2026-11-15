@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     # Local assistant. Everything runs on this machine.
     ollama_base_url: str = "http://127.0.0.1:11434"
-    ollama_chat_model: str = "qwen2.5:0.5b"
+    ollama_chat_model: str = "qwen2.5:3b"
     # Same model for ingest and query; changing it requires re-ingesting.
     ollama_embed_model: str = "bge-m3"
     ollama_timeout_seconds: float = 20.0

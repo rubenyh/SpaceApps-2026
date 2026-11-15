@@ -71,15 +71,36 @@ def test_exact_transcript_with_simulated_spo2_97(ask, llm) -> None:
     assert body["mission_procedures"] and not body["mission_procedures"][0]["loaded"]
 
     report = body["report"]["text"]
-    assert "Falta de aire: presente" in report
-    # Unknown onset and severity stay unknown (never "leve" or "absent").
-    assert "inicio: desconocido; intensidad: desconocida" in report
-    assert "Inicio de falta de aire: desconocido." in report
-    assert "SpO₂: 97 %" in report and FRESH in report and "calidad good" in report
-    assert "fuente simulated:pulse-ox" in report and "SIMULADA" in report
+    assert "Shortness of breath: present" in report
+    # Unknown onset and severity stay unknown (never "mild" or "absent").
+    assert "onset: unknown; intensity: unknown" in report
+    assert "Onset of shortness of breath: unknown." in report
+    assert "SpO₂: 97 %" in report and FRESH in report and "quality good" in report
+    assert "source simulated:pulse-ox" in report and "SIMULATED" in report
     assert body["action"] in report
     [spo2] = [f for f in body["findings"] if f["source"] == "sqlite:spo2"]
-    assert "SIMULADA" in spo2["detail"]
+    assert "SIMULATED" in spo2["detail"]
+
+
+def test_spanish_transcript_gets_english_emergency_offline(ask) -> None:
+    """hello -> sintoma -> Spanish chest pain + breathlessness: same card and urgency,
+    English questions, action, steps and report, with Ollama and ChromaDB never called."""
+    llm, retriever = Forbidden("llm"), Forbidden("retriever")
+    hello = ask("hello", llm=llm, retriever=retriever)
+    assert hello["clarifying_question"].startswith("Is your question about a symptom")
+    symptom = ask("sintoma", hello, llm=FailingLLM(), retriever=retriever)
+    assert symptom["clarifying_question"].startswith("What do you feel right now")
+    body = ask("siento falta de aire y dolor en el pecho", symptom, llm=llm, retriever=retriever)
+    assert body["urgency"] == "immediate" and body["protocol_id"] == "chest_pain"
+    assert [r["rule_id"] for r in body["matched_rules"]][0] == "chest_pain.concerning_pattern"
+    actionable(body)
+    text = "\n".join([body["reply"], body["action"], body["report"]["text"],
+                      *(s["text"] for s in body["steps"]), *body["notify"]])
+    assert "Possible cardiac emergency" in body["action"]
+    assert "MEDICAL CASE REPORT" in body["report"]["text"]
+    assert not any(c in text for c in "áéíóúñ¿¡"), text
+    assert 'text "falta de aire"' in body["report"]["text"]  # the astronaut's own words kept
+    assert llm.calls == [] and retriever.calls == []
 
 
 @pytest.mark.parametrize("message", ["I can't breathe", "sudden severe shortness of breath",
@@ -90,8 +111,8 @@ def test_severe_breathing_is_an_emergency_whatever_the_simulated_spo2(ask, messa
     assert body["urgency"] == "immediate" and body["protocol_id"] == "breathing_difficulty"
     actionable(body)
     assert {s["who"] for s in body["steps"]} >= {"self", "crew", "equipment"}
-    assert body["mission_procedures"][0]["title"].startswith("Procedimiento de emergencia")
-    assert "SIMULADA" in body["report"]["text"] and "97" in body["report"]["text"]
+    assert body["mission_procedures"][0]["title"] == "Mission respiratory emergency procedure"
+    assert "SIMULATED" in body["report"]["text"] and "97" in body["report"]["text"]
     assert llm.calls == [] and retriever.calls == []
 
 
@@ -107,8 +128,8 @@ def test_missing_readings_are_stated_and_steps_still_given(ask) -> None:
     body = ask("shortness of breath", llm=FailingLLM(), retriever=FailingRetriever())
     actionable(body)
     report = body["report"]["text"]
-    assert "SpO₂: sin lectura (valor desconocido)." in report
-    assert "Pulso: sin lectura (valor desconocido)." in report
+    assert "SpO₂: no reading (value unknown)." in report
+    assert "Pulse: no reading (value unknown)." in report
     assert {f["source"] for f in body["findings"] if f["kind"] == "data_gap"} >= {"sqlite:spo2", "sqlite:heart_rate"}
 
 
@@ -117,7 +138,7 @@ def test_readings_repository_down_on_an_alarm(ask) -> None:
                provider=FailingReadings())
     assert body["urgency"] == "immediate"
     actionable(body)
-    assert "Lecturas no disponibles" in body["report"]["text"]
+    assert "Readings unavailable" in body["report"]["text"]
 
 
 def test_ollama_and_chromadb_down(ask) -> None:
@@ -132,8 +153,8 @@ def test_negated_and_unknown_symptoms_keep_their_status(ask) -> None:
     body = ask("shortness of breath, no cough, not sure if I have a fever",
                llm=FailingLLM(), retriever=FailingRetriever())
     report = body["report"]["text"]
-    assert "Tos: ausente (negado)" in report
-    assert "Fiebre: desconocido (no se sabe)" in report
+    assert "Cough: absent (denied)" in report
+    assert "Fever: unknown (not known)" in report
 
 
 def test_no_ground_link(db_path, clock) -> None:
@@ -147,7 +168,7 @@ def test_no_ground_link(db_path, clock) -> None:
                         llm=FailingLLM(), retriever=FailingRetriever(), readings=[SIM_SPO2])
     assert body["urgency"] == "immediate"
     actionable(body)
-    assert "control de misión (si hay enlace)" in body["notify"]
+    assert "mission control (if the link is up)" in body["notify"]
 
 
 def test_out_of_coverage_gives_actions_without_a_clinician(ask) -> None:

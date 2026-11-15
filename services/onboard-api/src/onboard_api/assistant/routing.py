@@ -14,18 +14,18 @@ from onboard_api.assistant.workflows.medical.state import EventSource
 from onboard_api.schemas.assistant import AssistantResponse, Clarification
 
 CLARIFY_QUESTION = (
-    "¿Tu consulta es sobre un síntoma o malestar que tienes ahora (tú u otro"
-    " tripulante), o sobre información general de salud de las guías a bordo?"
+    "Is your question about a symptom or discomfort you have now (you or another crew"
+    " member), or about general health information from the onboard guides?"
 )
 UNSUPPORTED_REPLY = (
-    "No puedo ayudar con esa solicitud. Puedo ayudarte con: síntomas o malestares"
-    " actuales tuyos o de otro tripulante, alertas de cabina o de radiación,"
-    " información de tus lecturas (pulso, SpO₂, orina) y consultas generales de salud"
-    " basadas en las guías a bordo."
+    "I can't help with that request. I can help with: current symptoms or discomfort"
+    " for you or another crew member, cabin or radiation alerts, information about your"
+    " readings (pulse, SpO₂, urine) and general health questions based on the onboard"
+    " guides."
 )
 EMERGENCY_LINE = (
-    "Si hay una emergencia o te sientes en peligro, sigue el procedimiento de"
-    " emergencia de la misión y pide ayuda con la alarma de la nave."
+    "If there is an emergency or you feel in danger, follow the mission emergency"
+    " procedure and call for help with the ship alarm."
 )
 
 # Stems matched on lowercase text without accents.
@@ -33,12 +33,15 @@ _PSYCH = (
     "psicolog", "ansiedad", "ansios", "estres", "triste", "deprim", "soledad",
     "me siento solo", "me siento sola", "salud mental", "emocional", "angustia",
     "animo", "panico", "llorar",
+    "anxi", "stressed", "depress", "lonely", "mental health", "emotional", "panic",
 )
 _DISTRESS = (
     "emergencia", "auxilio", "socorro", "urgente", "peligro", "me muero",
     "no puedo mas", "suicid", "matarme", "hacerme dano", "panico",
+    "emergency", "help me", "urgent", "danger", "dying", "kill myself", "hurt myself", "panic",
 )
-_VAGUE = ("hola", "ayuda", "ayudame", "duda", "pregunta", "consulta", "necesito")
+_VAGUE = ("hola", "ayuda", "ayudame", "duda", "pregunta", "consulta", "necesito",
+          "hello", "hi", "hey", "help", "question", "need")
 
 
 def _normalize(text: str) -> str:

@@ -1,59 +1,59 @@
 {
   "id": "abdominal_pain_or_gi_bleeding",
-  "version": "2.0.0",
-  "title": "Dolor abdominal o sangrado digestivo",
+  "version": "2.1.0",
+  "title": "Abdominal pain or gastrointestinal bleeding",
   "priority": 90,
-  "summary": "Dolor abdominal, vómito con sangre o sangre en heces. El dolor localizado y el posible sangrado se muestran como hallazgos. Una causa digestiva solo se considera con evidencia suficiente. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
+  "summary": "Abdominal pain, vomiting blood or blood in the stool. Localized pain and possible bleeding are shown as findings. A digestive cause is only considered with sufficient evidence. Informational support only: not a diagnosis or a treatment decision. No clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Dolor abdominal repentino e intenso, vómito con sangre o heces negras: emergencia.",
+      "text": "Sudden, severe abdominal pain, vomiting blood or black stools: emergency.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "text": "Call for emergency help now using the mission's means (ship alarm, crew, mission control if the link is up). Do not wait to see if it gets better.",
           "source_ids": [
             "medlineplus_abdominal_pain_care"
           ]
         },
         {
           "who": "self",
-          "text": "No tomes medicamentos por tu cuenta.",
+          "text": "Do not take any medication on your own.",
           "source_ids": [
             "medlineplus_abdominal_pain_care"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento de emergencia médica de la misión"
+      "mission_procedure": "Mission medical emergency procedure"
     },
     "prompt_review": {
       "urgency": "review_required",
-      "text": "Dolor abdominal persistente, focal o que empeora, o sangre en heces: vigila de cerca.",
+      "text": "Persistent, focal or worsening abdominal pain, or blood in the stool: monitor closely.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Toma sorbos de agua u otros líquidos claros y evita alimentos sólidos las primeras horas.",
+          "text": "Take sips of water or other clear fluids and avoid solid food for the first few hours.",
           "source_ids": [
             "medlineplus_abdominal_pain_care"
           ]
         },
         {
           "who": "self",
-          "text": "No tomes medicamentos por tu cuenta.",
+          "text": "Do not take any medication on your own.",
           "source_ids": [
             "medlineplus_abdominal_pain_care"
           ]
         },
         {
           "who": "self",
-          "text": "Si el dolor se vuelve repentino y agudo, vomitas sangre, las heces son negras o con sangre, el abdomen está rígido o te cuesta respirar, trátalo como emergencia.",
+          "text": "If the pain becomes sudden and sharp, you vomit blood, your stools are black or bloody, your abdomen is rigid or you have trouble breathing, treat it as an emergency.",
           "source_ids": [
             "medlineplus_abdominal_pain_care"
           ]
@@ -62,21 +62,21 @@
     },
     "review": {
       "urgency": "review_required",
-      "text": "Dolor abdominal: cuídate y vigila. Si se vuelve repentino e intenso o aparece sangrado, es una emergencia.",
+      "text": "Abdominal pain: take care of yourself and monitor. If it becomes sudden and severe or bleeding appears, it is an emergency.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Toma sorbos de agua u otros líquidos claros y evita alimentos sólidos las primeras horas.",
+          "text": "Take sips of water or other clear fluids and avoid solid food for the first few hours.",
           "source_ids": [
             "medlineplus_abdominal_pain_care"
           ]
         },
         {
           "who": "self",
-          "text": "Si el dolor se vuelve repentino y agudo, vomitas sangre, las heces son negras o con sangre, el abdomen está rígido o te cuesta respirar, trátalo como emergencia.",
+          "text": "If the pain becomes sudden and sharp, you vomit blood, your stools are black or bloody, your abdomen is rigid or you have trouble breathing, treat it as an emergency.",
           "source_ids": [
             "medlineplus_abdominal_pain_care"
           ]
@@ -88,8 +88,8 @@
   "candidates": [
     {
       "id": "digestive_cause",
-      "label": "Causa digestiva",
-      "minimum_evidence": "Dolor abdominal acompañado de náuseas, vómitos o diarrea.",
+      "label": "Digestive cause",
+      "minimum_evidence": "Abdominal pain with nausea, vomiting or diarrhea.",
       "source_ids": [
         "medlineplus_abdominal_pain"
       ]
@@ -99,19 +99,19 @@
     {
       "id": "medlineplus_abdominal_pain",
       "title": "MedlinePlus: Abdominal Pain",
-      "section": "Resumen",
+      "section": "Summary",
       "url": "https://medlineplus.gov/abdominalpain.html"
     },
     {
       "id": "medlineplus_bleeding",
       "title": "MedlinePlus: Bleeding",
-      "section": "Resumen",
+      "section": "Summary",
       "url": "https://medlineplus.gov/bleeding.html"
     },
     {
       "id": "medlineplus_abdominal_pain_care",
       "title": "MedlinePlus: Abdominal pain",
-      "section": "Cuidados en casa y cuándo pedir ayuda",
+      "section": "Home care and when to get help",
       "url": "https://medlineplus.gov/ency/article/003120.htm"
     }
   ],

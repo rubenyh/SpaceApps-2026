@@ -24,17 +24,17 @@ _OPTIONAL = (
     "urine_radiation_marker",
 )
 LABELS = {
-    "heart_rate": "pulso",
+    "heart_rate": "pulse",
     "spo2": "SpO₂",
-    "muscle_density": "sensor muscular",
-    "urine_ph": "pH de orina",
-    "urine_salinity": "salinidad de orina",
-    "urine_color": "color de orina",
-    "urine_temperature": "temperatura de la muestra de orina",
-    "urine_radiation_marker": "marcador de radiación en orina",
+    "muscle_density": "muscle sensor",
+    "urine_ph": "urine pH",
+    "urine_salinity": "urine salinity",
+    "urine_color": "urine color",
+    "urine_temperature": "urine sample temperature",
+    "urine_radiation_marker": "urine radiation marker",
 }
-_QUALITY = {"suspect": "dudosa", "bad": "mala"}
-_UNAVAILABLE = "Repositorio de lecturas no disponible: no se consultaron lecturas."
+_QUALITY = {"suspect": "doubtful", "bad": "poor"}
+_UNAVAILABLE = "Readings repository unavailable: no readings were checked."
 # Validity when a kind has no sensor_config row (plan's provisional demo value).
 # A row with stale_after_seconds NULL still means "never stale".
 DEFAULT_STALE_AFTER_SECONDS = 300
@@ -60,7 +60,7 @@ class SqliteReadingsProvider:
         if not astronaut_id:
             return ReadingsContext(
                 available=False,
-                warnings=["No se indicó el astronauta: no se consultaron lecturas."],
+                warnings=["No astronaut given: no readings were checked."],
             )
         # sqlite3.connect would create an empty file; a missing DB is "unavailable".
         if not self._db_path.is_file():
@@ -78,7 +78,7 @@ class SqliteReadingsProvider:
         if not AstronautRepository(conn).exists(astronaut_id):
             return ReadingsContext(
                 available=False,
-                warnings=[f"Astronauta '{astronaut_id}' no registrado: no hay lecturas."],
+                warnings=[f"Astronaut '{astronaut_id}' not registered: no readings."],
             )
         readings = ReadingRepository(conn)
         configs = SensorConfigRepository(conn)
@@ -93,7 +93,7 @@ class SqliteReadingsProvider:
             row = readings.latest(astronaut_id, kind)
             if row is None:
                 if kind in _EXPECTED:
-                    warn(kind, f"Sin lectura de {label}.")
+                    warn(kind, f"No {label} reading.")
                 continue
             config = configs.get(kind)
             limit = config.stale_after_seconds if config else DEFAULT_STALE_AFTER_SECONDS
@@ -115,25 +115,25 @@ class SqliteReadingsProvider:
             if future:
                 warn(
                     kind,
-                    f"La lectura de {label} tiene hora de captura en el futuro"
-                    f" ({-raw_age} s por delante del reloj): no se usa como lectura actual."
+                    f"The {label} reading has a capture time in the future"
+                    f" ({-raw_age} s ahead of the clock): not used as a current reading."
                 )
             elif stale:
                 warn(
                     kind,
-                    f"La lectura de {label} tiene {format_age(age)} de antigüedad"
-                    f" (vigencia {limit} s): no refleja el estado actual."
+                    f"The {label} reading is {format_age(age)} old"
+                    f" (valid for {limit} s): does not reflect the current state."
                 )
             if row.quality in _QUALITY:
                 warn(
                     kind,
-                    f"La lectura de {label} tiene calidad {_QUALITY[row.quality]}"
+                    f"The {label} reading has {_QUALITY[row.quality]} quality"
                     f" ({row.quality})."
                 )
             if kind == "muscle_density":
                 warn(
                     kind,
-                    "Sensor muscular: método y unidad pendientes; el valor no se interpreta."
+                    "Muscle sensor: method and unit pending; the value is not interpreted."
                 )
         return ctx
 

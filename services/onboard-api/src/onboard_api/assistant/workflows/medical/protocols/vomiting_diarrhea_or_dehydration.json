@@ -1,78 +1,78 @@
 {
   "id": "vomiting_diarrhea_or_dehydration",
-  "version": "2.0.0",
-  "title": "Vómitos, diarrea o deshidratación",
+  "version": "2.1.0",
+  "title": "Vomiting, diarrhea or dehydration",
   "priority": 140,
-  "summary": "Vómitos, diarrea, pérdidas de líquidos o baja ingesta. La deshidratación se considera según el contexto y un cuadro gastrointestinal según los síntomas. Una lectura urinaria aislada (color, pH, salinidad) no cuantifica la hidratación. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
+  "summary": "Vomiting, diarrhea, fluid losses or low intake. Dehydration is considered according to context and a gastrointestinal illness according to symptoms. An isolated urine reading (color, pH, salinity) does not quantify hydration. Informational support only: not a diagnosis or a treatment decision. There are no clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Vómitos o diarrea con confusión nueva, pérdida de conciencia o sangre en el vómito: emergencia.",
+      "text": "Vomiting or diarrhea with new confusion, loss of consciousness or blood in the vomit: emergency.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "text": "Call for emergency help now using the mission's means (ship alarm, crew, mission control if the link is up). Do not wait to see if it improves.",
           "source_ids": [
             "medlineplus_dehydration"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento de emergencia médica de la misión"
+      "mission_procedure": "Mission medical emergency procedure"
     },
     "prompt_review": {
       "urgency": "review_required",
-      "text": "No retienes líquidos, orinas poco o los síntomas persisten: rehidrátate con cuidado y vigila de cerca.",
+      "text": "You cannot keep fluids down, you are urinating little, or the symptoms persist: rehydrate carefully and monitor closely.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Toma sorbos pequeños de agua con frecuencia.",
+          "text": "Take small sips of water often.",
           "source_ids": [
             "medlineplus_dehydration"
           ]
         },
         {
           "who": "equipment",
-          "text": "Si hay solución de rehidratación oral o bebida con electrolitos en el botiquín, úsala.",
+          "text": "If there is oral rehydration solution or an electrolyte drink in the medical kit, use it.",
           "source_ids": [
             "medlineplus_dehydration"
           ]
         },
         {
           "who": "self",
-          "text": "Si aparecen confusión, desmayo, falta de orina, pulso rápido o respiración rápida, trátalo como emergencia.",
+          "text": "If confusion, fainting, no urine output, a rapid pulse or rapid breathing appears, treat it as an emergency.",
           "source_ids": [
             "medlineplus_dehydration"
           ]
         }
       ],
       "missing_guidance": [
-        "Antieméticos y líquidos intravenosos: dependen del procedimiento de la misión (no cargado)."
+        "Antiemetics and intravenous fluids: depend on the mission procedure (not loaded)."
       ]
     },
     "review": {
       "urgency": "review_required",
-      "text": "Vómitos o diarrea sin señales de alarma: bebe y vigila si toleras líquidos y cuánto orinas.",
+      "text": "Vomiting or diarrhea without warning signs: drink, and monitor whether you can keep fluids down and how much you urinate.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Bebe más líquidos; si te cuesta retenerlos, a sorbos pequeños.",
+          "text": "Drink more fluids; if you have trouble keeping them down, take small sips.",
           "source_ids": [
             "medlineplus_dehydration"
           ]
         },
         {
           "who": "self",
-          "text": "Si aparecen confusión, desmayo, falta de orina, pulso rápido o respiración rápida, trátalo como emergencia.",
+          "text": "If confusion, fainting, no urine output, a rapid pulse or rapid breathing appears, treat it as an emergency.",
           "source_ids": [
             "medlineplus_dehydration"
           ]
@@ -81,14 +81,14 @@
     },
     "fluids_check": {
       "urgency": "undetermined",
-      "text": "Falta saber si toleras líquidos y cuánto has orinado para decidir la prioridad.",
+      "text": "To decide the priority, it is still unknown whether you can keep fluids down and how much you have urinated.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Comprueba si retienes líquidos y si has orinado en las últimas horas.",
+          "text": "Check whether you can keep fluids down and whether you have urinated in the last few hours.",
           "source_ids": [
             "medlineplus_dehydration"
           ]
@@ -97,21 +97,21 @@
     }
   },
   "questions": {
-    "fluids_urine": "¿Puede retener líquidos y ha orinado con normalidad en las últimas horas?"
+    "fluids_urine": "Can you keep fluids down, and have you urinated normally in the last few hours?"
   },
   "candidates": [
     {
       "id": "dehydration",
-      "label": "Deshidratación",
-      "minimum_evidence": "Pérdidas (vómitos, diarrea, sudoración abundante), baja ingesta u orina escasa reportadas.",
+      "label": "Dehydration",
+      "minimum_evidence": "Reported losses (vomiting, diarrhea, heavy sweating), low intake or scant urine.",
       "source_ids": [
         "medlineplus_dehydration"
       ]
     },
     {
       "id": "gastrointestinal_illness",
-      "label": "Cuadro gastrointestinal",
-      "minimum_evidence": "Vómitos, diarrea o náuseas reportados.",
+      "label": "Gastrointestinal illness",
+      "minimum_evidence": "Reported vomiting, diarrhea or nausea.",
       "source_ids": [
         "medlineplus_nausea_vomiting",
         "medlineplus_diarrhea"
@@ -122,19 +122,19 @@
     {
       "id": "medlineplus_dehydration",
       "title": "MedlinePlus: Dehydration",
-      "section": "Resumen",
+      "section": "Summary",
       "url": "https://medlineplus.gov/dehydration.html"
     },
     {
       "id": "medlineplus_nausea_vomiting",
       "title": "MedlinePlus: Nausea and Vomiting",
-      "section": "Resumen",
+      "section": "Summary",
       "url": "https://medlineplus.gov/nauseaandvomiting.html"
     },
     {
       "id": "medlineplus_diarrhea",
       "title": "MedlinePlus: Diarrhea",
-      "section": "Resumen",
+      "section": "Summary",
       "url": "https://medlineplus.gov/diarrhea.html"
     }
   ],

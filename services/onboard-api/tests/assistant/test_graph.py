@@ -177,11 +177,11 @@ def test_assessment_with_valid_draft(triage: Triage) -> None:
     assert r.sources[1].kind == "guide" and r.sources[1].url
     assert "Sin lectura de SpO₂." in r.data_notices
     assert retriever.calls == [
-        {"query": CARD.title, "k": 3, "topics": CARD.guide_topics, "language": "es"}
+        {"query": CARD.title, "k": 3, "topics": CARD.guide_topics, "language": "en"}
     ]
     system, user = llm.calls[0]
-    assert "español" in system
-    assert "[2] Problemas respiratorios" in user and "Falta de aire reportada" in user
+    assert "English" in system
+    assert "[2] Breathing Problems" in user and "Falta de aire reportada" in user
     assert "Sin lectura de SpO₂." in user and ACTION in user
     assert readings.calls == ["ana"]
 
@@ -245,7 +245,7 @@ def test_educational_llm_down_returns_excerpt(triage: Triage) -> None:
     retriever = FakeRetriever([chunk(1), chunk(2)])
     r = ask(deps(FailingLLM(), retriever), message="¿Qué es la oximetría?")
     assert r.urgency == "informational"
-    assert "Texto de la guía número 1." in r.reply
+    assert "Guide text number 1." in r.reply
     assert [s.id for s in r.sources] == ["chunk-1"]
     assert retriever.calls[0]["query"] == CARD.title  # topic, not the raw message
     assert retriever.calls[0]["topics"] == CARD.guide_topics
@@ -371,13 +371,13 @@ def test_sqlite_readings_provider(tmp_path) -> None:
     spo2 = ctx.latest["spo2"]
     assert spo2.stale and spo2.age_seconds == 42 * 60 and spo2.quality == "suspect"
     text = " ".join(ctx.warnings)
-    assert "Sin lectura de pulso" in text
-    assert "SpO₂ tiene 42 min" in text
-    assert "calidad dudosa" in text
-    assert "método y unidad pendientes" in text
+    assert "No pulse reading" in text
+    assert "SpO₂ reading is 42 min old" in text
+    assert "doubtful quality" in text
+    assert "method and unit pending" in text
 
     unknown = provider.load("nadie", NOW)
-    assert not unknown.available and "no registrado" in unknown.warnings[0]
+    assert not unknown.available and "not registered" in unknown.warnings[0]
     assert not provider.load(None, NOW).available
 
 
@@ -417,8 +417,16 @@ def test_llm_prompt_excludes_raw_message(triage: Triage) -> None:
         "Ya avisé a la tripulación [1].",
         "No es urgente, puedes esperar [1].",
         "No hace falta avisar al responsable médico [1].",
+        "The report was sent to mission control [1].",
+        "I notified the crew [1].",
+        "This is not urgent, you can wait [1].",
+        "Don't worry about it [1].",
+        "Ask the physician on board [1].",
+        "Heart problems are ruled out [1].",
     ],
-    ids=["system-number-5", "system-number-120", "enviado", "transmitido", "ya-avise", "no-urgente", "no-hace-falta"],
+    ids=["system-number-5", "system-number-120", "enviado", "transmitido", "ya-avise", "no-urgente",
+         "no-hace-falta", "en-sent", "en-notified", "en-not-urgent", "en-dont-worry", "en-physician",
+         "en-ruled-out"],
 )
 def test_unsafe_or_ungrounded_draft_is_dropped(triage: Triage, draft: str) -> None:
     triage.case_hits, triage.route, triage.decision = [hit()], "assessment", decision()
@@ -428,5 +436,16 @@ def test_unsafe_or_ungrounded_draft_is_dropped(triage: Triage, draft: str) -> No
 
 
 def test_grounded_number_is_accepted() -> None:
-    assert nodes.valid_draft("La guía número 1 lo explica [1].", [chunk(1)], "Texto de la guía número 1.")
-    assert not nodes.valid_draft("Son 2 horas [1].", [chunk(1)], "Texto de la guía número 1.")
+    assert nodes.valid_draft("Guide number 1 explains it [1].", [chunk(1)], "Guide text number 1.")
+    assert not nodes.valid_draft("It lasts 2 hours [1].", [chunk(1)], "Guide text number 1.")
+
+
+def test_spanish_only_chunks_are_not_shown(triage: Triage) -> None:
+    """English replies: a Spanish fallback chunk from the retriever is dropped."""
+    triage.interp = Interpretation((), "educational", True, topic_hint=CARD.id)
+    triage.route = "educational"
+    llm = Forbidden("llm")
+    r = ask(deps(llm, FakeRetriever([chunk(1, language="es")])), message="What is oximetry?")
+    assert r.reply == prompts.EDUCATIONAL_ABSTAIN
+    assert prompts.NOTICE_NO_GUIDES in r.data_notices and r.sources == []
+    assert llm.calls == []
