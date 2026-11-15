@@ -44,6 +44,18 @@ RADIATION_CONFIG = {
     "provisional": True,
     "range_source": "Graille et al. 2020 (8-OHdG meta-analysis)",
 }
+# Urine "salinity" is electrical conductivity. Range: mean ± 1.96 SD of 1,064 healthy adults on a
+# Sysmex UF-1000i (17.9 ± 6.3 mS/cm). Demo value, not a clinical threshold.
+SALINITY_CONFIG = {
+    "unit": "mS/cm",
+    "stale_after_seconds": 86400,
+    "normal_min": 5.6,
+    "normal_max": 30.3,
+    "range_role": "health",
+    "provisional": False,
+    "range_source": "UF-1000i urine conductivity, 1,064 healthy adults (Laboratory Medicine 2013)",
+}
+SENSOR_CONFIGS = {"urine_radiation_marker": RADIATION_CONFIG, "urine_salinity": SALINITY_CONFIG}
 MUSCLE_LOSS_PER_DAY = 0.09  # u.a./day, microgravity atrophy trend
 
 
@@ -97,7 +109,7 @@ class Astronaut:
         if not self.real_urine:
             out += [
                 reading(self.id, "urine_ph", "pH", when, value=ph, source=source),
-                reading(self.id, "urine_salinity", "mS/cm", when, value=salinity, source=source),
+                reading(self.id, "urine_salinity", SALINITY_CONFIG["unit"], when, value=salinity, source=source),
                 reading(self.id, "urine_temperature", "°C", when, value=temperature, quality=temp_quality, source=source),
             ]
         return out
@@ -156,23 +168,25 @@ class Uplink:
             log(f"crew registration failed ({error}), retrying")
             return False
 
-    def configure_radiation(self) -> None:
-        """Set unit and range of the 8-OHdG marker, unless an operator already set a unit."""
+    def configure_sensors(self) -> None:
+        """Set unit and range of the 8-OHdG marker and urine salinity, unless an operator already set a unit."""
         try:
             with urllib.request.urlopen(self.base_url + "/sensors", timeout=5) as response:
                 configs = {c["kind"]: c for c in json.load(response)}
-            if configs.get("urine_radiation_marker", {}).get("unit") is None:
+            for kind, config in SENSOR_CONFIGS.items():
+                if configs.get(kind, {}).get("unit") is not None:
+                    continue
                 request = urllib.request.Request(
-                    self.base_url + "/sensors/urine_radiation_marker",
-                    data=json.dumps(RADIATION_CONFIG).encode(),
+                    f"{self.base_url}/sensors/{kind}",
+                    data=json.dumps(config).encode(),
                     headers={"Content-Type": "application/json"},
                     method="PUT",
                 )
                 urllib.request.urlopen(request, timeout=5).close()
-                log("radiation marker configured (8-OHdG, ng/mg creatinine)")
+                log(f"{kind} configured ({config['normal_min']}-{config['normal_max']} {config['unit']})")
         except (urllib.error.URLError, OSError, ValueError) as error:
             # Unit NULL accepts any unit, so readings still go through without a range.
-            log(f"radiation marker config failed ({error}), sending without a range")
+            log(f"sensor config failed ({error}), sending without a range")
 
     def flush(self, readings: list[dict]) -> int:
         self.buffer.extend(readings)
@@ -237,7 +251,7 @@ def main() -> None:
     log(f"boot, crew {', '.join(CREW)}, uplink {args.url}")
     while not uplink.register_crew():
         time.sleep(5)
-    uplink.configure_radiation()
+    uplink.configure_sensors()
     pending = [] if args.no_history else flash_log(crew, now, boot)
     log(f"uploading flash log ({len(pending)} readings)")
     log(f"sent {uplink.flush(pending)}")

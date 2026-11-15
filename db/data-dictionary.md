@@ -57,6 +57,8 @@ These are demo values, not clinically validated thresholds.
 
 `urine_radiation_marker` is urinary 8-OHdG (8-hydroxy-2'-deoxyguanosine), an indirect marker of oxidative DNA damage, not a dose. The 0001 seed leaves it unconfigured. At boot, `firmware/simulator.py` sets it with `PUT /sensors/urine_radiation_marker` (only while `unit` is NULL): `unit` `ng/mg creatinine`, `stale_after_seconds` 86400, `normal_min` 3.0, `normal_max` 5.5, `range_role` health, `provisional` 1, `range_source` `Graille et al. 2020 (8-OHdG meta-analysis)` (healthy-adult IQR, chemical methods). Consoles show its value and range, but it never raises the console alert banner or the ground alert log.
 
+`urine_salinity` is urine electrical conductivity. The 0001 seed leaves it unconfigured. At boot, `firmware/simulator.py` and `firmware/serial_bridge.py` set it with `PUT /sensors/urine_salinity` (only while `unit` is NULL): `unit` `mS/cm`, `normal_min` 5.6, `normal_max` 30.3, `range_role` health, `provisional` 0 (mean ± 1.96 SD of 1,064 healthy adults on a Sysmex UF-1000i). The bridge converts the board's TDS with `mg/L ÷ 500`, an assumed probe factor.
+
 ## `readings`
 
 One crew reading. Rows are only inserted (`POST /readings`); the API has no update or delete.
@@ -72,7 +74,7 @@ One crew reading. Rows are only inserted (`POST /readings`); the API has no upda
 | `recorded_at` | TEXT | NOT NULL | | Capture time (from the client), timestamp. |
 | `received_at` | TEXT | NOT NULL | | Time the server stored the row, timestamp. |
 | `quality` | TEXT | NOT NULL | | CHECK `IN ('good','suspect','bad')` (app: `Quality` in `schemas/readings.py`). |
-| `source` | TEXT | NOT NULL | | Origin, e.g. `manual`, `serial:pulse`, `serial:urine-analyser` (ESP32, `firmware/serial_bridge.py`; `urine_salinity` in `mg/L`, simulated rows use `mS/cm`). API: 1 to 64 characters. |
+| `source` | TEXT | NOT NULL | | Origin, e.g. `manual`, `serial:pulse`, `serial:urine-analyser` (ESP32, `firmware/serial_bridge.py`; `urine_salinity` converted from the board's `mg/L` TDS to `mS/cm`, the unit of simulated rows). API: 1 to 64 characters. |
 
 Table CHECK `(value IS NULL) <> (value_text IS NULL)`: exactly one of `value` and `value_text` is set. The API checks the same rule before inserting (422).
 
