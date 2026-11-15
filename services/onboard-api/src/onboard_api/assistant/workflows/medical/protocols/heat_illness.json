@@ -1,73 +1,73 @@
 {
   "id": "heat_illness",
-  "version": "2.0.0",
-  "title": "Enfermedad por calor",
+  "version": "2.1.0",
+  "title": "Heat illness",
   "priority": 100,
-  "summary": "Síntomas tras calor o esfuerzo intenso. Según la combinación de síntomas se consideran agotamiento por calor, calambres por calor o golpe de calor a descartar. La temperatura corporal, si se conoce, proviene de una fuente independiente (no de la muestra de orina). Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
+  "summary": "Symptoms after heat or intense exertion. Depending on the combination of symptoms, heat exhaustion, heat cramps or heat stroke (to be ruled out) are considered. Body temperature, if known, comes from an independent source (not from the urine sample). Informational support only: not a diagnosis or a treatment decision. No clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Confusión o colapso con exposición al calor: posible golpe de calor, emergencia.",
+      "text": "Confusion or collapse with heat exposure: possible heat stroke, emergency.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "crew",
-          "text": "Pide ayuda de emergencia y quédate con la persona.",
+          "text": "Call for emergency help and stay with the person.",
           "source_ids": [
             "niosh_heat_illnesses"
           ]
         },
         {
           "who": "crew",
-          "text": "Llévala a un lugar fresco, quítale la ropa exterior y enfríala rápido con agua fría, paños fríos y mojados o hielo, y circulación de aire.",
+          "text": "Move them to a cool place, remove their outer clothing and cool them quickly with cold water, cold wet cloths or ice, and air circulation.",
           "source_ids": [
             "niosh_heat_illnesses"
           ]
         },
         {
           "who": "self",
-          "text": "Si eres tú y puedes moverte: pide ayuda, ve a la zona más fresca y enfríate con paños mojados y aire.",
+          "text": "If it is you and you can move: call for help, go to the coolest area and cool yourself with wet cloths and air.",
           "source_ids": [
             "niosh_heat_illnesses"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento de calor de la misión"
+      "mission_procedure": "Mission heat procedure"
     },
     "review": {
       "urgency": "review_required",
-      "text": "Síntomas por calor con la persona consciente: enfríate e hidrátate.",
+      "text": "Heat symptoms with the person conscious: cool down and hydrate.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Sal del calor, quítate la ropa sobrante y refréscate con paños o agua fría en cabeza, cara y cuello.",
+          "text": "Get out of the heat, remove extra clothing and cool off with cloths or cold water on your head, face and neck.",
           "source_ids": [
             "niosh_heat_illnesses"
           ]
         },
         {
           "who": "self",
-          "text": "Bebe líquidos.",
+          "text": "Drink fluids.",
           "source_ids": [
             "niosh_heat_illnesses"
           ]
         },
         {
           "who": "self",
-          "text": "Si tienes calambres: bebe agua y toma una bebida o refrigerio con electrolitos cada 15 a 20 minutos; evita las tabletas de sal.",
+          "text": "If you have cramps: drink water and have a drink or snack with electrolytes every 15 to 20 minutes; avoid salt tablets.",
           "source_ids": [
             "niosh_heat_illnesses"
           ]
         },
         {
           "who": "self",
-          "text": "Si aparecen confusión o pérdida de conciencia, trátalo como golpe de calor (emergencia).",
+          "text": "If confusion or loss of consciousness appears, treat it as heat stroke (emergency).",
           "source_ids": [
             "niosh_heat_illnesses"
           ]
@@ -79,24 +79,24 @@
   "candidates": [
     {
       "id": "heat_exhaustion",
-      "label": "Agotamiento por calor",
-      "minimum_evidence": "Exposición al calor con sudoración abundante, mareo, náuseas, dolor de cabeza o malestar.",
+      "label": "Heat exhaustion",
+      "minimum_evidence": "Heat exposure with heavy sweating, dizziness, nausea, headache or feeling unwell.",
       "source_ids": [
         "niosh_heat_illnesses"
       ]
     },
     {
       "id": "heat_cramps",
-      "label": "Calambres por calor",
-      "minimum_evidence": "Exposición al calor con calambres musculares.",
+      "label": "Heat cramps",
+      "minimum_evidence": "Heat exposure with muscle cramps.",
       "source_ids": [
         "niosh_heat_illnesses"
       ]
     },
     {
       "id": "heat_stroke",
-      "label": "Golpe de calor (requiere descarte)",
-      "minimum_evidence": "Exposición al calor con confusión, colapso o falta de respuesta.",
+      "label": "Heat stroke (must be ruled out)",
+      "minimum_evidence": "Heat exposure with confusion, collapse or unresponsiveness.",
       "source_ids": [
         "niosh_heat_illnesses"
       ]
@@ -106,7 +106,7 @@
     {
       "id": "niosh_heat_illnesses",
       "title": "CDC/NIOSH: Heat-related Illnesses",
-      "section": "Síntomas y primeros auxilios",
+      "section": "Symptoms and first aid",
       "url": "https://www.cdc.gov/niosh/heat-stress/about/illnesses.html"
     }
   ],

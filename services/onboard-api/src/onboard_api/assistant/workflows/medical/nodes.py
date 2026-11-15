@@ -45,7 +45,14 @@ _UNSAFE = re.compile(
     r"envi[aéó]|transmit|avis[eéó]|avisad|notific|inform[eéó]\b|contact[eéó]|se (le )?(comunic|llam)"
     r"|no es urgente|no hace falta|no (es|hace) necesario|no (es|parece) grave|no te preocupes"
     r"|m[eé]dico|doctor|cl[ií]nico|enfermer"
-    r"|descart|no (tienes|tiene|presentas|presenta|hay signos|hay se[nñ]ales)|ausencia de|sin signos",
+    r"|descart|no (tienes|tiene|presentas|presenta|hay signos|hay se[nñ]ales)|ausencia de|sin signos"
+    # English drafts (the prompt asks for English).
+    r"|\b(sent|transmitt\w*|notif\w*|informed|alerted|contacted|reported to)\b"
+    r"|not (urgent|serious|necessary|needed)|no need|don'?t worry|nothing to worry"
+    # "No clinical staff on board" echoes the card and passes; a referral to one does not.
+    r"|physician|nurse|clinician|medical officer"
+    r"|\b(ask|consult|see|call|contact|seek) (a |an |the |your )?(clinical|medical|health ?care)"
+    r"|rul(e|ed|ing) out|you (do not|don'?t) have|(is|are) absent|absence of|no (signs?|evidence) of",
     re.IGNORECASE,
 )
 
@@ -292,7 +299,9 @@ def retrieve_guides(state: MedicalState, retriever: Retriever) -> dict:
     notices = list(state.get("notices", []))
     guides, failure = [], None
     try:
-        guides = list(retriever.search(query, k=3, topics=topics, language="es"))
+        # English replies: Spanish fallbacks from the retriever are dropped.
+        guides = [g for g in retriever.search(query, k=3, topics=topics, language="en")
+                  if g.language == "en"]
     except EmbeddingUnavailable:
         failure = prompts.NOTICE_EMBEDDING_FAILED
     except Exception:

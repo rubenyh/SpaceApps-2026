@@ -212,7 +212,7 @@ class AssistantResponse(BaseModel):
     disclaimer: str | None = None
     urgency: Urgency | None = None
     action: str | None = None
-    # Who to tell, e.g. "tripulación". Nothing is transmitted.
+    # Who to tell, e.g. "crew". Nothing is transmitted.
     notify: list[str] = []
     # Cited checklist of the action, in order. Separate self / crew / equipment.
     steps: list[ActionStep] = []

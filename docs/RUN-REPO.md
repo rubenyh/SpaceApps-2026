@@ -6,7 +6,7 @@ How to run the full demo: the onboard stack, ground, both Tauri consoles and, if
 simulator ──readings──▶ onboard-api :8000 ◀── spaceship-app (Tauri, Vite 1420)
                           │  ├─ SQLite (onboard.db, wellbeing.db)
                           │  ├─ ChromaDB (guides)  ◀── demo-init (ingest)
-                          │  └─ ollama (qwen2.5:0.5b, bge-m3)
+                          │  └─ ollama (qwen2.5:3b, bge-m3)
                           └──telemetry──▶ ground-api :8001 ◀── base-app (Tauri, Vite 1421)
 wellbeing-vision (camera) ──metrics──▶ onboard-api /wellbeing/vision-sessions
 ```
@@ -53,7 +53,7 @@ On macOS or Linux, run `docker compose up --build -d`, then `npm run tauri dev` 
 docker compose up --build
 ```
 
-- The first run downloads about 5 GB: the Ollama image, the `bge-m3` and `qwen2.5:0.5b` models, and the MedlinePlus XML. Embedding the guides then takes a few minutes. Later starts reuse the volumes and skip this.
+- The first run downloads about 7 GB: the Ollama image, the `bge-m3` and `qwen2.5:3b` models, and the MedlinePlus XML. Embedding the guides then takes a few minutes. Later starts reuse the volumes and skip this.
 - The APIs and the simulator work before `demo-init` finishes. Until it finishes, educational questions are answered without guides, and `data_notices` says so.
 - `ground-api` is part of the stack. onboard-api sends telemetry to `http://ground-api:8001`. To keep the ship offline, start with `ONBOARD_TELEMETRY_ENABLED=false`.
 

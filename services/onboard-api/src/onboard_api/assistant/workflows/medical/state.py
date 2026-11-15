@@ -78,7 +78,7 @@ class ReadingsContext:
     # False when the repository could not be read (missing DB, error, no astronaut_id).
     available: bool
     latest: dict[str, VitalReading] = field(default_factory=dict)  # by sensor kind
-    warnings: list[str] = field(default_factory=list)  # Spanish, for data_notices
+    warnings: list[str] = field(default_factory=list)  # English, for data_notices
     # Which of `warnings` belong to one sensor kind; the rest are general.
     kind_warnings: dict[str, list[str]] = field(default_factory=dict)
 

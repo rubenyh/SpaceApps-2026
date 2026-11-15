@@ -1,52 +1,52 @@
 {
   "id": "severe_allergic_reaction",
-  "version": "2.0.0",
-  "title": "Reacción alérgica grave",
+  "version": "2.1.0",
+  "title": "Severe allergic reaction",
   "priority": 50,
-  "summary": "Hinchazón de lengua o garganta, dificultad respiratoria u otros signos de reacción grave tras una posible exposición. La anafilaxia es posible cuando el cuadro es compatible. Mostrar la ficha autorizada de la misión cuando exista. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
+  "summary": "Swelling of the tongue or throat, difficulty breathing or other signs of a severe reaction after a possible exposure. Anaphylaxis is possible when the presentation is compatible. Show the mission's authorized card when one exists. Informational support only: not a diagnosis or a treatment decision. There are no clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Posible reacción alérgica grave: emergencia.",
+      "text": "Possible severe allergic reaction: emergency.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "equipment",
-          "text": "Si hay un autoinyector de epinefrina (adrenalina) en el botiquín, úsalo de inmediato.",
+          "text": "If there is an epinephrine (adrenaline) auto-injector in the medical kit, use it immediately.",
           "source_ids": [
             "medlineplus_anaphylaxis"
           ]
         },
         {
           "who": "self",
-          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "text": "Call for emergency help now using the mission's means (ship alarm, crew, mission control if the link is up). Do not wait to see if it improves.",
           "source_ids": [
             "medlineplus_anaphylaxis"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento autorizado de reacción alérgica grave de la misión"
+      "mission_procedure": "Mission authorized severe allergic reaction procedure"
     },
     "limited": {
       "urgency": "review_required",
-      "text": "Síntomas alérgicos limitados: vigila la respiración y la garganta.",
+      "text": "Limited allergic symptoms: watch your breathing and throat.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Si aparece hinchazón de garganta o lengua o dificultad para respirar, usa el autoinyector si lo hay y trátalo como emergencia.",
+          "text": "If throat or tongue swelling or difficulty breathing appears, use the auto-injector if there is one and treat it as an emergency.",
           "source_ids": [
             "medlineplus_anaphylaxis"
           ]
         }
       ],
       "missing_guidance": [
-        "Las fuentes de la ficha no dan pasos para síntomas alérgicos leves (por ejemplo, antihistamínicos): depende del procedimiento de la misión."
+        "The card's sources do not give steps for mild allergic symptoms (for example, antihistamines): it depends on the mission procedure."
       ]
     }
   },
@@ -54,8 +54,8 @@
   "candidates": [
     {
       "id": "anaphylaxis",
-      "label": "Anafilaxia",
-      "minimum_evidence": "Compromiso de garganta o respiratorio, con exposición posible o ronchas para considerarla compatible.",
+      "label": "Anaphylaxis",
+      "minimum_evidence": "Throat or breathing involvement, with possible exposure or hives to consider it compatible.",
       "source_ids": [
         "medlineplus_anaphylaxis"
       ]
@@ -65,7 +65,7 @@
     {
       "id": "medlineplus_anaphylaxis",
       "title": "MedlinePlus: Anaphylaxis",
-      "section": "Resumen",
+      "section": "Summary",
       "url": "https://medlineplus.gov/anaphylaxis.html"
     }
   ],

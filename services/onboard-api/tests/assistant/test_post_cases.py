@@ -208,7 +208,7 @@ def test_resolved_sudden_weakness_is_alarm(ask) -> None:
         {"message": "Tuve debilidad repentina en un lado del cuerpo, ya se me pasó", "astronaut_id": "ana"}
     )
     assert body["urgency"] == "immediate" and body["protocol_id"] == "neurologic_red_flags"
-    assert any("ya cedió" in f["detail"] for f in body["findings"])
+    assert any("already eased" in f["detail"] for f in body["findings"])
 
 
 def test_dizziness_adaptation_vs_speech_change(ask) -> None:
@@ -250,15 +250,15 @@ def test_confirmed_dosimetry_event(ask) -> None:
     body, *_ = ask({"message": "¿Qué hago?", "astronaut_id": "ana"}, events=[ev])
     assert body["protocol_id"] == "radiation_alert" and body["urgency"] == "immediate"
     event = [f for f in body["findings"] if f["source"] == f"event:{ev['id']}"]
-    assert event and "CONFIRMADO" in event[0]["detail"] and "dosimeter:area-2" in event[0]["detail"]
+    assert event and "CONFIRMED" in event[0]["detail"] and "dosimeter:area-2" in event[0]["detail"]
 
 
 def test_simulated_event_is_labelled(ask) -> None:
     ev = _event("radiation", provenance="simulated", origin="dosimeter:drill")
     body, *_ = ask({"message": "¿Qué hago?", "astronaut_id": "ana"}, events=[ev])
-    assert body["urgency"] == "immediate" and "SIMULADO" in body["action"]
-    assert any("SIMULADO" in f["detail"] for f in body["findings"])
-    assert not any("CONFIRMADO" in f["detail"] for f in body["findings"])
+    assert body["urgency"] == "immediate" and "SIMULATED" in body["action"]
+    assert any("SIMULATED" in f["detail"] for f in body["findings"])
+    assert not any("CONFIRMED" in f["detail"] for f in body["findings"])
 
 
 def test_radiation_question_with_urine_only(ask) -> None:
@@ -284,18 +284,18 @@ def test_stale_suspect_and_missing_readings(ask) -> None:
         ],
     )
     notices = " ".join(body["data_notices"])
-    assert "antigüedad" in notices and "dudosa" in notices
+    assert "min old" in notices and "doubtful" in notices
 
     body, *_ = ask({"message": "Tengo fiebre y tos desde ayer", "astronaut_id": "ana"})
     # The stale/suspect rows above persist; a new astronaut has none.
     body, *_ = ask({"message": "Tengo fiebre y tos desde ayer", "astronaut_id": None})
-    assert any("no se consultaron lecturas" in n for n in body["data_notices"])
+    assert any("no readings were checked" in n for n in body["data_notices"])
 
 
 def test_missing_readings(ask) -> None:
     body, *_ = ask({"message": "Tengo fiebre y tos desde ayer", "astronaut_id": "ana"})
-    assert "Sin lectura de SpO₂." in body["data_notices"]
-    assert "Sin lectura de pulso." in body["data_notices"]
+    assert "No SpO₂ reading." in body["data_notices"]
+    assert "No pulse reading." in body["data_notices"]
 
 
 @pytest.mark.parametrize("broken", ["directory", "raises"])

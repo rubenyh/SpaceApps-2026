@@ -1,132 +1,132 @@
 {
   "id": "cabin_environment_alert",
-  "version": "2.0.0",
-  "title": "Alerta ambiental de cabina",
+  "version": "2.1.0",
+  "title": "Cabin environment alert",
   "priority": 30,
-  "summary": "Alerta operativa de aire o presión, o varios tripulantes con síntomas simultáneos en un contexto compatible. Se conserva el tipo de alarma: presión, humo, CO₂ u otra. Con evidencia de una fuente, la exposición ambiental requiere descarte. Nunca se sustituye el procedimiento de la nave por una SpO₂ normal: la oximetría convencional no detecta monóxido de carbono. Una alarma reportada por texto se trata como reportada, no como confirmada. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
+  "summary": "Operational air or pressure alert, or several crew members with simultaneous symptoms in a consistent context. The alarm type is kept: pressure, smoke, CO₂ or other. With evidence of a source, environmental exposure must be ruled out. A normal SpO₂ never replaces the ship procedure: conventional oximetry does not detect carbon monoxide. An alarm reported by text is treated as reported, not as confirmed. Informational support only: not a diagnosis or a treatment decision. No clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "confirmed_event": {
       "urgency": "immediate",
-      "text": "Alarma de cabina CONFIRMADA por la nave: sigue ya el procedimiento de la nave. Una SpO₂ normal no la descarta.",
+      "text": "Cabin alarm CONFIRMED by the ship: follow the ship procedure now. A normal SpO₂ does not rule it out.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Sigue el procedimiento de la nave para esta alarma y verifica el panel de alarmas.",
+          "text": "Follow the ship procedure for this alarm and check the alarm panel.",
           "source_ids": [
             "nasa_carbon_dioxide"
           ]
         },
         {
           "who": "equipment",
-          "text": "Confirma con la medición ambiental de la nave.",
+          "text": "Confirm with the ship's environmental measurement.",
           "source_ids": [
             "nasa_carbon_dioxide"
           ]
         },
         {
           "who": "self",
-          "text": "No uses la SpO₂ para descartar el problema: el oxímetro convencional no mide el CO₂ ni detecta el monóxido de carbono.",
+          "text": "Do not use SpO₂ to rule out the problem: a conventional oximeter does not measure CO₂ or detect carbon monoxide.",
           "source_ids": [
             "nasa_carbon_dioxide",
             "cdc_carbon_monoxide_clinical"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento de la nave para alarmas de aire, presión o humo"
+      "mission_procedure": "Ship procedure for air, pressure or smoke alarms"
     },
     "simulated_event": {
       "urgency": "immediate",
-      "text": "Evento SIMULADO (ejercicio etiquetado): ejecuta el procedimiento de la nave como en el ejercicio. No es una alarma real confirmada.",
+      "text": "SIMULATED event (labeled drill): carry out the ship procedure as in the drill. It is not a confirmed real alarm.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Sigue el procedimiento de la nave para esta alarma como en el ejercicio.",
+          "text": "Follow the ship procedure for this alarm as in the drill.",
           "source_ids": [
             "nasa_carbon_dioxide"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento de la nave para alarmas de aire, presión o humo"
+      "mission_procedure": "Ship procedure for air, pressure or smoke alarms"
     },
     "reported_alarm": {
       "urgency": "immediate",
-      "text": "Alarma REPORTADA por texto, no confirmada por la nave: sigue el procedimiento de la nave y verifica el panel de alarmas.",
+      "text": "Alarm REPORTED by text, not confirmed by the ship: follow the ship procedure and check the alarm panel.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Verifica el panel de alarmas y sigue el procedimiento de la nave.",
+          "text": "Check the alarm panel and follow the ship procedure.",
           "source_ids": [
             "nasa_carbon_dioxide"
           ]
         },
         {
           "who": "equipment",
-          "text": "Confirma con la medición ambiental de la nave.",
+          "text": "Confirm with the ship's environmental measurement.",
           "source_ids": [
             "nasa_carbon_dioxide"
           ]
         },
         {
           "who": "self",
-          "text": "No uses la SpO₂ para descartar el problema: el oxímetro convencional no detecta el monóxido de carbono.",
+          "text": "Do not use SpO₂ to rule out the problem: a conventional oximeter does not detect carbon monoxide.",
           "source_ids": [
             "cdc_carbon_monoxide_clinical"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento de la nave para alarmas de aire, presión o humo"
+      "mission_procedure": "Ship procedure for air, pressure or smoke alarms"
     },
     "multiple_crew": {
       "urgency": "immediate",
-      "text": "Varios tripulantes con síntomas simultáneos: trátalo como posible problema ambiental y sigue el procedimiento de la nave.",
+      "text": "Several crew members with simultaneous symptoms: treat it as a possible environmental problem and follow the ship procedure.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Sigue el procedimiento de la nave y verifica el panel de alarmas.",
+          "text": "Follow the ship procedure and check the alarm panel.",
           "source_ids": [
             "nasa_carbon_dioxide"
           ]
         },
         {
           "who": "equipment",
-          "text": "Confirma con la medición ambiental de la nave.",
+          "text": "Confirm with the ship's environmental measurement.",
           "source_ids": [
             "nasa_carbon_dioxide"
           ]
         },
         {
           "who": "self",
-          "text": "No uses la SpO₂ para descartar el problema: el oxímetro convencional no detecta el monóxido de carbono.",
+          "text": "Do not use SpO₂ to rule out the problem: a conventional oximeter does not detect carbon monoxide.",
           "source_ids": [
             "cdc_carbon_monoxide_clinical"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento de la nave para alarmas de aire, presión o humo"
+      "mission_procedure": "Ship procedure for air, pressure or smoke alarms"
     }
   },
   "questions": {},
   "candidates": [
     {
       "id": "environmental_exposure",
-      "label": "Exposición ambiental (requiere descarte)",
-      "minimum_evidence": "Evento de cabina confirmado o evidencia de una fuente (alarma, humo, varios tripulantes con síntomas).",
+      "label": "Environmental exposure (must be ruled out)",
+      "minimum_evidence": "Confirmed cabin event or evidence of a source (alarm, smoke, several crew members with symptoms).",
       "source_ids": [
         "nasa_carbon_dioxide",
         "cdc_carbon_monoxide_clinical"
@@ -143,7 +143,7 @@
     {
       "id": "cdc_carbon_monoxide_clinical",
       "title": "CDC: Carbon Monoxide Poisoning - Clinical Guidance",
-      "section": "Límites de la oximetría convencional",
+      "section": "Limits of conventional oximetry",
       "url": "https://www.cdc.gov/carbon-monoxide/hcp/clinical-guidance/index.html"
     }
   ],

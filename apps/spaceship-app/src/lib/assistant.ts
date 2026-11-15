@@ -9,7 +9,7 @@ import type {
   Urgency,
 } from "../api/types";
 
-/** English translation of LABELS in the onboard medical triage (the service itself answers in Spanish). */
+/** Same labels as LABELS in the onboard medical triage (the service answers in English). */
 export const SYMPTOM_LABELS: Record<SymptomCode, string> = {
   shortness_of_breath: "Shortness of breath",
   abnormal_breathing: "Abnormal breathing",

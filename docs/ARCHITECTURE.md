@@ -21,7 +21,7 @@ flowchart LR
         WDB[("SQLite<br/>data/wellbeing.db")]
         Vision["wellbeing-vision<br/>daily video log"]
         Chroma[("ChromaDB<br/>data/chroma")]
-        Ollama["Ollama :11434<br/>qwen2.5:0.5b, bge-m3"]
+        Ollama["Ollama :11434<br/>qwen2.5:3b, bge-m3"]
         Events["Demo events JSON<br/>(optional)"]
         Seed["scripts/seed_demo.py"]
         Firmware["firmware/simulator.py<br/>simulated biomonitor"]
@@ -99,7 +99,7 @@ Optional local dependencies, needed only by some assistant paths:
 
 ```sh
 ollama pull bge-m3          # embeddings (ingest and query)
-ollama pull qwen2.5:0.5b    # chat model: reads non-alarm turns and drafts explanations
+ollama pull qwen2.5:3b    # chat model: reads non-alarm turns and drafts explanations
 PYTHONUTF8=1 uv run python -m onboard_api.assistant.ingest   # fills data/chroma
 ```
 
@@ -122,10 +122,10 @@ Runtime configuration (all prefixed `ONBOARD_`):
 | `MIGRATIONS_DIR` | `<repo>/db/migrations/onboard` | `init_db` |
 | `CORS_ORIGINS` | Vite and Tauri origins | CORS middleware |
 | `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | `OllamaClient` |
-| `OLLAMA_CHAT_MODEL` | `qwen2.5:0.5b` | `understand_turn` (`chat_json`) and `compose_answer` (`chat`) |
+| `OLLAMA_CHAT_MODEL` | `qwen2.5:3b` | `understand_turn` (`chat_json`) and `compose_answer` (`chat`) |
 | `OLLAMA_EMBED_MODEL` | `bge-m3` | Ingest and retrieval. Must match the ingested index. |
 | `OLLAMA_TIMEOUT_SECONDS` | `20.0` | `chat` and `embed` calls |
-| `OLLAMA_INTERPRET_TIMEOUT_SECONDS` | `8.0` | `chat_json` call of the local interpreter |
+| `OLLAMA_INTERPRET_TIMEOUT_SECONDS` | `15.0` | `chat_json` call of the local interpreter |
 | `CHROMA_PATH` | `data/chroma` | `GuideRetriever` |
 | `GUIDES_COLLECTION` | `medical_guides` | `GuideRetriever` |
 | `RETRIEVAL_MAX_DISTANCE` | `0.50` | Drops chunks with a larger cosine distance |
@@ -199,7 +199,7 @@ Runtime configuration: `VITE_GROUND_API_URL` sets the ground base URL at build t
 
 1. [`main.tsx`](../apps/spaceship-app/src/main.tsx) renders `App`. `App` provides `ConnectionContext`, which every poll uses to report whether the service answered.
 2. `Console` in [`App.tsx`](../apps/spaceship-app/src/App.tsx) polls `GET /astronauts` every 30 s with `usePolling` ([`usePolling.ts`](../apps/spaceship-app/src/hooks/usePolling.ts)) through `listAstronauts` ([`api/astronauts.ts`](../apps/spaceship-app/src/api/astronauts.ts)).
-3. The selected astronaut is the stored id if it is in the list, else the first one. With an empty list the console shows "No crew members registered". With a network error it shows "ONBOARD SERVICE UNAVAILABLE". The console UI text is English; assistant replies from the server are Spanish.
+3. The selected astronaut is the stored id if it is in the list, else the first one. With an empty list the console shows "No crew members registered". With a network error it shows "ONBOARD SERVICE UNAVAILABLE". The console UI text is English; assistant replies from the server are English too (input may be English or Spanish).
 4. A shell-level poll calls `GET /astronauts/{id}/status` every 5 s. `tabFlags` ([`lib/estado.ts`](../apps/spaceship-app/src/lib/estado.ts)) turns the result into problem icons on the tabs.
 5. On the server, `astronaut_status` ([`routers/status.py`](../services/onboard-api/src/onboard_api/routers/status.py)) calls `get_astronaut_status` ([`services/status.py`](../services/onboard-api/src/onboard_api/services/status.py)). For each `sensor_config` row it reads the latest reading and applies `evaluate_sensor`. Precedence: `no_data`, then `stale` (age above `stale_after_seconds`), then `no_range` (no range or text value), then `alert` (outside `normal_min`/`normal_max`), else `normal`.
 6. Each tab screen in [`screens/`](../apps/spaceship-app/src/screens/) runs its own polls: Estado and Vitales every 5 s, Músculo, Orina and Registros every 30 s, using `getAstronautStatus` and `listReadings` ([`api/readings.ts`](../apps/spaceship-app/src/api/readings.ts)).
@@ -237,12 +237,12 @@ Trigger: the user sends a message in [`AsistenteScreen.tsx`](../apps/spaceship-a
    2. `evaluate_alarms` (`check_alarms`): `triage.evaluate_alarms` returns `immediate` rule hits from text, structured symptoms and events relevant to this astronaut (events with empty `astronaut_ids` apply to the whole cabin).
    3. `route_after_alarms`: any hit or `sos` → `respond_alarm`, else `understand`.
    4. `respond_alarm`: `decide()` builds the `Decision` from the protocol cards only. With SOS, `_with_sos` puts the SOS action first and notifies the medical officer and the crew. No SQLite, ChromaDB or Ollama call. Adds `ALARM_NOTICE`. End.
-   5. `understand` (`understand_turn`): skipped for educational questions. Otherwise `understand.read_turn` asks the local model for JSON (`chat_json`, schema `LlmReading`, 8 s timeout) with symptom codes, status and the user's exact words as evidence. `understand.accept` keeps an observation only when its evidence is in the new message, a bare "sí"/"no" answers only the pending question's codes, and the rules do not read the same words as another symptom. A concrete complaint outside the vocabulary is kept as `uncovered`. Any model failure returns no change: the rules alone decide.
+   5. `understand` (`understand_turn`): skipped for educational questions. Otherwise `understand.read_turn` asks the local model for JSON (`chat_json`, schema `LlmReading`, 15 s timeout) with symptom codes, status and the user's exact words as evidence. `understand.accept` keeps an observation only when its evidence is in the new message, a bare "sí"/"no" answers only the pending question's codes, and the rules do not read the same words as another symptom. A concrete complaint outside the vocabulary is kept as `uncovered`. Any model failure returns no change: the rules alone decide.
    6. `recheck_alarms` (`check_alarms` again) and `route_after_recheck`: model-added observations can still raise an alarm before any slower dependency → `respond_alarm`, else `load_context`.
    7. `load_context`: `SqliteReadingsProvider.load` ([`context.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/context.py)) reads the latest reading per kind and marks stale, future-dated and low-quality readings. Warnings are grouped per sensor kind (`kind_warnings`).
    8. `evaluate_case` (`assess_case`): `triage.evaluate_case` returns non-alarm rule hits (`review_required`, `undetermined`, ...) using the interpretation, events and readings. `select_route` picks `clarify`, `assessment`, `educational` or `out_of_coverage`. `out_of_coverage` needs a concrete uncovered complaint or symptom; a report with no concrete symptom gets `clarify` instead. A second `clarify` after the "symptom" question becomes `out_of_coverage`. With hits, `decide()` builds the `Decision`. Reading warnings become `data_notices` only for sensor kinds pertinent to the decision's cards (`_reading_notices`).
    9. `route_after_case`: `clarify` → `respond_clarify` (returns a `clarification` with `question_id` `"symptom"` or `"<protocol_id>.<question_key>"` and the case's observations); `assessment` or `educational` → `retrieve_guides`; anything else → `respond_out_of_coverage`.
-   10. `retrieve_guides`: queries ChromaDB with the primary card's title (never the personal text), filtered by the card's `guide_topics`. Only an educational question with no known topic uses the message itself. `k=3`, Spanish first, English fallback, distance ≤ `RETRIEVAL_MAX_DISTANCE`.
+   10. `retrieve_guides`: queries ChromaDB with the primary card's title (never the personal text), filtered by the card's `guide_topics`. Only an educational question with no known topic uses the message itself. `k=3`, English chunks only (Spanish matches are dropped; with none left the reply uses card text or the abstain message), distance ≤ `RETRIEVAL_MAX_DISTANCE`.
    11. `compose_answer`: when chunks exist, calls `llm.chat(SYSTEM, user)` with the card, action, findings, notices and numbered chunks. `valid_draft` rejects a draft that is empty, cites a chunk that does not exist, contains a number not present in the grounding text, or claims transmission or de-escalation. The reply is always the card action first, then the validated draft. Without a valid draft, the reply is the card summary (or a guide excerpt for an educational question).
 8. Every terminal node builds the same `AssistantResponse`: `reply`, `workflow`, `needs_clarification`, `urgency`, `action`, `notify`, `protocol_id`, `matched_rules`, `findings`, `possible_causes`, `sources`, `data_notices`, `disclaimer`, `clarifying_question`, `clarification`.
 9. The console appends the reply to its local log. If `needs_clarification` is true, it stores the request as `pending`, together with the response's `clarification` object (see flow 4).
@@ -279,7 +279,7 @@ sequenceDiagram
         alt alarm hit or SOS
             M-->>P: respond_alarm (cards only, urgency immediate)
         else no alarm
-            M->>O: understand: chat_json (8 s timeout)
+            M->>O: understand: chat_json (15 s timeout)
             M->>M: accept evidence, recheck_alarms
             M->>DB: load_context (latest reading per kind)
             M->>M: evaluate_case + select_route
@@ -288,7 +288,7 @@ sequenceDiagram
             else assessment / educational
                 M->>O: embed card title (bge-m3)
                 M->>C: query top 3 by topic and language
-                M->>O: chat (qwen2.5:0.5b) if chunks found
+                M->>O: chat (qwen2.5:3b) if chunks found
                 M->>M: valid_draft or fall back to card text
                 M-->>P: compose_answer
             end
@@ -399,7 +399,7 @@ API contract mirror: [`schemas/`](../services/onboard-api/src/onboard_api/schema
 | Missing or stale readings | `evaluate_sensor`; `SqliteReadingsProvider`; `_reading_notices` | Status `no_data` or `stale`. The assistant states gaps in `data_notices` (no pulse or SpO₂, stale age, future timestamp, suspect/bad quality, muscle unit pending) for the sensor kinds pertinent to the decision's cards. Values are never filled in. |
 | No `astronaut_id`, unknown astronaut, or SQLite file missing/unreadable during an assistant call | `SqliteReadingsProvider.load`, `load_context` | `available=False` plus a general warning. The reply continues. The warning reaches `data_notices` only when the case has a decision whose cards use readings. |
 | Alarm or SOS detected | `respond_alarm` | Returns from local cards at once. Readings, ChromaDB and Ollama are never waited on. |
-| Local interpreter fails, times out (8 s) or returns invalid JSON | `understand.read_turn` | Returns `None`; the turn continues with the rule interpretation only. No notice. |
+| Local interpreter fails, times out (15 s) or returns invalid JSON | `understand.read_turn` | Returns `None`; the turn continues with the rule interpretation only. No notice. |
 | Model proposes a symptom not backed by the user's words | `understand.accept` | Observation dropped. |
 | Ollama or ChromaDB down during retrieval | `retrieve_guides` | ChromaDB failure: notice `NOTICE_GUIDES_FAILED` ("... (ChromaDB)."). Query embedding failure (Ollama): `GuideRetriever.search` raises `EmbeddingUnavailable`, notice `NOTICE_EMBEDDING_FAILED`. Reply uses card text. |
 | Guide index empty (ingest not run yet, or `demo-init` still running) | `GuideRetriever.search` ([`chroma.py`](../services/onboard-api/src/onboard_api/assistant/integrations/chroma.py)), `retrieve_guides` | `search` raises `DependencyUnavailable` and clears the cached Chroma client, so the next search reopens the index and sees a later ingest. Notice `NOTICE_GUIDES_FAILED`. Reply uses card text. |
