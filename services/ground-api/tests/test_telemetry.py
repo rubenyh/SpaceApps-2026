@@ -268,6 +268,7 @@ def test_incident_updates_stored_once_despite_retries(client: TestClient, clock:
             {"id": ACKED["id"], "type": "acknowledged", "occurred_at": "2026-11-14T18:06:30Z",
              "received_at": received, "acknowledged_by": "ast-02"},
         ],
+        "report_ids": [],
     }
     assert client.get("/incidents/unknown").status_code == 404
 

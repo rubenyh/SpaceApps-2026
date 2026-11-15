@@ -131,6 +131,51 @@ export interface GroundIncident {
   readings?: GroundReading[];
   /** Snapshot readings not yet received by ground. */
   missing_reading_ids?: number;
+  /** Case reports linked to this incident. Absent on older servers: treat as []. */
+  report_ids?: string[];
+}
+
+// --- Case reports (contracts/case-report/README.md, ground GET /case-reports) --
+
+export type CaseUrgency = "immediate" | "review_required" | "undetermined" | "informational";
+
+/** Reading as captured onboard for the report, with provenance and freshness at assessment time. */
+export interface SnapshotReading {
+  id: number;
+  kind: string;
+  value: number | null;
+  value_text: string | null;
+  unit: string;
+  recorded_at: string;
+  received_at: string;
+  quality: Quality;
+  source: string;
+  simulated: boolean;
+  freshness: "current" | "stale" | "future";
+  age_seconds: number;
+}
+
+/** GET /case-reports item (newest received_at first) and GET /case-reports/{report_id}. */
+export interface GroundCaseReport {
+  schema_version: 1;
+  report_id: string;
+  ship_id: string;
+  astronaut_id: string | null;
+  reported_by: string | null;
+  sent_by: string | null;
+  urgency: CaseUrgency;
+  protocol_id: string | null;
+  action: string | null;
+  /** Onboard clock when the readings were loaded. */
+  assessed_at: string;
+  created_at: string;
+  sent_at: string;
+  incident_id: string | null;
+  text: string;
+  readings: SnapshotReading[];
+  knowledge_version: CandidateRef | null;
+  /** Ground clock when the report was stored. */
+  received_at: string;
 }
 
 // --- Medical evaluation (contracts/medical-eval/README.md, sections 1-4) ------

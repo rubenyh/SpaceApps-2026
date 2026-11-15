@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { getIncidents } from "../api/ground";
 import type { GroundIncident } from "../api/types";
 import { usePolling } from "../hooks/usePolling";
@@ -6,13 +7,14 @@ import { delayLabel, sortIncidents, sortUpdates, UPDATE_LABELS, utcFull } from "
 
 const POLL_MS = 5_000;
 
-function Incident({ incident: i }: { incident: GroundIncident }) {
+function Incident({ incident: i, onOpenReport }: { incident: GroundIncident; onOpenReport: (id: string) => void }) {
   const rules = i.matched_rules.map((r) => r.rule_id).join(", ");
   const readings = i.readings ?? [];
   const missing = i.missing_reading_ids ?? 0;
+  const reports = i.report_ids ?? [];
   return (
     <section className="section" aria-labelledby={`inc-${i.id}`}>
-      <h2 id={`inc-${i.id}`}>
+      <h2 id={`inc-${i.id}`} tabIndex={-1}>
         Incident {i.id.slice(0, 8)}
         <span className="tag tag--prov">{i.urgency}</span>
       </h2>
@@ -45,6 +47,17 @@ function Incident({ incident: i }: { incident: GroundIncident }) {
                 {missing} snapshot reading{missing === 1 ? "" : "s"} not yet received by ground
               </div>
             ) : null}
+          </dd>
+        </div>
+        <div>
+          <dt>Case reports</dt>
+          <dd>
+            {reports.length === 0 ? <span className="muted">None received</span> : null}
+            {reports.map((id) => (
+              <button key={id} type="button" className="button" onClick={() => onOpenReport(id)}>
+                Report {id.slice(0, 8)}
+              </button>
+            ))}
           </dd>
         </div>
         <div>
@@ -98,9 +111,18 @@ function Incident({ incident: i }: { incident: GroundIncident }) {
 }
 
 /** Read-only incident timeline as stored by ground-api. */
-export function Incidents() {
+export function Incidents({ focusId, onOpenReport }: { focusId: string | null; onOpenReport: (id: string) => void }) {
   const { data, error } = usePolling("incidents", getIncidents, POLL_MS);
   const incidents = data ? sortIncidents(data) : null;
+  const loaded = data !== null;
+
+  // Opened from a case report: bring that incident into view once the list is on screen.
+  useEffect(() => {
+    if (!focusId || !loaded) return;
+    const el = document.getElementById(`inc-${focusId}`);
+    el?.scrollIntoView({ block: "start" });
+    el?.focus({ preventScroll: true });
+  }, [focusId, loaded]);
 
   return (
     <>
@@ -118,7 +140,7 @@ export function Incidents() {
       ) : null}
       {incidents === null && !error ? <p className="empty">Loading incidents…</p> : null}
       {incidents?.length === 0 ? <p className="empty">No incidents have reached ground.</p> : null}
-      {incidents?.map((i) => <Incident key={`${i.ship_id}|${i.id}`} incident={i} />)}
+      {incidents?.map((i) => <Incident key={`${i.ship_id}|${i.id}`} incident={i} onOpenReport={onOpenReport} />)}
     </>
   );
 }
