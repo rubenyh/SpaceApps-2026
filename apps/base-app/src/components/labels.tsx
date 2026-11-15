@@ -22,7 +22,7 @@ export function RangeLabel({ config }: { config: SensorConfig }) {
       {config.range_role === "sample_validity" ? "Sample validity " : ""}
       {text}
       {config.provisional ? (
-        <abbr className="tag tag--prov" title="Provisional demo range, not clinically validated">
+        <abbr className="tag tag--prov" title="Provisional range, not clinically validated">
           PROV.
         </abbr>
       ) : null}

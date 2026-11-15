@@ -51,7 +51,7 @@ export function Header({ title, astronauts, selectedId, onSelect, connection }: 
           {list.length === 0 ? <option value="">None</option> : null}
           {list.map((a) => (
             <option key={a.id} value={a.id}>
-              {a.id} · {a.display_name}
+              {a.display_name === a.id ? a.id : `${a.id} · ${a.display_name}`}
             </option>
           ))}
         </select>

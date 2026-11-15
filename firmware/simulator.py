@@ -30,7 +30,7 @@ DEVICE_ID = "biomon-sim-01"
 # Per astronaut: display name, resting HR, SpO2, starting muscle density and urinary 8-OHdG.
 # Values stay inside the configured normal ranges: the demo crew is one healthy astronaut.
 CREW = {
-    "ast-01": {"name": "Demo Uno", "hr": 72, "spo2": 98.0, "muscle": 42.0, "ohdg": 4.0},
+    "ast-01": {"name": "ast-01", "hr": 72, "spo2": 98.0, "muscle": 42.0, "ohdg": 4.0},
 }
 # Urine radiation marker: 8-OHdG (oxidative DNA damage, raised by ionizing radiation).
 # Indirect marker, not a dose. Range: healthy-adult IQR, chemical methods (Graille et al. 2020).

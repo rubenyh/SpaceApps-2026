@@ -26,8 +26,8 @@ No se publica en la App Store. Se instala desde Xcode con un Apple ID personal.
    ```
 
 6. En Xcode elige el reloj como destino y pulsa Run.
-7. En el reloj, acepta el permiso de Salud (activa pulso y oxígeno), escribe `http://<IP del Mac>:8000`, pulsa "Cargar astronautas" y elige **Demo Uno** (`ast-01`). La primera vez watchOS pide permiso de red local: acéptalo.
-8. Arriba en la pantalla de lecturas verás "Midiendo · NN lpm". En las consolas, el pulso de Demo Uno tiene fuente `watch:healthkit`.
+7. En el reloj, acepta el permiso de Salud (activa pulso y oxígeno), escribe `http://<IP del Mac>:8000`, pulsa "Cargar astronautas" y elige `ast-01`. La primera vez watchOS pide permiso de red local: acéptalo.
+8. Arriba en la pantalla de lecturas verás "Midiendo · NN lpm". En las consolas, el pulso de `ast-01` tiene fuente `watch:healthkit`.
 
 ## Límites
 
