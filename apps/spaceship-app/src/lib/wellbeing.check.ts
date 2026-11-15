@@ -1,6 +1,15 @@
 // Self-check for lib/wellbeing.ts. Run: node src/lib/wellbeing.check.ts
-import type { CrewMemberSummary } from "../api/types";
-import { barFraction, formatDay, formatDayLong, formatZ, missionDay, supportSuggestion, zPercent } from "./wellbeing.ts";
+import type { ComponentState, CrewMemberSummary, Origin, WellbeingAssessment } from "../api/types";
+import {
+  barFraction,
+  formatDay,
+  formatDayLong,
+  formatZ,
+  missionDay,
+  supportSuggestion,
+  videoLogZ,
+  zPercent,
+} from "./wellbeing.ts";
 
 function eq(actual: unknown, expected: unknown, what: string): void {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
@@ -36,5 +45,37 @@ const member = (level: CrewMemberSummary["level"]): CrewMemberSummary => ({
 });
 eq(supportSuggestion(member("ok")), null, "no suggestion when doing well");
 eq(supportSuggestion(member("needs_support"))?.title, "Check in with Ana", "suggestion title");
+
+const comp = (component: string, z: number | null, origin: Origin | null, day: string | null) =>
+  ({ component, z, latest_origin: origin, latest_day: day }) as ComponentState;
+const assessment = (fatigue: ComponentState[], stress: ComponentState[]) =>
+  ({
+    indicators: [
+      { kind: "fatigue", components: fatigue },
+      { kind: "stress", components: stress },
+    ],
+  }) as unknown as WellbeingAssessment;
+const today = "2026-11-14";
+eq(
+  videoLogZ(
+    assessment(
+      [comp("checkin.energy", 3, "live", today), comp("vision.perclos", -0.2, "live", today), comp("vision.yawns_per_min", 0.5, "live", today)],
+      [comp("vision.brow_lower_delta", 1.9, "live", today), comp("signal.hrv_sdnn", 4, "live", today)],
+    ),
+    today,
+  ),
+  { fatigue: 0.5, tension: 1.9 },
+  "video log: max of live vision components only",
+);
+eq(
+  videoLogZ(assessment([comp("vision.perclos", 2, "simulated", today)], [comp("vision.brow_lower_peak_1s", 2, "live", "2026-11-13")]), today),
+  null,
+  "video log: nothing live today",
+);
+eq(
+  videoLogZ(assessment([comp("vision.perclos", null, "live", today)], []), today),
+  { fatigue: null, tension: null },
+  "video log: live but no z",
+);
 
 console.log("wellbeing.check: ok");
