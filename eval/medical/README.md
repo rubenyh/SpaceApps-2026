@@ -37,7 +37,7 @@ eval/medical/cases/v1/
 - A dependency that is down never changes urgency or the card. The expected values stay the same and the response states what is missing.
 
 The expectations were checked in process (real endpoint and SQLite, fake LLM and retriever, no
-Ollama) against this branch and against PR #56. Only the cases listed below differ.
+Ollama). Gaps found that way are listed below.
 
 ## Coverage
 
@@ -81,14 +81,12 @@ has no `immediate` action, so its cases are reviews and near misses.
 
 ## Known gaps and dependencies
 
-These draft cases fail against the current code. They record what the card says should happen.
+No case is known to fail on content against `main`. These gaps were found by the set and are fixed:
 
-- `abdominal.stale.001`: the Spanish rules miss "me duele mucho el estómago" (adverb between verb and organ), so the reply is out of coverage.
-- `cabin.alarm.005`: the English rules have no pattern for several crew members with symptoms.
-- `loc.negation.002`: the rules do not treat English "didn't" as negation, so the faint is read as present.
+- Typo and transcription cases (`breathing.transcription.001`, `chest.hypothetical.002`, `dizziness.typo.001`, `fever.typo.001`, `injury.typo.001`, `loc.transcription.001`, `neuro.transcription.001`, `neuro.typo.001`, `vomiting.typo.001`) and `loc.negation.002` (English "didn't"): issue #51.
+- `cabin.alarm.005` (English "several of us have …" raised no cabin alarm) and `abdominal.stale.001` (Spanish "me duele mucho el estómago" was out of coverage): issue #73.
 
-These cases need the typo and transcription fix for issue #51 (PR #56, not merged yet):
-`breathing.transcription.001`, `chest.hypothetical.002`, `dizziness.typo.001`, `fever.typo.001`, `injury.typo.001`, `loc.transcription.001`, `neuro.transcription.001`, `neuro.typo.001`, `vomiting.typo.001`.
+Passing these cases means the code matches the team's draft expectations. It is not a clinical review.
 
 ## Review log
 

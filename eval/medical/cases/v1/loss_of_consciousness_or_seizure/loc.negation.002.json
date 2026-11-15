@@ -41,6 +41,6 @@
     "status": "draft",
     "reviewer": null,
     "reviewed_at": null,
-    "notes": "Known gap: the rules do not treat English \"didn't\" as negation, so the faint is read as present."
+    "notes": "Gap fixed in issue #51: the rules do not treat English \"didn't\" as negation, so the faint is read as present."
   }
 }
