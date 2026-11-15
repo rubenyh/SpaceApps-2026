@@ -77,7 +77,13 @@ export function buildPath(path: string, query?: Record<string, QueryValue>): str
   return qs ? `${path}?${qs}` : path;
 }
 
-export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+export const apiGet = <T>(path: string, signal?: AbortSignal): Promise<T> => request<T>(path, {}, signal);
+
+/** JSON POST; same timeout and typed errors as apiGet. */
+export const apiPost = <T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> =>
+  request<T>(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }, signal);
+
+async function request<T>(path: string, init: RequestInit, signal?: AbortSignal): Promise<T> {
   const controller = new AbortController();
   let timedOut = false;
   const timer = setTimeout(() => {
@@ -92,7 +98,7 @@ export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> 
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, { signal: controller.signal });
+    response = await fetch(`${API_BASE_URL}${path}`, { ...init, signal: controller.signal });
   } catch (err) {
     if (timedOut) throw new NetworkError("request timed out");
     if (signal?.aborted) throw new AbortedError();

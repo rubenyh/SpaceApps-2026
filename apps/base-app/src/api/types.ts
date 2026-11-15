@@ -126,3 +126,121 @@ export interface GroundIncident {
   /** Sorted by occurred_at asc. */
   updates: GroundIncidentUpdate[];
 }
+
+// --- Medical evaluation (contracts/medical-eval/README.md, sections 1-4) ------
+
+export type CandidateStatus = "pending_review" | "approved" | "rejected";
+export type ReviewRole = "clinician" | "simulated";
+export type DecisionKind = "approved" | "rejected";
+export type FindingKind = "possible_cause" | "warning_sign" | "question" | "action";
+
+export interface CandidateRef {
+  candidate_id: string;
+  digest: string;
+}
+
+export interface ManifestComponent {
+  kind: string;
+  path: string;
+  sha256: string;
+  value?: unknown;
+}
+
+/** Section 2. */
+export interface EvalManifest extends CandidateRef {
+  schema: string;
+  created_at: string;
+  components: ManifestComponent[];
+}
+
+export interface EvalSummary {
+  cases: number;
+  passed: number;
+  failed: number;
+  blocking_failures: number;
+  release_blocked: boolean;
+  retrieval_hit_rate: number;
+  citation_support_rate: number;
+  latency_ms_p50: number;
+  latency_ms_p95: number;
+}
+
+/** Contract shows `sources: []`; items assumed to be onboard GuideSource. */
+export interface EvalSource {
+  id: string;
+  title?: string;
+  section?: string | null;
+  url?: string | null;
+  kind?: string;
+}
+
+export interface EvalResponse {
+  workflow: string;
+  urgency: string | null;
+  protocol_id: string | null;
+  reply: string;
+  action: string | null;
+  sources: EvalSource[];
+}
+
+export interface EvalCaseResult {
+  case_id: string;
+  family: string;
+  review_status: string;
+  passed: boolean;
+  blocking: boolean;
+  failures: { code: string; detail: string }[];
+  latency_ms: number;
+  response: EvalResponse | null;
+  baseline_response: EvalResponse | null;
+}
+
+/** Section 3. */
+export interface EvalResult {
+  schema: string;
+  manifest: CandidateRef;
+  baseline: CandidateRef | null;
+  run_at: string;
+  summary: EvalSummary;
+  cases: EvalCaseResult[];
+}
+
+/** POST /medical-eval/candidates/{digest}/decisions body (the contract lists no other decision fields). */
+export interface DecisionBody {
+  decision: DecisionKind;
+  reviewer: string;
+  role: ReviewRole;
+  notes: string;
+}
+
+export interface FindingBody {
+  case_id: string;
+  kind: FindingKind;
+  when_it_applies: string;
+  source: string;
+  expected_behavior: string;
+  reporter: string;
+}
+
+export interface EvalFinding extends FindingBody {
+  id: string;
+  digest: string;
+  created_at: string;
+  status: string;
+}
+
+/** GET /medical-eval/candidates item. */
+export interface CandidateListItem extends CandidateRef {
+  status: CandidateStatus;
+  created_at: string;
+  summary: EvalSummary;
+}
+
+/** GET /medical-eval/candidates/{digest}. */
+export interface CandidateDetail {
+  manifest: EvalManifest;
+  result: EvalResult;
+  status: CandidateStatus;
+  decisions: DecisionBody[];
+  findings: EvalFinding[];
+}
