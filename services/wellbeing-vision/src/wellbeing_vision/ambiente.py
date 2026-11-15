@@ -7,6 +7,7 @@ module is a transfer. Frames stay in memory; only derived numbers leave.
 
 import itertools
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 
 import cv2
@@ -100,14 +101,15 @@ def run_ambiente(settings: Settings, sink: Sink, cameras: list[int], window_s: f
     transfers: list[str] = []
     scores: dict[str, float] = {}
     sent, n = 0, len(modules)
+    pool = ThreadPoolExecutor(max_workers=n)  # OpenCV and MediaPipe release the GIL: cameras run in parallel
     try:
         while not seconds or time.monotonic() - t0 < seconds:
-            if not all(m.detect(gallery) for m in modules):
+            if not all(pool.map(lambda m: m.detect(gallery), modules)):
                 break
             resolve([tr for m in modules for tr in m.seen])  # one astronaut, one face, across modules
             t = time.monotonic() - t0
+            list(pool.map(lambda m: m.measure(t), modules))
             for m in modules:
-                m.measure(t)
                 for tr in m.seen:
                     if tr.astronaut:
                         scores[tr.astronaut] = tr.score
@@ -155,6 +157,7 @@ def run_ambiente(settings: Settings, sink: Sink, cameras: list[int], window_s: f
         t = time.monotonic() - t0
         if t - window_t0 >= MIN_PARTIAL_S:
             sent += _flush(modules, sink, scores, start + timedelta(seconds=t))
+        pool.shutdown()
         for m in modules:
             m.close()
         cv2.destroyAllWindows()
