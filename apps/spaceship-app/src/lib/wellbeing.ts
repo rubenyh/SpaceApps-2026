@@ -112,6 +112,23 @@ export function formatClock(iso: string, timeZone = "UTC"): string {
 
 export const firstName = (displayName: string) => displayName.trim().split(/\s+/)[0] ?? displayName;
 
+/** "checkin.sleep_hours" → "sleep hours (check-in)": the raw key, no invented clinical names. */
+export function componentLabel(component: string): string {
+  const dot = component.indexOf(".");
+  if (dot < 0) return component.replace(/_/g, " ");
+  const prefix = component.slice(0, dot);
+  return `${component.slice(dot + 1).replace(/_/g, " ")} (${prefix === "checkin" ? "check-in" : prefix})`;
+}
+
+/** Component value with its unit: "4.5 h", "3 / 4" for 0-N scales, "---" when missing. */
+export function formatValue(value: number | null, unit: string): string {
+  if (value === null) return "---";
+  const n = String(Number(value.toFixed(2)));
+  const scale = /^0-(\d+)$/.exec(unit);
+  if (scale) return `${n} / ${scale[1]}`;
+  return unit ? `${n} ${unit}` : n;
+}
+
 const TENSION_COMPONENTS = ["vision.brow_lower_delta", "vision.brow_lower_peak_1s"];
 
 /**

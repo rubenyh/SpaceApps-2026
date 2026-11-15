@@ -2,8 +2,10 @@
 import type { ComponentState, CrewMemberSummary, Origin, WellbeingAssessment } from "../api/types";
 import {
   barFraction,
+  componentLabel,
   formatDay,
   formatDayLong,
+  formatValue,
   formatZ,
   missionDay,
   supportSuggestion,
@@ -77,5 +79,12 @@ eq(
   { fatigue: null, tension: null },
   "video log: live but no z",
 );
+
+eq(componentLabel("checkin.sleep_hours"), "sleep hours (check-in)", "component label check-in");
+eq(componentLabel("vision.brow_lower_peak_1s"), "brow lower peak 1s (vision)", "component label vision");
+eq(formatValue(null, "h"), "---", "missing value");
+eq(formatValue(4.5, "h"), "4.5 h", "value with unit");
+eq(formatValue(3, "0-4"), "3 / 4", "scale value");
+eq(formatValue(0.6667, "ratio"), "0.67 ratio", "rounded value");
 
 console.log("wellbeing.check: ok");
