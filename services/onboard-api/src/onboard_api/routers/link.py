@@ -44,6 +44,8 @@ def _set_paused(request: Request, paused: bool) -> EarthLink:
     if pub is None:
         raise HTTPException(status.HTTP_409_CONFLICT, "telemetry is off (ONBOARD_TELEMETRY_ENABLED=false)")
     pub.paused = paused
+    if not paused:
+        pub.wake.set()  # skip any retry backoff still running
     return _link(request)
 
 
@@ -63,7 +65,7 @@ def resume(request: Request) -> EarthLink:
 
 
 @router.delete("/demo/incidents", dependencies=DEMO)
-def reset_incidents(astronaut_id: str, conn: Connection) -> dict[str, int]:
+def reset_incidents(astronaut_id: str, conn: Connection, request: Request) -> dict[str, int]:
     """Delete one astronaut's incidents and their queued events (idempotent).
     Readings stay: they are history, and ground already has them."""
     conn.execute("BEGIN IMMEDIATE")
@@ -77,4 +79,9 @@ def reset_incidents(astronaut_id: str, conn: Connection) -> dict[str, int]:
     except Exception:
         conn.execute("ROLLBACK")
         raise
+    pub = getattr(request.app.state, "telemetry_publisher", None)
+    if pub is not None and pub.pending is not None and pub.pending.incident_updates:
+        # The unsent batch may hold events just deleted; rebuild it from the DB.
+        # ponytail: a send already in flight can still deliver them; reset with the link paused.
+        pub.pending = None
     return {"deleted": deleted}

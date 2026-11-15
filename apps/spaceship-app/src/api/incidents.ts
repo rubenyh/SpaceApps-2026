@@ -12,3 +12,8 @@ export function acknowledgeIncident(id: string, acknowledgedBy: string): Promise
     body: { acknowledged_by: acknowledgedBy },
   });
 }
+
+/** 409 when already closed. */
+export function closeIncident(id: string): Promise<Incident> {
+  return apiRequest<Incident>(`/incidents/${encodeURIComponent(id)}/close`, { method: "POST" });
+}

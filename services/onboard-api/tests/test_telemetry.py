@@ -100,12 +100,12 @@ def test_run_backs_off_and_never_raises(db_path: Path, client: TestClient, monke
     ground.up = False
     delays: list[float] = []
 
-    async def fake_sleep(delay: float) -> None:
+    async def fake_sleep(_self, delay: float) -> None:
         delays.append(delay)
         if len(delays) == 3:
             raise asyncio.CancelledError
 
-    monkeypatch.setattr(publisher_module.asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(TelemetryPublisher, "_wait", fake_sleep)
 
     async def scenario() -> None:
         async with httpx.AsyncClient(
@@ -260,7 +260,7 @@ def test_paused_run_sends_nothing_and_does_not_back_off(db_path: Path, client: T
     delays: list[float] = []
     pub: list[TelemetryPublisher] = []
 
-    async def fake_sleep(delay: float) -> None:
+    async def fake_sleep(_self, delay: float) -> None:
         delays.append(delay)
         assert ground.batches == [] or len(delays) == 3
         if len(delays) == 2:
@@ -268,7 +268,7 @@ def test_paused_run_sends_nothing_and_does_not_back_off(db_path: Path, client: T
         if len(delays) == 3:
             raise asyncio.CancelledError
 
-    monkeypatch.setattr(publisher_module.asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(TelemetryPublisher, "_wait", fake_sleep)
 
     async def scenario() -> None:
         async with httpx.AsyncClient(transport=httpx.MockTransport(ground), base_url="http://ground") as http:
@@ -300,3 +300,18 @@ def test_demo_controls_off_by_default_and_reset_deletes_only_that_astronaut(
         response = client.delete("/demo/incidents", params={"astronaut_id": "ana"})
         assert response.json() == {"deleted": expected}
     assert [i["id"] for i in client.get("/incidents").json()] == [other]
+
+
+def test_resume_cuts_backoff_short(db_path: Path) -> None:
+    async def scenario() -> float:
+        async with httpx.AsyncClient(base_url="http://ground") as http:
+            pub = TelemetryPublisher(http, db_path, "ship-01", 5)
+            loop = asyncio.get_running_loop()
+            start = loop.time()
+            waiting = asyncio.create_task(pub._wait(60))
+            await asyncio.sleep(0)
+            pub.wake.set()  # what POST /telemetry/resume does
+            await waiting
+            return loop.time() - start
+
+    assert asyncio.run(scenario()) < 1

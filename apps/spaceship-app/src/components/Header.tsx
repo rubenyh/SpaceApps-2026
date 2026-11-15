@@ -24,6 +24,7 @@ function earthLink(link: EarthLink): { state: ConnectionState; icon: VisualState
   if (!link.enabled) return { state: "unknown", icon: "no_data", text: "Earth link: off" };
   if (link.paused) return { state: "offline", icon: "alert", text: "Earth link: down (simulated outage)" };
   if (link.failures > 0) return { state: "offline", icon: "alert", text: "Earth link: ground not answering" };
+  if (link.batches_sent === 0) return { state: "unknown", icon: "no_data", text: "Earth link: checking…" };
   return { state: "online", icon: "normal", text: "Earth link: up" };
 }
 

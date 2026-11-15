@@ -13,7 +13,7 @@ x-onboard-env: &onboard-env
   ONBOARD_OLLAMA_CHAT_MODEL: ${ONBOARD_OLLAMA_CHAT_MODEL:-qwen2.5:3b}
   ONBOARD_OLLAMA_EMBED_MODEL: ${ONBOARD_OLLAMA_EMBED_MODEL:-bge-m3}
   # Outage demo controls (docs/demo-outage.md): link pause/resume, scenario reset.
-  ONBOARD_DEMO_CONTROLS_ENABLED: ${DEMO_CONTROLS_ENABLED:-true}
+  ONBOARD_DEMO_CONTROLS_ENABLED: ${DEMO_CONTROLS_ENABLED:-false}
 
 services:
   onboard-api:
@@ -35,7 +35,7 @@ services:
     image: space-apps/ground-api
     environment:
       GROUND_DB_PATH: /data/ground.db
-      GROUND_DEMO_CONTROLS_ENABLED: ${DEMO_CONTROLS_ENABLED:-true}
+      GROUND_DEMO_CONTROLS_ENABLED: ${DEMO_CONTROLS_ENABLED:-false}
     ports:
       - "127.0.0.1:${GROUND_API_PORT:-8001}:8001"
     volumes:

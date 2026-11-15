@@ -188,3 +188,17 @@ def test_acknowledgment_errors(crew, db_path) -> None:
     unknown = crew.post(f"/incidents/{incident_id}/acknowledgments", json={"acknowledged_by": "zoe"})
     assert unknown.status_code == 422
     assert count(db_path, "incident_events") == 1
+
+
+def test_close_route_then_same_trigger_opens_new_incident(crew, db_path, clock) -> None:
+    first = ask(crew, db_path, "SOS")["incident"]["id"]
+    clock.now = T0 + timedelta(minutes=3)
+    closed = crew.post(f"/incidents/{first}/close")
+    assert closed.status_code == 200 and closed.json()["status"] == "closed"
+    assert closed.json()["closed_at"] == "2026-11-14T12:03:00Z"
+    assert crew.post(f"/incidents/{first}/close").status_code == 409
+    assert crew.post("/incidents/missing/close").status_code == 404
+    late_ack = crew.post(f"/incidents/{first}/acknowledgments", json={"acknowledged_by": "ben"})
+    assert late_ack.status_code == 409
+    assert ask(crew, db_path, "SOS")["incident"]["id"] != first
+    assert count(db_path) == 2

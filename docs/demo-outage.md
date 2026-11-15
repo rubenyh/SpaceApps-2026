@@ -11,7 +11,7 @@ The scenario uses its own astronaut, `scn-01` ("Scenario crew (scripted)"). The 
 
 ## Setup
 
-Start the stack as in [RUN-REPO.md](RUN-REPO.md) (`.\run.ps1`, or `docker compose up` plus both consoles). docker-compose turns the demo controls on. Set `DEMO_CONTROLS_ENABLED=false` before `docker compose up` to turn them off.
+Start the stack as in [RUN-REPO.md](RUN-REPO.md) (`.\run.ps1`, or `docker compose up` plus both consoles). The demo controls (link pause/resume and the destructive incident reset) are off by default. Turn them on for the demo before starting the stack: `$env:DEMO_CONTROLS_ENABLED="true"` in PowerShell (or `DEMO_CONTROLS_ENABLED=true docker compose up -d` in a POSIX shell). Without it the control routes answer 403.
 
 When you run the services natively, set `ONBOARD_DEMO_CONTROLS_ENABLED=true` for onboard-api and `GROUND_DEMO_CONTROLS_ENABLED=true` for ground-api. Both are off by default. While they are off, the control routes answer 403.
 

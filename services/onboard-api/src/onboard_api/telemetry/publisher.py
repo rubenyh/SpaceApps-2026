@@ -125,6 +125,7 @@ class TelemetryPublisher:
         self.batches_sent = 0
         # Controlled link outage (POST /telemetry/pause): nothing is sent, nothing is lost.
         self.paused = False
+        self.wake = asyncio.Event()  # set on resume to cut a backoff sleep short
 
     def _build_batch(self) -> TelemetryBatch:
         conn = connect(self._db_path)
@@ -189,7 +190,7 @@ class TelemetryPublisher:
     async def run(self) -> None:
         while True:
             if self.paused:
-                await asyncio.sleep(PAUSE_CHECK_SECONDS)
+                await self._wait(PAUSE_CHECK_SECONDS)
                 continue
             try:
                 more = await self.step()
@@ -206,4 +207,12 @@ class TelemetryPublisher:
                     "telemetry send failed (%d in a row), retry in %.0fs: %r",
                     self.failures, delay, exc,
                 )
-            await asyncio.sleep(delay)
+            await self._wait(delay)
+
+    async def _wait(self, delay: float) -> None:
+        """Sleep `delay` seconds, or less when resume sets `wake`."""
+        self.wake.clear()
+        try:
+            await asyncio.wait_for(self.wake.wait(), delay)
+        except TimeoutError:
+            pass

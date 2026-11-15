@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Astronaut, EvidenceFlag, Incident } from "../api/types";
-import { acknowledgeIncident, listIncidents } from "../api/incidents";
+import { acknowledgeIncident, closeIncident, listIncidents } from "../api/incidents";
 import { HttpError, toApiError } from "../api/client";
 import { usePolling } from "../hooks/usePolling";
 import { formatUtcDateTime } from "../lib/format";
@@ -37,15 +37,15 @@ function IncidentCard({ incident, crew, onChanged }: { incident: Incident; crew:
   const next = incident.steps[0]?.text ?? incident.action;
   const acked = incident.acknowledgments.some((a) => a.acknowledged_by === by);
 
-  const acknowledge = async () => {
+  const send = async (call: () => Promise<unknown>, failed: string) => {
     setBusy(true);
     setError(null);
     try {
-      await acknowledgeIncident(incident.id, by);
+      await call();
       onChanged();
     } catch (err) {
       const e = toApiError(err);
-      setError(e instanceof HttpError ? `Error ${e.status}: ${e.detail}` : "ONBOARD SERVICE UNAVAILABLE: not acknowledged.");
+      setError(e instanceof HttpError ? `Error ${e.status}: ${e.detail}` : `ONBOARD SERVICE UNAVAILABLE: ${failed}.`);
     } finally {
       setBusy(false);
     }
@@ -74,8 +74,11 @@ function IncidentCard({ incident, crew, onChanged }: { incident: Incident; crew:
             ))}
           </select>
         </label>
-        <button type="button" className="btn incident__ack-btn" disabled={busy || !by || acked} onClick={() => void acknowledge()}>
+        <button type="button" className="btn incident__ack-btn" disabled={busy || !by || acked} onClick={() => void send(() => acknowledgeIncident(incident.id, by), "not acknowledged")}>
           {acked ? "Acknowledged" : busy ? "Acknowledging…" : "Acknowledge"}
+        </button>
+        <button type="button" className="btn" disabled={busy} onClick={() => void send(() => closeIncident(incident.id), "not closed")}>
+          Close incident
         </button>
       </div>
       {error ? <p className="incident__error">{error}</p> : null}
