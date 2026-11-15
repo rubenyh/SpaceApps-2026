@@ -43,7 +43,18 @@ To stop the consoles, close their windows.
 
 If PowerShell blocks the script ("running scripts is disabled"), run it once with `powershell -ExecutionPolicy Bypass -File .\run.ps1`.
 
-On macOS or Linux, run `docker compose up --build -d`, then `npm run tauri dev` in `apps/spaceship-app` and in `apps/base-app`.
+On macOS, from the repo root:
+
+```sh
+./run.sh                 # stack + both consoles (one Terminal window each) + watch app in the watchOS simulator
+./run.sh --no-apps       # only the Docker stack
+./run.sh --watch-device  # also publishes onboard-api on the LAN and opens the watch project in Xcode
+./run.sh --down          # stop the Docker stack (keeps the volumes)
+```
+
+The watch steps run only when `apps/watch-app/` exists and Xcode has a watchOS simulator (`xcodebuild -downloadPlatform watchOS`). The simulator starts as `ast-01` against `http://127.0.0.1:8000`.
+
+On Linux, run `docker compose up --build -d`, then `npm run tauri dev` in `apps/spaceship-app` and in `apps/base-app`.
 
 ## Option B: step by step
 
