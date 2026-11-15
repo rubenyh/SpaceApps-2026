@@ -78,16 +78,26 @@ def test_manifest_digest_follows_contract(tmp_path: Path) -> None:
     m = build_manifest(FIXTURES, Settings())
     assert m["digest"] == hashlib.sha256(canonical(m["components"])).hexdigest()
     assert [c["kind"] for c in m["components"]] == [
-        "protocols", "rules", "rules", "prompts", "corpus", "model_config", "cases"]
+        "protocols", "rules", "prompts", "corpus", "model_config", "cases"]
+    rules = next(c for c in m["components"] if c["kind"] == "rules")
+    assert rules["path"] == "services/onboard-api/src/onboard_api/assistant/workflows/medical"
     model = next(c for c in m["components"] if c["kind"] == "model_config")
     assert model["path"] == "inline" and model["value"]["chat_model"] == Settings().ollama_chat_model
-    # Directory hash = sha256 of sorted "<rel path>\t<file sha>\n" lines.
+    # Directory hash = sha256 of sorted "<rel path>\t<file sha>\n" lines; file sha over
+    # CRLF -> LF bytes; __pycache__/, *.pyc and excluded top-level entries skipped.
     d = tmp_path / "d"
     (d / "b").mkdir(parents=True)
-    (d / "a.txt").write_bytes(b"x")
-    (d / "b" / "c.txt").write_bytes(b"y")
-    sx, sy = hashlib.sha256(b"x").hexdigest(), hashlib.sha256(b"y").hexdigest()
-    assert dir_sha256(d) == hashlib.sha256(f"a.txt\t{sx}\nb/c.txt\t{sy}\n".encode()).hexdigest()
+    (d / "__pycache__").mkdir()
+    (d / "a.txt").write_bytes(b"x\r\n")
+    (d / "b" / "c.txt").write_bytes(b"y\n")
+    (d / "b" / "c.pyc").write_bytes(b"skipped")
+    (d / "__pycache__" / "m.py").write_bytes(b"skipped")
+    (d / "prompts.py").write_bytes(b"excluded")
+    sx, sy = hashlib.sha256(b"x\n").hexdigest(), hashlib.sha256(b"y\n").hexdigest()
+    expected = hashlib.sha256(f"a.txt\t{sx}\nb/c.txt\t{sy}\n".encode()).hexdigest()
+    assert dir_sha256(d, exclude=("prompts.py",)) == expected
+    (d / "a.txt").write_bytes(b"x\n")  # LF checkout of the same file
+    assert dir_sha256(d, exclude=("prompts.py",)) == expected
     # Any case change changes the digest.
     edited = copy_fixtures(tmp_path, lambda c: c["review"].update(notes="changed"))
     assert build_manifest(edited, Settings())["digest"] != build_manifest(copy_fixtures(tmp_path / "x"), Settings())["digest"]

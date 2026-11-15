@@ -17,15 +17,18 @@ def canonical(obj) -> bytes:
 
 
 def file_sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    """CRLF -> LF first, so Windows and LF checkouts of one commit hash the same."""
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
-def dir_sha256(path: Path) -> str:
-    """SHA-256 of the sorted lines "<relative posix path>\\t<file sha256>\\n"."""
+def dir_sha256(path: Path, exclude: tuple[str, ...] = ()) -> str:
+    """SHA-256 of the sorted lines "<relative posix path>\\t<file sha256>\\n", without
+    __pycache__/, *.pyc and the top-level entries named in `exclude`."""
     lines = sorted(
         f"{f.relative_to(path).as_posix()}\t{file_sha256(f)}\n"
         for f in path.rglob("*")
-        if f.is_file() and "__pycache__" not in f.parts
+        if f.is_file() and "__pycache__" not in f.parts and f.suffix != ".pyc"
+        and f.relative_to(path).parts[0] not in exclude
     )
     return hashlib.sha256("".join(lines).encode("utf-8")).hexdigest()
 
@@ -35,8 +38,8 @@ def _rel(path: Path) -> str:
     return path.relative_to(REPO_ROOT).as_posix() if path.is_relative_to(REPO_ROOT) else path.as_posix()
 
 
-def _component(kind: str, path: Path) -> dict:
-    sha = dir_sha256(path) if path.is_dir() else file_sha256(path)
+def _component(kind: str, path: Path, exclude: tuple[str, ...] = ()) -> dict:
+    sha = dir_sha256(path, exclude) if path.is_dir() else file_sha256(path)
     return {"kind": kind, "path": _rel(path), "sha256": sha}
 
 
@@ -50,8 +53,7 @@ def build_manifest(
     }
     components = [
         _component("protocols", MEDICAL_DIR / "protocols"),
-        _component("rules", MEDICAL_DIR / "interpret.py"),
-        _component("rules", MEDICAL_DIR / "triage.py"),
+        _component("rules", MEDICAL_DIR, exclude=("prompts.py", "protocols")),
         _component("prompts", MEDICAL_DIR / "prompts.py"),
         _component("corpus", CORPUS_DIR),
         {"kind": "model_config", "path": "inline", "sha256": hashlib.sha256(canonical(model_config)).hexdigest(),
