@@ -225,7 +225,9 @@ def _component_files(root: Path, component: dict) -> dict[str, str]:
     target = (root / component["path"]).resolve()
     if not target.is_relative_to(root):
         raise HTTPException(409, f"Component path leaves the staging root: {component['path']}")
-    files = [target] if target.is_file() else sorted(f for f in target.rglob("*") if f.is_file())
+    files = [target] if target.is_file() else sorted(  # section 2 never hashes bytecode
+        f for f in target.rglob("*") if f.is_file() and "__pycache__" not in f.parts and f.suffix != ".pyc"
+    )
     if not files:
         raise HTTPException(409, f"Component not staged on ground: {component['path']}")
     return {f.relative_to(root).as_posix(): base64.b64encode(f.read_bytes()).decode("ascii") for f in files}

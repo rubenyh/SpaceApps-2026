@@ -17,27 +17,36 @@ from onboard_api.dependencies import get_assistant_responder
 from onboard_api.main import create_app
 from onboard_api.schemas.assistant import AssistantResponse, CaseReport
 
-PROTOCOLS = "services/onboard-api/src/onboard_api/assistant/workflows/medical/protocols"
-RULES = "services/onboard-api/src/onboard_api/assistant/workflows/medical/interpret.py"
+MEDICAL = "services/onboard-api/src/onboard_api/assistant/workflows/medical"
+PROTOCOLS = f"{MEDICAL}/protocols"
+RULES = f"{MEDICAL}/interpret.py"
 
 
 def sha(b: bytes) -> str:
-    return hashlib.sha256(b).hexdigest()
+    return hashlib.sha256(b.replace(b"\r\n", b"\n")).hexdigest()
+
+
+def dir_sha(files: dict[str, bytes]) -> str:
+    return sha("".join(sorted(f"{k}\t{sha(v)}\n" for k, v in files.items())).encode())
 
 
 def bundle(candidate_id: str, rules: bytes) -> dict:
-    """A ground bundle built the section 2 way: directory, file and inline components."""
+    """A ground bundle built the section 2 way: rules is the medical directory minus
+    prompts.py and protocols/ (their own components), plus an inline model_config."""
     protocols = {"headache.json": b'{"id": "headache"}', "sub/fever.json": b'{"id": "fever"}'}
-    dir_sha = sha("".join(sorted(f"{k}\t{sha(v)}\n" for k, v in protocols.items())).encode())
+    rules_dir = {"interpret.py": rules, "triage.py": b"TRIAGE = 1\r\n"}  # CRLF checkout
+    prompts = b"PROMPT = 'hi'\n"
     value = {"chat_model": "qwen2.5:3b", "embed_model": "bge-m3"}
     components = [
-        {"kind": "protocols", "path": PROTOCOLS, "sha256": dir_sha},
-        {"kind": "rules", "path": RULES, "sha256": sha(rules)},
+        {"kind": "protocols", "path": PROTOCOLS, "sha256": dir_sha(protocols)},
+        {"kind": "rules", "path": MEDICAL, "sha256": dir_sha(rules_dir)},
+        {"kind": "prompts", "path": f"{MEDICAL}/prompts.py", "sha256": sha(prompts)},
         {"kind": "model_config", "path": "inline", "value": value,
          "sha256": sha(json.dumps(value, sort_keys=True, separators=(",", ":")).encode())},
     ]
     digest = sha(json.dumps(components, sort_keys=True, separators=(",", ":")).encode())
-    files = {f"{PROTOCOLS}/{k}": v for k, v in protocols.items()} | {RULES: rules}
+    files = ({f"{PROTOCOLS}/{k}": v for k, v in protocols.items()} | {f"{MEDICAL}/{k}": v for k, v in rules_dir.items()}
+             | {f"{MEDICAL}/prompts.py": prompts})
     manifest = {"schema": "medical-eval.manifest.v1", "candidate_id": candidate_id,
                 "created_at": "2026-11-15T10:00:00Z", "components": components, "digest": digest}
     return {"candidate_id": candidate_id, "digest": digest, "manifest": manifest,
@@ -87,6 +96,7 @@ def test_verify_and_activate(tmp_path: Path) -> None:
     assert s["last_sync"]["outcome"] == "activated"
     assert (root / "active" / "files" / RULES).read_bytes() == b"RULES = 1\n"
     assert (root / "active" / "files" / PROTOCOLS / "sub" / "fever.json").exists()
+    assert (root / "active" / "files" / MEDICAL / "triage.py").read_bytes() == b"TRIAGE = 1\r\n"  # stored as sent, verified as LF
     assert knowledge.sync(root, Ground(V1).client())["last_sync"]["outcome"] == "already_active"
     s = knowledge.sync(root, Ground(V2).client())
     assert (s["active"]["candidate_id"], s["previous"]["candidate_id"]) == ("c2", "c1")
@@ -107,6 +117,9 @@ def test_sha_mismatch_keeps_active(store: Path) -> None:
     tampered = copy.deepcopy(V2)
     tampered["files"][f"{PROTOCOLS}/extra.json"] = base64.b64encode(b"{}").decode()
     assert "sha256 mismatch for protocols" in failed(store, Ground(V2, tampered).client())
+    tampered = copy.deepcopy(V2)
+    tampered["files"][f"{MEDICAL}/__pycache__/triage.cpython-312.pyc"] = base64.b64encode(b"x").decode()
+    assert "not part of any component" in failed(store, Ground(V2, tampered).client())
     tampered = copy.deepcopy(V2)
     tampered["files"]["../../evil.py"] = base64.b64encode(b"x").decode()
     assert "not part of any component" in failed(store, Ground(V2, tampered).client())

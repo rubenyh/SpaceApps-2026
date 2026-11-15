@@ -44,17 +44,34 @@ def _canonical(value: object) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
+def file_sha(data: bytes) -> str:
+    """Section 2: CRLF -> LF first, so Windows and LF checkouts of one commit agree."""
+    return _sha(data.replace(b"\r\n", b"\n"))
+
+
+def _excluded(kind: str, rel: str) -> bool:
+    """Section 2 directory exclusions: __pycache__/ and *.pyc everywhere; the rules
+    directory also leaves out prompts.py and protocols/ (their own components)."""
+    if "__pycache__" in rel.split("/") or rel.endswith(".pyc"):
+        return True
+    return kind == "rules" and (rel == "prompts.py" or rel.startswith("protocols/"))
+
+
 def component_sha(component: dict, files: dict[str, bytes]) -> str:
-    """Section 2: a file hashes its bytes; a directory hashes the sorted lines
+    """Section 2: a file hashes its LF-normalised bytes; a directory hashes the sorted lines
     "<relative posix path>\\t<file sha256>\\n". Inline components (no files) hash the
-    canonical JSON of `value` (the contract does not define this case yet)."""
-    path = component["path"]
+    canonical JSON of `value` (same as the #53 runner; the contract does not say)."""
+    path, kind = component["path"], component["kind"]
     if path == "inline":
         return _sha(_canonical(component.get("value")))
     if path in files:
-        return _sha(files[path])
+        return file_sha(files[path])
     prefix = path + "/"
-    lines = sorted(f"{k[len(prefix):]}\t{_sha(v)}\n" for k, v in files.items() if k.startswith(prefix))
+    lines = sorted(
+        f"{rel}\t{file_sha(v)}\n"
+        for k, v in files.items()
+        if k.startswith(prefix) and not _excluded(kind, rel := k[len(prefix):])
+    )
     if not lines:
         raise GateError(f"component {path} is missing from the bundle")
     return _sha("".join(lines).encode("utf-8"))
@@ -76,9 +93,12 @@ def verify(bundle: dict, approved_digest: str) -> tuple[dict, dict[str, bytes]]:
     if manifest["digest"] != approved_digest:
         raise GateError(f"bundle digest {manifest['digest']} is not the approved digest {approved_digest}")
     files = {path: base64.b64decode(data, validate=True) for path, data in bundle["files"].items()}
-    roots = [c["path"] for c in components if c["path"] != "inline"]
-    for path in files:
-        if not _safe(path) or not any(path == r or path.startswith(r + "/") for r in roots):
+    def hashed(path: str, c: dict) -> bool:  # the file's bytes count in c's sha256
+        root = c["path"]
+        return path == root or (path.startswith(root + "/") and not _excluded(c["kind"], path[len(root) + 1:]))
+
+    for path in files:  # every byte written to disk is covered by a verified hash
+        if not _safe(path) or not any(hashed(path, c) for c in components if c["path"] != "inline"):
             raise GateError(f"file {path} is not part of any component")
     for c in components:
         if component_sha(c, files) != c["sha256"]:

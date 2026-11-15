@@ -207,6 +207,8 @@ def test_bundle_serves_only_the_approved_candidate(tmp_path: Path) -> None:
     root = tmp_path / "staging"
     (root / PROTOCOLS).mkdir(parents=True)
     (root / PROTOCOLS / "headache.json").write_bytes(b'{"id": "headache"}')
+    (root / PROTOCOLS / "__pycache__").mkdir()
+    (root / PROTOCOLS / "__pycache__" / "x.cpython-312.pyc").write_bytes(b"bytecode")  # never served
     (root / RULES).write_bytes(b"RULES = 1\n")
     with TestClient(create_app(Settings(db_path=tmp_path / "ground.db", bundle_root=root))) as client:
         rejected = submit(client, candidate("c1"))
