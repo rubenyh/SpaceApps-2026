@@ -107,3 +107,38 @@ def test_render_draws_boxes_without_touching_the_input():
                  lines=[((0.2, 0.5), (0.2, 0.9))])
     assert frame.max() == 0 and out[int(0.2 * 720), int(0.15 * 1280)].any()
     assert cv2.cvtColor(out, cv2.COLOR_BGR2GRAY)[int(0.7 * 720), int(0.2 * 1280)] > 0
+
+
+def test_identify_shows_the_frame_as_delivered_with_boxes_in_place(monkeypatch):
+    import wellbeing_vision.identify as ident
+    from wellbeing_vision.config import Settings
+    from wellbeing_vision.overlay import AMBER
+
+    frame = np.zeros((720, 1280, 3), np.uint8)
+    frame[:100, :100] = (255, 255, 255)  # marker in the top-left corner of the camera image
+    face = _face(600, 300, 700, 420)
+
+    class FakeID:
+        deg = 0
+
+        def detect(self, img, orientations):
+            assert orientations == (180,)
+            self.deg = 180
+            return [face]
+
+    shown = []
+    monkeypatch.setattr(ident, "face_id", lambda s: FakeID())
+    monkeypatch.setattr(ident, "gallery_of", lambda s: Gallery(None))
+    monkeypatch.setattr(ident, "_pose_landmarker", lambda s: type("P", (), {
+        "detect_for_video": lambda self, img, ms: type("R", (), {"pose_landmarks": []})(), "close": lambda self: None})())
+    monkeypatch.setattr(ident, "open_camera", lambda i: type("C", (), {
+        "read": lambda self: (True, frame), "release": lambda self: None})())
+    for name in ("namedWindow", "destroyAllWindows", "setWindowProperty"):
+        monkeypatch.setattr(ident.cv2, name, lambda *a, **k: None)
+    monkeypatch.setattr(ident.cv2, "imshow", lambda n, c: shown.append(c))
+    monkeypatch.setattr(ident.cv2, "waitKey", lambda *a: ord("q"))
+    monkeypatch.setattr(ident.cv2, "getWindowProperty", lambda *a: 1)
+    ident.run_identify(Settings(), 0, rotation=180)
+    out = shown[0]  # 1280x720 video at scale 1, panel to the right
+    assert out[50, 50].tolist() == [255, 255, 255] and out[670, 1230].tolist() == [0, 0, 0]  # not rotated/mirrored
+    assert out[420, 650].tolist() == list(AMBER[::-1])  # bottom edge of the box, where the face is

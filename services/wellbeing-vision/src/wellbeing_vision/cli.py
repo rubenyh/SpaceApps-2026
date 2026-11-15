@@ -33,7 +33,6 @@ def main() -> None:
     enr.add_argument("--astronaut", type=_astronaut, required=True)
     enr.add_argument("--camera", type=int, default=0)
     enr.add_argument("--samples", type=int, default=10)
-    enr.add_argument("--mirror", action=argparse.BooleanOptionalAction, default=True)
 
     ide = sub.add_parser("identify", help="multi-person identity preview with poses (sends nothing)")
     ide.add_argument("--camera", type=int, default=0)
@@ -56,7 +55,7 @@ def main() -> None:
     if args.cmd == "enroll":
         from wellbeing_vision.identify import run_enroll
 
-        if not run_enroll(settings, args.astronaut, args.camera, args.samples, args.mirror):
+        if not run_enroll(settings, args.astronaut, args.camera, args.samples):
             raise SystemExit(1)
         return
     sink = Sink(settings.api_url, settings.outbox_path, dry_run=args.dry_run, dry_run_file=args.out)

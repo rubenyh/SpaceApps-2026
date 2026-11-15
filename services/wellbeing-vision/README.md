@@ -19,7 +19,7 @@ The repo lives in OneDrive: if `.venv` files get locked during `uv sync`, pause 
 |---|---|
 | `uv run wellbeing-vision models` | Download MediaPipe and OpenCV Zoo models. |
 | `uv run wellbeing-vision bitacora --astronaut ast-01 [--camera 0] [--seconds 60] [--no-mirror] [--trace t.csv] [--dry-run]` | Daily video log: 3 s neutral, then fatigue and tension with a live preview. Sends one summary. Keys: `f` fullscreen, `q`/Esc end. |
-| `uv run wellbeing-vision enroll --astronaut ast-01 [--camera 0] [--samples 10]` | Enroll a face: 10 templates while turning the head a little. Replaces the previous enrollment. |
+| `uv run wellbeing-vision enroll --astronaut ast-01 [--camera 0] [--samples 10]` | Enroll a face: 10 templates while turning the head a little. Replaces the previous enrollment. Not mirrored: only the daily log mirrors (self-view, `--no-mirror` to turn it off). |
 | `uv run wellbeing-vision identify [--camera 0] [--rotate 180] [--seconds 0]` | Multi-person preview: one box per tracked face with its name or `unknown-<n>`, and the linked pose. Sends nothing. |
 | `uv run pytest` | Unit tests (no camera needed). |
 

@@ -50,8 +50,8 @@ class _Window:
         return key not in (ord("q"), 27) and cv2.getWindowProperty(self.name, cv2.WND_PROP_VISIBLE) >= 1
 
 
-def run_enroll(settings: Settings, astronaut_id: str, camera: int, samples: int = ENROLL_SAMPLES,
-               mirror: bool = True) -> bool:
+def run_enroll(settings: Settings, astronaut_id: str, camera: int, samples: int = ENROLL_SAMPLES) -> bool:
+    """Shows the frame as the camera delivers it: only the daily log mirrors (self-view)."""
     faceid, gallery = face_id(settings), gallery_of(settings)
     cap, window = open_camera(camera), _Window("Enrollment - wellbeing-vision")
     title = f"ENROLLMENT · {settings.astronauts.get(astronaut_id, astronaut_id)}"
@@ -77,8 +77,7 @@ def run_enroll(settings: Settings, astronaut_id: str, camera: int, samples: int 
                     last = t
                 notice = Notice("Look at the camera", f"Sample {len(templates)}/{samples} · turn your head a "
                                 "little", progress=len(templates) / samples)
-            frame = cv2.flip(raw, 1) if mirror else raw
-            if not window.show(render(frame, title, "ENROLLING", [], FOOTER, notice)):
+            if not window.show(render(raw, title, "ENROLLING", [], FOOTER, notice)):
                 break
     finally:
         cap.release()
@@ -105,7 +104,8 @@ def _pose_landmarker(settings: Settings) -> PoseLandmarker:
 
 
 def run_identify(settings: Settings, camera: int, seconds: float = 0.0, rotation: int | None = None) -> None:
-    """Live preview: who is in view, one box per tracked face, the pose linked to it. Sends nothing."""
+    """Live preview: who is in view, one box per tracked face, the pose linked to it. Sends nothing.
+    The frame is shown as the camera delivers it: rotation is only tried internally to find faces."""
     faceid, gallery, tracker = face_id(settings), gallery_of(settings), IoUTracker()
     if not gallery.people:
         print("No enrolled faces: everyone shows as unknown. Run: wellbeing-vision enroll --astronaut ast-01")
