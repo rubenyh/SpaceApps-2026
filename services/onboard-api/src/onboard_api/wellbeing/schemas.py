@@ -63,6 +63,8 @@ class ComponentParameter(BaseModel):
 class WellbeingParameters(BaseModel):
     provisional: bool = True
     basis: str
+    # IANA zone of the mission day all inputs are grouped by.
+    mission_tz: str
     z_threshold: float
     sustain_days: int
     baseline_days: int

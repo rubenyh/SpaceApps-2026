@@ -27,7 +27,7 @@ CHECKIN_FORM = CheckinForm(
     items=[
         CheckinFormItem(
             key="sleep_hours",
-            prompt="¿Cuántas horas dormiste anoche?",
+            prompt="How many hours did you sleep last night?",
             kind="hours",
             min=0,
             max=24,
@@ -36,28 +36,28 @@ CHECKIN_FORM = CheckinForm(
             max_label="24 h",
             higher_is_better=True,
         ),
-        _scale("sleep_quality", "¿Qué tan bien dormiste?", "Muy mal", "Muy bien"),
-        _scale("energy", "¿Cuánta energía tienes hoy?", "Agotado/a", "Mucha energía"),
-        _scale("mood", "¿Cómo está tu ánimo hoy?", "Muy bajo", "Muy bueno"),
+        _scale("sleep_quality", "How well did you sleep?", "Very poorly", "Very well"),
+        _scale("energy", "How much energy do you have today?", "Exhausted", "Full of energy"),
+        _scale("mood", "How is your mood today?", "Very low", "Very good"),
         _scale(
-            "interest", "¿Disfrutaste o te interesó lo que hiciste hoy?", "Nada", "Mucho"
+            "interest", "Did you enjoy or feel interested in what you did today?", "Not at all", "A lot"
         ),
         _scale(
             "stress",
-            "¿Cuánta tensión o preocupación sentiste hoy?",
-            "Nada",
-            "Mucha",
+            "How much tension or worry did you feel today?",
+            "None",
+            "A lot",
             better=False,
         ),
         _scale(
             "crew_connection",
-            "¿Qué tan conectado/a te sentiste con la tripulación?",
-            "Aislado/a",
-            "Muy conectado/a",
+            "How connected did you feel with the crew?",
+            "Isolated",
+            "Very connected",
         ),
         CheckinFormItem(
             key="comment",
-            prompt="¿Algo que quieras comentar? (opcional, privado)",
+            prompt="Anything you want to add? (optional, private)",
             kind="text",
             max_length=500,
             optional=True,

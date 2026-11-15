@@ -10,13 +10,16 @@ POST /wellbeing/signals of a running onboard API, for one astronaut.
 """
 
 import argparse
+import json
 import urllib.error
 import urllib.request
 from collections import Counter
 from datetime import date
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from onboard_api.wellbeing.health_import import DEFAULT_SOURCE, iter_signals, open_export
+from onboard_api.wellbeing.settings import WellbeingSettings
 
 
 def post(base: str, body: bytes) -> None:
@@ -34,6 +37,15 @@ def post(base: str, body: bytes) -> None:
         ) from error
 
 
+def mission_tz(base: str) -> ZoneInfo:
+    """The API's WELLBEING_MISSION_TZ, so nights land on the same days it uses."""
+    try:
+        with urllib.request.urlopen(base + "/wellbeing/parameters", timeout=10) as response:
+            return ZoneInfo(json.loads(response.read())["mission_tz"])
+    except (urllib.error.URLError, KeyError) as error:
+        raise SystemExit(f"No se pudo leer la zona de misión de {base}: {error}") from error
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("export", type=Path, help="export.zip or export.xml")
@@ -48,11 +60,13 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="count only, send nothing")
     args = parser.parse_args()
 
+    base = args.base.rstrip("/")
+    tz = WellbeingSettings().tz if args.dry_run else mission_tz(base)
     counts: Counter[str] = Counter()
     with open_export(args.export) as stream:
-        for signal in iter_signals(stream, args.astronaut, args.since, args.source):
+        for signal in iter_signals(stream, args.astronaut, args.since, args.source, tz):
             if not args.dry_run:
-                post(args.base.rstrip("/"), signal.model_dump_json().encode())
+                post(base, signal.model_dump_json().encode())
             counts[signal.kind] += 1
     action = "Contadas (sin enviar)" if args.dry_run else "Enviadas"
     print(f"{action} para {args.astronaut}: {dict(counts) or 'ninguna señal'}")

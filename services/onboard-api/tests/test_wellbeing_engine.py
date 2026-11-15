@@ -79,7 +79,7 @@ def test_discrepancy_when_self_report_is_fine_but_passive_signals_drop() -> None
     assert ev.level == "needs_support"
     assert ev.discrepancy is True
     assert ev.sustained_sources == ["physiology", "social"]
-    assert any("checklist no muestra cambios" in n for n in support_notes(ev, SETTINGS))
+    assert any("check-in shows no change" in n for n in support_notes(ev, SETTINGS))
 
 
 def test_alert_only_after_sustain_days() -> None:
@@ -109,7 +109,7 @@ def test_baseline_pending_with_few_days() -> None:
     inputs = series_inputs({"checkin.mood": stable_mood}, 3)
     ev = evaluate(inputs, TODAY, SETTINGS)
     assert ev.level == "baseline_pending"
-    assert "faltan 2 día(s)" in support_notes(ev, SETTINGS)[0]
+    assert "2 more day(s) of check-ins" in support_notes(ev, SETTINGS)[0]
 
 
 def test_stale_when_latest_data_is_old() -> None:
@@ -259,3 +259,45 @@ def test_lip_press_is_stored_but_not_scored() -> None:
     assert not any(k.startswith("vision.lip_press") for k in inputs.values)
     ev = evaluate(inputs, TODAY, SETTINGS)
     assert ev.level == "ok"
+
+
+def test_brow_peak_floor_matches_real_rest_spread() -> None:
+    # Rest peaks from 3 real logs (0.046, 0.129, 0.094) form the baseline.
+    rest = [0.046, 0.129, 0.094]
+
+    def brow_peak_z(today_peak: float, low_baseline: bool = False) -> float:
+        sessions = [
+            bitacora(i, 0.02, None, 0.046 if low_baseline else rest[i % 3], None)
+            for i in range(DAYS - 1)
+        ] + [bitacora(DAYS - 1, 0.02, None, today_peak, None)]
+        inputs = build_daily_inputs("ast-01", [], [], sessions, [], [], SETTINGS)
+        ev = evaluate(inputs, TODAY, SETTINGS)
+        stress = next(i for i in ev.indicators if i.kind == "stress")
+        return next(c.latest_z for c in stress.components
+                    if c.definition.component == "vision.brow_lower_peak_1s")
+
+    assert brow_peak_z(0.129) < 0.5  # S2 rest log
+    assert brow_peak_z(0.129, low_baseline=True) < 1.1  # worst case: lowest rest baseline
+    assert brow_peak_z(0.663) >= 5.0  # acted frown: clearly flagged (z is capped at 5)
+
+
+def test_user_texts_are_english_and_never_clinical() -> None:
+    scenarios = [
+        series_inputs({"checkin.mood": stable_mood}, DAYS),  # ok
+        series_inputs({"checkin.mood": mood}, DAYS),  # attention
+        series_inputs({"checkin.mood": mood, "signal.hrv_sdnn": hrv}, DAYS),  # needs_support
+        series_inputs({"checkin.mood": stable_mood, "signal.hrv_sdnn": hrv,
+                       "social.accompanied_minutes": social}, DAYS),  # discrepancy
+        series_inputs({"checkin.mood": stable_mood}, 3),  # baseline_pending
+        series_inputs({"checkin.mood": stable_mood}, 15, end=TODAY - timedelta(days=5)),  # stale
+        series_inputs({}, 0),  # no_data
+    ]
+    clinical = ("diagnos", "disorder", "depress", "anxiety", "illness", "sick", "patient")
+    seen = set()
+    for inputs in scenarios:
+        ev = evaluate(inputs, TODAY, SETTINGS)
+        seen.add(ev.level)
+        for note in support_notes(ev, SETTINGS):
+            assert note.isascii(), note  # English, no Spanish accents
+            assert not any(word in note.lower() for word in clinical), note
+    assert seen == {"ok", "attention", "needs_support", "baseline_pending", "stale", "no_data"}

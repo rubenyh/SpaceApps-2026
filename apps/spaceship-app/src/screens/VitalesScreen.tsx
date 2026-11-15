@@ -65,14 +65,17 @@ function Vital({ title, organ, sensor, readings, age, windowEnd, loaded, offline
       showSource
     >
       <div className="chart-block">
-        <span className="caption">Last 15 minutes · times in UTC</span>
+        <span className="caption">
+          Last 15 minutes · times in UTC
+          {range ? ` · Normal ${range}${config?.provisional ? " · PROV." : ""}` : ""}
+        </span>
         <LineChart
           points={points}
           start={windowEnd - WINDOW_MS}
           end={windowEnd}
           normalMin={config?.normal_min ?? null}
           normalMax={config?.normal_max ?? null}
-          zoneLabel={range ? `Normal ${range}${config?.provisional ? " · PROV." : ""}` : undefined}
+          cap={sensor?.kind === "spo2" && config?.unit === "%" ? 100 : null}
           status={shownStatus(sensor, offline)}
           width={572}
           height={250}
