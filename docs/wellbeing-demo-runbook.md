@@ -2,15 +2,21 @@
 
 Demo en Mexicali, zona de misión `America/Tijuana`. Todo en PowerShell, desde la raíz del repo `SpaceApps-2026`.
 
-> **Estado de la consola:** la pestaña de bienestar (Cedric) todavía no está en `main`. Mientras no exista, el camino principal son los comandos de respaldo de cada paso (o `http://127.0.0.1:8000/docs`). Cuando la pestaña exista, cada paso dice qué mostrar ahí.
+> **Consola:** la pestaña de bienestar (Cedric, #38) ya está en `main`. Cada paso trae además un comando de respaldo, por si la consola falla (o usa `http://127.0.0.1:8000/docs`).
 
 Lo que se ve en vivo es real (la bitácora de hoy de ast-01); el historial de 21 días es **simulado**, y se dice abiertamente.
 
 La tripulación es ficticia: Elena Ruiz (ast-01), Marco Tanaka (ast-02), Sofía Mendel (ast-03) y Daniel Okafor (ast-04). Sus historias y qué decir de cada una: [wellbeing/demo-crew.md](wellbeing/demo-crew.md).
 
-> **¿Nativo o Docker?** Esta guía levanta la API de forma nativa, porque así corre con la zona de Mexicali. Si el equipo levanta todo con Docker (`.\run.ps1`, ver [`RUN-REPO.md`](RUN-REPO.md)), no abras la Terminal 1: el puerto 8000 ya es del contenedor. En ese caso sigue [Con Docker](#con-docker-runps1) al final de la sección 1.
+## 1. Preparación
 
-## 1. Preparación (en este orden)
+Hay dos caminos, y los dos dan el mismo resultado con la zona de Mexicali:
+- **A. Nativo:** sólo la API de onboard, con `uv`. Es el más ligero.
+- **B. Docker:** el stack completo del equipo con `.\run.ps1`.
+
+Visión, la consola y la sección 2 son iguales en los dos.
+
+### Camino A: nativo
 
 En **cada** terminal nueva:
 
@@ -52,6 +58,20 @@ El export del Watch ya va incluido. Sólo si quieres importar un export **real**
 ```powershell
 uv run python scripts/import_apple_health.py C:\ruta\export.zip --astronaut ast-01
 ```
+
+### Camino B: Docker (`.\run.ps1`)
+
+Úsalo si el equipo levanta el stack completo, con onboard, ground, Ollama y el simulador. No abras las Terminales 1 y 2 del camino A: el puerto 8000 ya es del contenedor. Desde la raíz del repo:
+
+```powershell
+.\run.ps1 -NoApps
+docker compose exec onboard-api python scripts/demo_reset.py --tz America/Tijuana
+(Invoke-RestMethod "http://127.0.0.1:8000/wellbeing/parameters").mission_tz
+```
+
+Con `.\run.ps1` sin `-NoApps` también se abren las dos consolas. El último comando debe decir `America/Tijuana`: el compose pasa `WELLBEING_MISSION_TZ` con ese valor por defecto. Para usar la hora de misión (UTC), ejecuta `$env:WELLBEING_MISSION_TZ = "UTC"` antes de `.\run.ps1`. `wellbeing.db` vive en el volumen del contenedor, así que el reset siempre se corre con `docker compose exec`.
+
+### Visión y consola (los dos caminos)
 
 **Terminal 3: visión** (la primera vez descarga ~45 MB de modelos)
 
@@ -107,16 +127,6 @@ En cualquier terminal de respaldo:
 ```powershell
 $B = "http://127.0.0.1:8000"
 ```
-
-### Con Docker (`.\run.ps1`)
-
-Si el stack completo ya corre en Docker, no abras la Terminal 1. `wellbeing.db` vive dentro del contenedor, así que el reset se corre ahí (desde la raíz del repo):
-
-```powershell
-docker compose exec onboard-api python scripts/demo_reset.py
-```
-
-Limitación: el compose todavía no pasa `WELLBEING_MISSION_TZ`, así que en Docker los días van en UTC, y después de las 16:00 de Mexicali los datos caen al día siguiente. Para usar `America/Tijuana` en Docker falta una línea en `docker-compose.yml`, que hay que coordinar con Rubén. Hasta entonces, para la demo de bienestar conviene el camino nativo. La Terminal 3 (visión) y la sección 2 funcionan igual en los dos casos.
 
 ## 2. Guion
 
@@ -245,6 +255,9 @@ Invoke-RestMethod -Method Post "$B/wellbeing/vision-sessions" -ContentType "appl
 ```
 
 **La API se cae o no responde**
+
+Con Docker (camino B): `docker compose restart onboard-api`. Si no basta, `docker compose logs --tail 50 onboard-api`. Con el camino nativo:
+
 1. Mira la Terminal 1. Ciérrala con `Ctrl+C` y vuelve a levantarla con los mismos comandos (incluida `$env:WELLBEING_MISSION_TZ`).
 2. Si el puerto 8000 está ocupado (por ejemplo, porque se cerró la ventana en vez de usar `Ctrl+C`): `Get-NetTCPConnection -State Listen -LocalPort 8000 | Select-Object OwningProcess`, y luego `Stop-Process -Id <pid>`. Si `Stop-Process` dice que no encuentra el proceso, quedó vivo un proceso hijo de `fastapi dev` que conserva el puerto. Ciérralo así y vuelve a levantar la API:
 
@@ -256,6 +269,8 @@ Invoke-RestMethod -Method Post "$B/wellbeing/vision-sessions" -ContentType "appl
 4. Comprueba que la zona sea la correcta: `(Invoke-RestMethod "$B/wellbeing/parameters").mission_tz` debe decir `America/Tijuana`.
 
 **`wellbeing.db` corrupta o datos raros**
+
+Con Docker (camino B), reconstruirla es volver a correr el reset dentro del contenedor: `docker compose exec onboard-api python scripts/demo_reset.py --tz America/Tijuana`. Con el camino nativo:
 
 Lo más rápido es reconstruir. Primero detén la API (`Ctrl+C` en la Terminal 1).
 
@@ -279,7 +294,7 @@ Después levanta la API. `demo_reset.py` hace un respaldo cada vez que corre, as
 
 ## 4. Checklist de 5 minutos antes
 
-- [ ] Terminal 1 con la API arriba y `(Invoke-RestMethod "$B/wellbeing/parameters").mission_tz` = `America/Tijuana` (con Docker sale `UTC`, ver sección 1).
+- [ ] Terminal 1 con la API arriba y `(Invoke-RestMethod "$B/wellbeing/parameters").mission_tz` = `America/Tijuana` (igual con Docker).
 - [ ] `demo_reset.py --tz America/Tijuana` corrido hoy, y su tabla con los 4 casos como en la sección 1.
 - [ ] Prueba de cámara sin enviar nada: `uv run wellbeing-vision bitacora --astronaut ast-01 --seconds 10 --dry-run`. Se abre la vista, la cara se detecta y pasa el neutral.
 - [ ] Luz frontal, cámara a ~50 cm, fondo tranquilo, notificaciones de Windows apagadas, cargador conectado.

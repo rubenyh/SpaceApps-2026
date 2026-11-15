@@ -36,7 +36,6 @@ Este documento lista, con honestidad, lo que el módulo de bienestar no hace o n
 | Validación de la visión con cámaras reales | **Pendiente** (PR #33): FPS y reconocimiento a 1280x720, `facing_ratio` con parejas reales y la nueva regla de habla en bitácoras nuevas. |
 | Identidad por proximidad de un wearable | No implementada. Sólo existe el valor `wearable` en el contrato. |
 | App de HealthKit | No construida. Sólo hay importador del export de Apple Health y un export sintético de ejemplo. La app de reloj del repo (`apps/watch-app`) no manda señales de bienestar. |
-| Zona de misión en Docker | En Docker bienestar corre en `UTC`. **Pendiente** del PR #82. |
 | Zona horaria por astronauta | No existe: una sola zona para todo el módulo. |
 | Huecos del contrato con la consola (PR #38) | `WellbeingAssessment` no trae `z_threshold` (la consola lo toma de la línea de tiempo); el progreso de calibración es aproximado; no hay hora de la bitácora; los paquetes no tienen `withdrawn_at` ni `sent_at`. |
 
@@ -49,6 +48,5 @@ Este documento lista, con honestidad, lo que el módulo de bienestar no hace o n
 | Más bitácoras de labios apretados y una combinación que no diluya al ceño | Condición para volver a puntuar los labios. | Comentario en `COMPONENTS`, [`engine.py`](../../services/onboard-api/src/onboard_api/wellbeing/engine.py) |
 | Canal dedicado y consentido hacia Tierra | Hoy los paquetes se quedan en cola; la telemetría nunca lleva bienestar. | Decisión del equipo del 2026-11-15, PR #41 |
 | Medir el modo ambiente real | Reemplazar `MOTION_REST` / `MOTION_ALTERED` y la co-presencia simulada por mediciones. | Comentario en [`simulator.py`](../../services/onboard-api/src/onboard_api/wellbeing/simulator.py) |
-| Integrar el PR #82 | Días de misión en `America/Tijuana` también en Docker. | PR #82 |
 | Autenticación real de la tripulación | Que la separación de vistas no dependa de la consola. | Comentario en [`wellbeingPins.ts`](../../apps/spaceship-app/src/lib/wellbeingPins.ts) |
 | Cerrar los huecos del contrato con la consola | `z_threshold` en la evaluación, hora de la bitácora, fechas de retiro y envío. | PR #38 |

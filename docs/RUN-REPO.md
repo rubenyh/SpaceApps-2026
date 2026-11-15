@@ -80,6 +80,7 @@ docker compose up --build
 - The first run downloads about 7 GB: the Ollama image, the `bge-m3` and `qwen2.5:3b` models, and the MedlinePlus XML. Embedding the guides then takes a few minutes. Later starts reuse the volumes and skip this.
 - The APIs and the simulator work before `demo-init` finishes. Until it finishes, educational questions are answered without guides, and `data_notices` says so.
 - `ground-api` is part of the stack. onboard-api sends telemetry to `http://ground-api:8001`. To keep the ship offline, start with `ONBOARD_TELEMETRY_ENABLED=false`.
+- Wellbeing groups days in `WELLBEING_MISSION_TZ` (default `America/Tijuana` for the Mexicali demo; set `UTC` for mission time).
 
 Check the setup:
 
