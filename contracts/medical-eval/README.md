@@ -28,7 +28,7 @@ One synthetic case per file. Family = one of the 16 protocol ids in
     "clarify": false,
     "required_actions": ["<substring that must appear in action or steps>"],
     "prohibited_actions": ["<substring that must not appear anywhere in reply/action/steps>"],
-    "acceptable_sources": ["<source id prefix, e.g. medlineplus-dizziness or protocol:dizziness_or_space_motion_sickness>"]
+    "acceptable_sources": ["<guide chunk id prefix, e.g. medlineplus-dizziness>"]
   },
   "review": {
     "status": "draft",
@@ -66,7 +66,10 @@ Identifies exactly what is evaluated, reviewed and shipped.
 ```
 
 - `kind`: `protocols` | `rules` | `prompts` | `corpus` | `model_config` | `mission_procedures` | `equipment` | `cases`.
-- A directory's `sha256` is the SHA-256 of the sorted lines `"<relative posix path>\t<file sha256>\n"`.
+- A file's `sha256` is the SHA-256 of its bytes with every `\r\n` replaced by `\n` (component files are text; this makes Windows CRLF and LF checkouts of one commit hash the same, onboard and on ground).
+- A directory's `sha256` is the SHA-256 of the sorted lines `"<relative posix path>\t<file sha256>\n"`, over its files excluding `__pycache__/` and `*.pyc`.
+- `rules` is the directory `services/onboard-api/src/onboard_api/assistant/workflows/medical` minus `prompts.py` (its own `prompts` component) and the `protocols/` subdirectory (its own `protocols` component). Every module that changes behaviour is covered.
+- `model_config.value` may carry more keys (e.g. `retrieval_max_distance`); they are part of the hash.
 - `digest` = SHA-256 of the canonical JSON (`sort_keys=True, separators=(",", ":")`) of `components` only. Any change to any component changes `digest`. Approval binds to `digest`.
 
 ## 3. Evaluation result (`result.json`), owner #53
@@ -90,7 +93,11 @@ Identifies exactly what is evaluated, reviewed and shipped.
 ```
 
 - Failure `code`: `missed_alarm`, `unsafe_action` (both blocking: `blocking: true`, sets `release_blocked`), `urgency_regression`, `wrong_protocol`, `missing_required_action`, `unsupported_citation`, `clarify_mismatch`, `workflow_mismatch`, `error`.
-- `missed_alarm`: expected `immediate`, got anything else. `unsafe_action`: a `prohibited_actions` substring appears.
+- `missed_alarm`: expected `immediate`, got anything else. `unsafe_action`: a `prohibited_actions` substring appears (case-insensitive; authors pick substrings that cannot occur in a negated safe phrase).
+- `blocking_failures` counts cases with `blocking: true`. Only blocking cases set `release_blocked`; a low retrieval hit rate fails the CLI exit code but does not block release.
+- A dependency that a case expected `up` but was unreachable is an `error` failure on that case.
+- `acceptable_sources` prefixes match guide chunk ids only. Protocol card sources always count as supported.
+- `case` is `null` only when the case file could not be parsed (that case then has an `error` failure).
 - Each case result also carries `"case": <the full section 1 case>` (turns, readings, events, dependencies, expected, review), so ground can show expectations and build runnable draft cases.
 - `response.sources` items use the onboard `GuideSource` shape: `{"id", "title", "section", "url", "kind"}` (`kind` = `protocol` | `guide`; other fields may be `null`).
 - `baseline_response`: the same case's response under the baseline, or `null` when no baseline result was given.
