@@ -315,3 +315,50 @@ def test_resume_cuts_backoff_short(db_path: Path) -> None:
             return loop.time() - start
 
     assert asyncio.run(scenario()) < 1
+
+
+def test_demo_reset_waits_for_send_in_flight(client: TestClient, astronaut: str, db_path: Path) -> None:
+    """A reset during a slow send returns only after that send ends, so the ground
+    reset that follows removes it; the next batch has none of the deleted events."""
+    from types import SimpleNamespace
+
+    from onboard_api.routers.link import reset_incidents
+
+    incident_id = urgent_incident(client, db_path)["incident"]["id"]
+    arrived, release = asyncio.Event(), asyncio.Event()
+    ground: list[dict] = []
+
+    async def slow_ground(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/telemetry/v1/cursor":
+            return httpx.Response(200, json={"last_reading_id": None})
+        arrived.set()
+        await release.wait()
+        ground.append(json.loads(request.content))
+        return httpx.Response(202, json={})
+
+    async def scenario() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(slow_ground), base_url="http://ground") as http:
+            pub = TelemetryPublisher(http, db_path, "ship-01", 5)
+
+            async def send() -> None:
+                async with pub.sending:
+                    await pub.step()
+
+            sending = asyncio.create_task(send())
+            await arrived.wait()
+            request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(telemetry_publisher=pub)))
+            conn = connect(db_path)
+            reset = asyncio.create_task(reset_incidents("ana", conn, request))
+            await asyncio.sleep(0.05)
+            assert not reset.done()  # waits for the send in flight
+            release.set()
+            await sending
+            assert await reset == {"deleted": 1}
+            conn.close()
+            assert [u["incident_id"] for u in ground[0]["incident_updates"]] == [incident_id]
+            ground.clear()  # the demo script resets ground after onboard
+            async with pub.sending:
+                await pub.step()
+            assert ground[0]["incident_updates"] == []
+
+    asyncio.run(scenario())

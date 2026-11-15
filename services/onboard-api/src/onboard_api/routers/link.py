@@ -4,6 +4,7 @@ The pause is a controlled link outage: the publisher stops sending without count
 failures, so resume sends the queued backlog within a second (no retry backoff).
 """
 
+import sqlite3
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -66,10 +67,24 @@ async def resume(request: Request) -> EarthLink:
 
 @router.delete("/demo/incidents", dependencies=DEMO)
 async def reset_incidents(astronaut_id: str, conn: Connection, request: Request) -> dict[str, int]:
-    # async so the publisher state below is touched on the event loop thread.
-    # ponytail: the small SQLite delete blocks the loop briefly; fine for a demo-only route.
     """Delete one astronaut's incidents and their queued events (idempotent).
-    Readings stay: they are history, and ground already has them."""
+    Readings stay: they are history, and ground already has them.
+
+    Waits for a telemetry send in flight to finish first, so no batch with the
+    deleted events reaches ground after this returns (the demo script then
+    resets ground). The unsent batch is dropped and rebuilt from the DB.
+    """
+    pub = getattr(request.app.state, "telemetry_publisher", None)
+    if pub is None:
+        return {"deleted": _delete_incidents(conn, astronaut_id)}
+    async with pub.sending:
+        deleted = _delete_incidents(conn, astronaut_id)
+        pub.pending = None
+    return {"deleted": deleted}
+
+
+def _delete_incidents(conn: sqlite3.Connection, astronaut_id: str) -> int:
+    # ponytail: small SQLite delete on the event loop; fine for a demo-only route.
     conn.execute("BEGIN IMMEDIATE")
     try:
         conn.execute(
@@ -81,9 +96,4 @@ async def reset_incidents(astronaut_id: str, conn: Connection, request: Request)
     except Exception:
         conn.execute("ROLLBACK")
         raise
-    pub = getattr(request.app.state, "telemetry_publisher", None)
-    if pub is not None and pub.pending is not None and pub.pending.incident_updates:
-        # The unsent batch may hold events just deleted; rebuild it from the DB.
-        # ponytail: a send already in flight can still deliver them; reset with the link paused.
-        pub.pending = None
-    return {"deleted": deleted}
+    return deleted

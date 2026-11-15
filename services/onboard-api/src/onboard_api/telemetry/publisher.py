@@ -125,6 +125,8 @@ class TelemetryPublisher:
         self.batches_sent = 0
         # Controlled link outage (POST /telemetry/pause): nothing is sent, nothing is lost.
         self.paused = False
+        # Held for each send; the demo reset takes it so no send is in flight while it deletes.
+        self.sending = asyncio.Lock()
         self.wake = asyncio.Event()  # set on resume to cut a backoff sleep short
 
     def _build_batch(self) -> TelemetryBatch:
@@ -194,7 +196,8 @@ class TelemetryPublisher:
                 await self._wait(PAUSE_CHECK_SECONDS)
                 continue
             try:
-                more = await self.step()
+                async with self.sending:
+                    more = await self.step()
                 self.failures = 0
                 if more:
                     continue
