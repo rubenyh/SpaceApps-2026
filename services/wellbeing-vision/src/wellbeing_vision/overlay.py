@@ -62,13 +62,21 @@ def render(
     footer: str,
     notice: Notice | None = None,
     points: list[tuple[float, float]] = (),
+    boxes: list[tuple[float, float, float, float, str, tuple]] = (),
+    lines: list[tuple[tuple[float, float], tuple[float, float]]] = (),
 ) -> np.ndarray:
-    """Video scaled to 720 px high with a dark panel on its right. points: normalized landmark x, y."""
+    """Video scaled to 720 px high with a dark panel on its right. points: normalized landmark x, y.
+    boxes: normalized (x0, y0, x1, y1, label, color); lines: normalized skeleton segments."""
     h, w = frame_bgr.shape[:2]
     vw = round(w * H / h)
     video = cv2.cvtColor(cv2.resize(frame_bgr, (vw, H)), cv2.COLOR_BGR2RGB)
     for x, y in points:
         cv2.circle(video, (int(x * vw), int(y * H)), 2, (200, 230, 255), -1, cv2.LINE_AA)
+    px = lambda x, y: (int(x * vw), int(y * H))  # noqa: E731
+    for a, b in lines:
+        cv2.line(video, px(*a), px(*b), (200, 230, 255), 2, cv2.LINE_AA)
+    for x0, y0, x1, y1, _, color in boxes:
+        cv2.rectangle(video, px(x0, y0), px(x1, y1), color, 3, cv2.LINE_AA)
     canvas = np.empty((H, vw + PANEL_W, 3), np.uint8)
     canvas[:, :vw] = video
     canvas[:, vw:] = BG
@@ -81,6 +89,11 @@ def render(
 
     img = Image.fromarray(canvas)
     d = ImageDraw.Draw(img)
+    for x0, y0, _, _, label, color in boxes:  # label chip on a solid background, never bare on the video
+        lx, ly = int(x0 * vw), max(int(y0 * H) - 34, 0)
+        tw = d.textlength(label, font=font(22, True))
+        d.rounded_rectangle((lx, ly, lx + tw + 16, ly + 32), radius=6, fill=color)
+        d.text((lx + 8, ly + 3), label, font=font(22, True), fill=BG)
 
     if notice:
         cx = bx + bw // 2

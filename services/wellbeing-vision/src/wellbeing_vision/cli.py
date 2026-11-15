@@ -29,13 +29,36 @@ def main() -> None:
     bit.add_argument("--dry-run", action="store_true", help="print JSON instead of POSTing")
     bit.add_argument("--out", type=Path, help="with --dry-run, also append JSON lines here")
 
+    enr = sub.add_parser("enroll", help="enroll an astronaut's face (templates stay in data/faces/)")
+    enr.add_argument("--astronaut", type=_astronaut, required=True)
+    enr.add_argument("--camera", type=int, default=0)
+    enr.add_argument("--samples", type=int, default=10)
+    enr.add_argument("--mirror", action=argparse.BooleanOptionalAction, default=True)
+
+    ide = sub.add_parser("identify", help="multi-person identity preview with poses (sends nothing)")
+    ide.add_argument("--camera", type=int, default=0)
+    ide.add_argument("--seconds", type=float, default=0.0, help="0 = until q/Esc")
+    ide.add_argument("--rotate", type=int, choices=(0, 90, 180, 270),
+                     help="fix the orientation (e.g. 180: camera or crew upside down); default: search all")
+
     args = parser.parse_args()
     if args.cmd == "models":
         download_models(settings.models_dir)
         return
+    if args.cmd == "identify":
+        from wellbeing_vision.identify import run_identify
+
+        run_identify(settings, args.camera, args.seconds, args.rotate)
+        return
 
     if args.astronaut not in settings.astronauts:
         parser.error(f"{args.astronaut} is not in the configured crew: {', '.join(settings.astronauts)}")
+    if args.cmd == "enroll":
+        from wellbeing_vision.identify import run_enroll
+
+        if not run_enroll(settings, args.astronaut, args.camera, args.samples, args.mirror):
+            raise SystemExit(1)
+        return
     sink = Sink(settings.api_url, settings.outbox_path, dry_run=args.dry_run, dry_run_file=args.out)
     if args.cmd == "bitacora":
         from wellbeing_vision.bitacora import run_bitacora  # imports MediaPipe only when needed

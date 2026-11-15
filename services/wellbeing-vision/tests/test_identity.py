@@ -1,0 +1,106 @@
+import cv2
+import numpy as np
+import pytest
+
+from wellbeing_vision.identity import AUTO_MAX, Face, Gallery, best_match, rotate, unrotate, verify
+from wellbeing_vision.tracker import IoUTracker, Track, iou, link_poses, resolve
+
+
+def _unit(seed: int) -> np.ndarray:
+    v = np.random.default_rng(seed).normal(size=128).astype(np.float32)
+    return v / np.linalg.norm(v)
+
+
+def _face(x0, y0, x1=None, y1=None) -> Face:
+    x1, y1 = x1 or x0 + 100, y1 or y0 + 100
+    return Face(np.array([x0, y0, x1, y1], float), np.zeros(15, np.float32), 0)
+
+
+@pytest.mark.parametrize("deg", [0, 90, 180, 270])
+def test_unrotate_maps_points_back_to_the_frame(deg):
+    frame = np.zeros((720, 1280), np.uint8)
+    frame[100, 300] = 255  # x=300, y=100
+    ys, xs = np.nonzero(rotate(frame, deg))
+    assert unrotate(np.array([[xs[0], ys[0]]], float), deg, 1280, 720).tolist() == [[300, 100]]
+
+
+def test_gallery_round_trip_and_auto_cap(tmp_path):
+    a, b = _unit(1), _unit(2)
+    g = Gallery(tmp_path)
+    g.enroll("ast-01", [a, a])
+    g.enroll("ast-02", [b])
+    loaded = Gallery(tmp_path).load(["ast-01", "ast-02", "ast-03"])
+    assert set(loaded.people) == {"ast-01", "ast-02"}
+    assert loaded.scores(a)["ast-01"] == pytest.approx(1.0)
+    for i in range(AUTO_MAX + 5):
+        loaded.add_auto("ast-01", [_unit(100 + i)])
+    reloaded = Gallery(tmp_path).load(["ast-01"]).people["ast-01"]
+    assert len(reloaded["auto"]) == AUTO_MAX and len(reloaded["enrolled"]) == 2
+
+
+def test_best_match_needs_threshold_and_margin():
+    assert best_match({"ast-01": 0.6, "ast-02": 0.2}) == ("ast-01", 0.6)
+    assert best_match({"ast-01": 0.6, "ast-02": 0.55})[0] is None  # too close to call
+    assert best_match({"ast-01": 0.3})[0] is None  # under the SFace threshold
+    assert best_match({}) == (None, 0.0)
+
+
+def test_verify_confirms_and_picks_strong_templates():
+    t = _unit(3)
+    good = [({"ast-01": s, "ast-02": 0.1}, t) for s in (0.45, 0.6, 0.7, 0.55, 0.52)]
+    identity, add, _ = verify(good, "ast-01")
+    assert identity.method == "face" and identity.match_score == 0.55
+    assert len(add) == 3  # only frames over AUTO_ENROLL, best first
+    wrong, add, msg = verify([({"ast-01": 0.1, "ast-02": 0.7}, t)] * 3, "ast-01")
+    assert wrong.method == "manual" and add == [] and "ast-02" in msg
+    assert verify([], "ast-01")[0].method == "manual"
+    assert verify([({"ast-02": 0.7}, t)], "ast-01")[0].method == "manual"  # ast-01 not enrolled
+
+
+def test_tracker_keeps_ids_while_faces_move_and_drops_old_tracks():
+    tr = IoUTracker()
+    for i in range(10):  # two people drifting 5 px per frame
+        tr.update([_face(100 + 5 * i, 100), _face(700 - 5 * i, 120)], i)
+    assert [t.id for t in tr.tracks] == [1, 2]
+    tr.update([_face(1000, 500)], 10)  # a third person; the others are not seen
+    assert [t.id for t in tr.tracks] == [1, 2, 3]
+    tr.update([], 30)
+    assert tr.tracks == []
+    assert iou(np.array([0, 0, 10, 10]), np.array([5, 0, 15, 10])) == pytest.approx(1 / 3)
+
+
+def test_resolve_gives_each_astronaut_to_one_track():
+    a, b, c = Track(1, _face(0, 0), 0), Track(2, _face(300, 0), 0), Track(3, _face(600, 0), 0)
+    for i in range(3):
+        a.vote({"ast-01": 0.7, "ast-02": 0.1}, i)
+        b.vote({"ast-01": 0.5, "ast-02": 0.1}, i)  # also looks like ast-01, but less
+        c.vote({"ast-01": 0.1, "ast-02": 0.2}, i)  # nobody enrolled
+    resolve([a, b, c])
+    assert (a.label, b.label, c.label) == ("ast-01", "unknown-2", "unknown-3")
+
+
+def test_identity_needs_several_votes():
+    t = Track(1, _face(0, 0), 0)
+    t.vote({"ast-01": 0.9}, 0)
+    resolve([t])
+    assert t.astronaut is None and t.needs_template(1)
+
+
+def test_poses_link_to_the_face_that_holds_the_nose():
+    a, b = Track(1, _face(100, 100), 0), Track(2, _face(600, 100), 0)
+    pose_b, stray, on_face = np.zeros((33, 3)), np.zeros((33, 3)), np.zeros((33, 3))
+    pose_b[0], pose_b[11], pose_b[12] = (640, 150, 1), (560, 260, 1), (760, 260, 1)
+    stray[0] = (1200, 700, 1)
+    on_face[0], on_face[11], on_face[12] = (150, 150, 1), (130, 170, 1), (170, 170, 1)  # shoulders inside the face
+    link_poses([a, b], [stray, pose_b, on_face])
+    assert a.pose is None and b.pose is pose_b
+
+
+def test_render_draws_boxes_without_touching_the_input():
+    from wellbeing_vision.overlay import GREEN, render
+
+    frame = np.zeros((720, 1280, 3), np.uint8)
+    out = render(frame, "IDENTITY", "1 in view", [], "footer", boxes=[(0.1, 0.2, 0.3, 0.5, "ast-01", GREEN)],
+                 lines=[((0.2, 0.5), (0.2, 0.9))])
+    assert frame.max() == 0 and out[int(0.2 * 720), int(0.15 * 1280)].any()
+    assert cv2.cvtColor(out, cv2.COLOR_BGR2GRAY)[int(0.7 * 720), int(0.2 * 1280)] > 0
