@@ -52,6 +52,7 @@ class CaseResult(Loose):
     family: str
     passed: bool
     blocking: bool = False
+    case: dict[str, Any] | None = None  # the full section 1 case
     response: dict[str, Any] | None = None
     baseline_response: dict[str, Any] | None = None
 
@@ -101,10 +102,6 @@ def _label(decision: dict) -> str:
     return f"Clinician {'approval' if decision['decision'] == 'approved' else 'rejection'}"
 
 
-def _decisions(conn: Connection, digest: str) -> list[dict]:
-    return [{**d, "label": _label(d)} for d in storage.list_decisions(conn, digest)]
-
-
 def _require(conn: Connection, digest: str) -> dict:
     candidate = storage.get_candidate(conn, digest)
     if candidate is None:
@@ -130,7 +127,8 @@ def submit_candidate(body: CandidateIn, conn: Connection, clock: ClockDep) -> di
 @router.get("/candidates")
 def list_candidates(conn: Connection) -> list[dict]:
     return [
-        {k: c[k] for k in ("candidate_id", "digest", "status", "created_at")} | {"summary": c["result"]["summary"]}
+        {k: c[k] for k in ("candidate_id", "digest", "status", "created_at")}
+        | {"summary": c["result"]["summary"], "decision": next(iter(storage.list_decisions(conn, c["digest"])), None)}
         for c in storage.list_candidates(conn)
     ]
 
@@ -142,7 +140,7 @@ def get_candidate(digest: str, conn: Connection) -> dict:
         "manifest": c["manifest"],
         "result": c["result"],
         "status": c["status"],
-        "decisions": _decisions(conn, digest),
+        "decisions": storage.list_decisions(conn, digest),
         "findings": storage.list_findings(conn, digest),
     }
 
@@ -157,7 +155,7 @@ def decide(digest: str, body: DecisionIn, conn: Connection, clock: ClockDep) -> 
     decision = storage.decide(conn, digest, body.decision, body.reviewer, body.role, body.notes, clock())
     if decision is None:
         raise HTTPException(409, "Candidate already decided; a change needs a new candidate")
-    return {**decision, "label": _label(decision)}
+    return decision
 
 
 @router.post("/candidates/{digest}/findings", status_code=201)
@@ -175,26 +173,27 @@ def draft_case(finding_id: str, conn: Connection) -> dict:
         raise HTTPException(404, "Unknown finding")
     candidate = _require(conn, finding["digest"])
     case = next(c for c in candidate["result"]["cases"] if c["case_id"] == finding["case_id"])
-    response = case.get("response") or {}
+    source_case = case.get("case") or {}
+    expected = source_case.get("expected") or {
+        "workflow": "medical",
+        "urgency": (case.get("response") or {}).get("urgency"),
+        "protocol_id": case["family"],
+        "clarify": False,
+    }
     return {
         "case_id": f"{case['case_id']}.flag-{finding_id[:8]}",
         "version": 1,
         "family": case["family"],
-        "tags": [],
-        # The result carries responses only, so the team copies turns/readings/events from the
-        # source case file before running it.
-        "turns": [],
-        "readings": [],
-        "events": [],
-        "dependencies": {"ollama": "up", "chroma": "up", "readings": "up"},
+        "tags": source_case.get("tags", []),
+        "turns": source_case.get("turns", []),
+        "readings": source_case.get("readings", []),
+        "events": source_case.get("events", []),
+        "dependencies": source_case.get("dependencies", {"ollama": "up", "chroma": "up", "readings": "up"}),
         "expected": {
-            "workflow": "medical",
-            "urgency": response.get("urgency"),
-            "protocol_id": case["family"],
-            "clarify": False,
-            "required_actions": [finding["expected_behavior"]],
-            "prohibited_actions": [],
-            "acceptable_sources": [finding["source"]],
+            **expected,
+            "required_actions": list(dict.fromkeys([*expected.get("required_actions", []), finding["expected_behavior"]])),
+            "prohibited_actions": expected.get("prohibited_actions", []),
+            "acceptable_sources": list(dict.fromkeys([*expected.get("acceptable_sources", []), finding["source"]])),
         },
         "review": {
             "status": "draft",
@@ -203,8 +202,7 @@ def draft_case(finding_id: str, conn: Connection) -> dict:
             "notes": (
                 f"Draft from finding {finding_id} ({finding['kind']}) by {finding['reporter']} on candidate "
                 f"{candidate['candidate_id']} ({finding['digest']}), case {case['case_id']}. "
-                f"Applies when: {finding['when_it_applies']}. Copy turns, readings and events from "
-                f"{case['case_id']}."
+                f"Applies when: {finding['when_it_applies']}."
             ),
         },
     }
@@ -255,7 +253,7 @@ def build_packet(conn: Connection, digest: str) -> dict:
         "changed_components": changed_components,
         "affected_families": families,
         "cases": [case for case in cases if case["family"] in families],
-        "decisions": _decisions(conn, digest),
+        "decisions": storage.list_decisions(conn, digest),
         "findings": storage.list_findings(conn, digest),
     }
 
@@ -263,7 +261,10 @@ def build_packet(conn: Connection, digest: str) -> dict:
 def _md_response(title: str, r: dict | None) -> list[str]:
     if r is None:
         return [f"- **{title}:** none"]
-    sources = ", ".join(str(s.get("id", s)) if isinstance(s, dict) else str(s) for s in r.get("sources") or [])
+    sources = ", ".join(  # GuideSource {"id", "title", "section", "url", "kind"}
+        f"{s.get('title') or s.get('id')}" + (f" ({s['section']})" if s.get("section") else "")
+        for s in r.get("sources") or []
+    )
     return [
         f"- **{title}:** urgency `{r.get('urgency')}`, protocol `{r.get('protocol_id')}`",
         f"  - Action: {r.get('action') or '-'}",
@@ -306,12 +307,19 @@ def packet_markdown(p: dict) -> str:
         verdict = "passed" if case["passed"] else ("FAILED (blocking)" if case.get("blocking") else "failed")
         lines += [f"### {case['case_id']} ({case['family']}): {verdict}", ""]
         lines += [f"- Failure `{f.get('code')}`: {f.get('detail', '')}" for f in case.get("failures") or []]
+        expected = (case.get("case") or {}).get("expected")
+        if expected:
+            lines += [
+                f"- **Expected:** urgency `{expected.get('urgency')}`, protocol `{expected.get('protocol_id')}`",
+                f"  - Required actions: {'; '.join(expected.get('required_actions') or []) or '-'}",
+                f"  - Prohibited actions: {'; '.join(expected.get('prohibited_actions') or []) or '-'}",
+            ]
         lines += _md_response("Candidate", case.get("response"))
         lines += _md_response("Baseline", case.get("baseline_response"))
         lines.append("")
     lines += ["## Decisions", ""]
     lines += [
-        f"- {d['label']}: {d['decision']} by {d['reviewer']} at {d['decided_at'].isoformat()}. {d['notes']}"
+        f"- {_label(d)}: {d['decision']} by {d['reviewer']} at {d['decided_at'].isoformat()}. {d['notes']}"
         for d in p["decisions"]
     ] or ["- Pending review"]
     lines += ["", "## Flagged missing scenarios", ""]

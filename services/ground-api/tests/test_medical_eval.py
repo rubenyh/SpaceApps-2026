@@ -20,7 +20,8 @@ def client(tmp_path: Path):
 
 def response(urgency: str, action: str) -> dict:
     return {"workflow": "medical", "urgency": urgency, "protocol_id": "dizziness_or_space_motion_sickness",
-            "reply": "Sit down.", "action": action, "sources": [{"id": "medlineplus-dizziness"}]}
+            "reply": "Sit down.", "action": action, "sources": [{"id": "medlineplus-dizziness", "title": "Dizziness",
+                         "section": "When to seek help", "url": None, "kind": "guide"}]}
 
 
 def candidate(candidate_id: str, rules_sha: str = "b" * 64, blocked: bool = False,
@@ -32,9 +33,20 @@ def candidate(candidate_id: str, rules_sha: str = "b" * 64, blocked: bool = Fals
     ]
     digest = manifest_digest(components)
     same = response("review_required", "Sit or lie down.")
+    source_case = {
+        "case_id": "dizziness.typo.001", "version": 1, "family": "dizziness_or_space_motion_sickness",
+        "tags": ["typo"], "turns": [{"request": {"message": "i am having some dyziness", "astronaut_id": "ast-01"}}],
+        "readings": [{"astronaut_id": "ast-01", "kind": "spo2", "value": 97, "age_seconds": 60}], "events": [],
+        "dependencies": {"ollama": "down", "chroma": "up", "readings": "up"},
+        "expected": {"workflow": "medical", "urgency": "review_required",
+                     "protocol_id": "dizziness_or_space_motion_sickness", "clarify": False,
+                     "required_actions": ["Sit or lie down"], "prohibited_actions": ["drive"],
+                     "acceptable_sources": ["medlineplus-dizziness"]},
+        "review": {"status": "draft", "reviewer": None, "reviewed_at": None, "notes": ""},
+    }
     cases = [
         {"case_id": "dizziness.typo.001", "family": "dizziness_or_space_motion_sickness",
-         "review_status": "draft", "passed": not blocked, "blocking": blocked,
+         "case": source_case, "review_status": "draft", "passed": not blocked, "blocking": blocked,
          "failures": [{"code": "missed_alarm", "detail": "expected immediate"}] if blocked else [],
          "latency_ms": 35,
          "response": response("immediate", "Call the CMO now.") if changed_answer else same,
@@ -84,7 +96,7 @@ def test_list_and_detail(client: TestClient) -> None:
     digest = submit(client, body)
     assert client.get("/medical-eval/candidates").json() == [{
         "candidate_id": "c1", "digest": digest, "status": "pending_review",
-        "created_at": "2026-11-15T10:00:00Z", "summary": body["result"]["summary"]}]
+        "created_at": "2026-11-15T10:00:00Z", "summary": body["result"]["summary"], "decision": None}]
     detail = client.get(f"/medical-eval/candidates/{digest}").json()
     assert detail["manifest"] == body["manifest"]
     assert detail["result"] == body["result"]
@@ -98,13 +110,15 @@ def test_decision_binds_to_digest_once(client: TestClient) -> None:
     digest = submit(client, candidate("c1"))
     r = decide(client, digest, role="simulated")
     assert r.status_code == 201
-    assert r.json()["label"] == "Simulated approval (no clinician)"
-    assert {k: r.json()[k] for k in ("digest", "decision", "reviewer", "role", "notes")} == {
+    record = r.json()
+    assert set(record) == {"decision", "reviewer", "role", "notes", "digest", "decided_at"}
+    assert {k: record[k] for k in ("digest", "decision", "reviewer", "role", "notes")} == {
         "digest": digest, "decision": "approved", "reviewer": "Dr. Vega", "role": "simulated", "notes": "ok"}
-    assert r.json()["decided_at"]
+    assert record["decided_at"]
+    assert client.get("/medical-eval/candidates").json()[0]["decision"] == record
     assert decide(client, digest, "rejected").status_code == 409
     detail = client.get(f"/medical-eval/candidates/{digest}").json()
-    assert detail["status"] == "approved" and len(detail["decisions"]) == 1
+    assert detail["status"] == "approved" and detail["decisions"] == [record]
     approved = client.get("/medical-eval/approved").json()
     assert (approved["candidate_id"], approved["digest"]) == ("c1", digest)
 
@@ -112,7 +126,7 @@ def test_decision_binds_to_digest_once(client: TestClient) -> None:
     d2 = submit(client, candidate("c2", rules_sha="d" * 64))
     assert d2 != digest
     assert client.get("/medical-eval/approved").json()["digest"] == digest
-    assert decide(client, d2, "rejected").json()["label"] == "Clinician rejection"
+    assert decide(client, d2, "rejected").json()["decision"] == "rejected"
     assert client.get("/medical-eval/approved").json()["digest"] == digest
 
 
@@ -146,6 +160,8 @@ def test_packet_diffs_against_previous_approved(client: TestClient) -> None:
     assert "# Medical evaluation review packet: c2" in md.text
     assert f"Previous approved: c1 (`{first}`)" in md.text
     assert "Changed rules" in md.text and "Call the CMO now." in md.text
+    assert "Required actions: Sit or lie down" in md.text
+    assert "Dizziness (When to seek help)" in md.text and "Clinician approval" not in md.text
     assert client.get(f"/medical-eval/candidates/{'0' * 64}/packet").status_code == 404
 
 
@@ -168,8 +184,19 @@ def test_finding_and_draft_case(client: TestClient) -> None:
     draft = client.get(f"/medical-eval/findings/{stored['id']}/draft-case").json()
     assert draft["family"] == "dizziness_or_space_motion_sickness"
     assert draft["case_id"].startswith("dizziness.typo.001.flag-")
-    assert draft["expected"]["required_actions"] == ["escalate to immediate"]
+    assert draft["turns"][0]["request"]["message"] == "i am having some dyziness"
+    assert draft["readings"][0]["kind"] == "spo2" and draft["tags"] == ["typo"]
+    assert draft["dependencies"]["ollama"] == "down"
+    assert draft["expected"]["required_actions"] == ["Sit or lie down", "escalate to immediate"]
+    assert draft["expected"]["prohibited_actions"] == ["drive"]
     assert draft["expected"]["acceptable_sources"] == ["medlineplus-dizziness"]
+
+    # A case without "case" (older runner output) still gives a draft with empty inputs.
+    f2 = client.post(f"/medical-eval/candidates/{digest}/findings",
+                     json={**finding, "case_id": "headache.plain.001"}).json()
+    plain = client.get(f"/medical-eval/findings/{f2['id']}/draft-case").json()
+    assert (plain["turns"], plain["readings"], plain["events"]) == ([], [], [])
+    assert plain["expected"]["required_actions"] == ["escalate to immediate"]
     assert draft["review"]["status"] == "draft" and draft["review"]["reviewer"] is None
     assert stored["id"] in draft["review"]["notes"] and digest in draft["review"]["notes"]
     assert client.get("/medical-eval/findings/missing/draft-case").status_code == 404
