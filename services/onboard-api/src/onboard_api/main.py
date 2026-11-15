@@ -25,6 +25,7 @@ def build_assistant_deps(settings: Settings) -> AssistantDeps:
         settings.ollama_chat_model,
         settings.ollama_embed_model,
         settings.ollama_timeout_seconds,
+        json_timeout_seconds=settings.ollama_interpret_timeout_seconds,
     )
     events = load_events_file(settings.demo_events_path) if settings.demo_events_path else []
     return AssistantDeps(

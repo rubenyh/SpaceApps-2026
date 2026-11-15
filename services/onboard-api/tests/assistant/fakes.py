@@ -24,17 +24,31 @@ class Forbidden:
 
 
 class FakeLLM:
-    def __init__(self, reply: str) -> None:
+    """`reply` for chat (answer drafts). `json_reply` for chat_json (interpreter):
+    a JSON string, or None to simulate an interpreter that is down."""
+
+    def __init__(self, reply: str = "", json_reply: str | None = None) -> None:
         self.reply = reply
+        self.json_reply = json_reply
         self.calls: list[tuple[str, str]] = []
+        self.json_calls: list[str] = []  # user prompts sent to the interpreter
 
     def chat(self, system: str, user: str) -> str:
         self.calls.append((system, user))
         return self.reply
 
+    def chat_json(self, system: str, user: str, schema: dict) -> str:
+        self.json_calls.append(user)
+        if self.json_reply is None:
+            raise DependencyUnavailable("interpreter down")
+        return self.json_reply
+
 
 class FailingLLM:
     def chat(self, system: str, user: str) -> str:
+        raise DependencyUnavailable("ollama down")
+
+    def chat_json(self, system: str, user: str, schema: dict) -> str:
         raise DependencyUnavailable("ollama down")
 
 

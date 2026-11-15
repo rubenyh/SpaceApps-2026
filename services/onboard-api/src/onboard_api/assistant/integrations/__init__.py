@@ -30,6 +30,11 @@ class LLM(Protocol):
         """Return the model text. Raise DependencyUnavailable on error or timeout."""
         ...
 
+    def chat_json(self, system: str, user: str, schema: dict) -> str:
+        """JSON text constrained to `schema`, with the client's short interpreter
+        timeout. Raise DependencyUnavailable on error or timeout."""
+        ...
+
 
 class Embedder(Protocol):
     def embed(self, texts: list[str]) -> list[list[float]]:

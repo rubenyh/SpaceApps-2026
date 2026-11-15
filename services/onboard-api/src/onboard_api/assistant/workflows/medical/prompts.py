@@ -82,3 +82,38 @@ def build_user_prompt(
 def guide_excerpt(chunk: GuideChunk) -> str:
     text = chunk.text if len(chunk.text) <= EXCERPT_CHARS else chunk.text[:EXCERPT_CHARS] + "…"
     return f"Según la guía local [1] ({chunk.title}, {chunk.section}): {text}"
+
+
+SOS_ACTION = (
+    "SOS: sigue ahora el procedimiento de emergencia de la nave y avisa de inmediato al"
+    " responsable médico a bordo y a la tripulación."
+)
+SOS_FINDING = "Petición de ayuda urgente (SOS) escrita en la consola."
+
+INTERPRET_SYSTEM = """Lees el mensaje de un tripulante y extraes síntomas. Responde solo con JSON.
+- observations: cada síntoma o evento que el MENSAJE NUEVO afirma, niega o deja en duda.
+  symptom: un código de la lista. status: "present" (lo tiene), "absent" (lo niega) o "unknown" (no lo sabe).
+  evidence: las palabras exactas del MENSAJE NUEVO que lo respaldan, copiadas sin cambios.
+- Si el mensaje solo contesta la PREGUNTA PENDIENTE ("sí", "no", "un poco"), aplica esa respuesta
+  a los síntomas por los que pregunta y usa esas palabras como evidence.
+- No inventes síntomas. Si el mensaje no nombra ninguno, observations es [].
+- other_complaint: un síntoma concreto que no está en la lista, copiado del mensaje; si no hay, null.
+- Como máximo 3 observaciones. Nunca copies textos de la lista de códigos como evidence.
+Ejemplos:
+PREGUNTA PENDIENTE: ¿Tiene ahora falta de aire? MENSAJE NUEVO: sí, me cuesta un poco
+{"observations": [{"symptom": "shortness_of_breath", "status": "present", "evidence": "sí, me cuesta un poco"}], "other_complaint": null}
+PREGUNTA PENDIENTE: (ninguna) MENSAJE NUEVO: me duele el oído
+{"observations": [], "other_complaint": "me duele el oído"}
+PREGUNTA PENDIENTE: (ninguna) MENSAJE NUEVO: malestar físico
+{"observations": [], "other_complaint": null}
+Códigos:
+"""
+
+
+def interpret_user_prompt(message: str, question: str | None, known: list[str]) -> str:
+    known_text = "\n".join(f"- {k}" for k in known) or "- (ninguno)"
+    return (
+        f"PREGUNTA PENDIENTE:\n{question or '(ninguna)'}\n\n"
+        f"DATOS YA REPORTADOS:\n{known_text}\n\n"
+        f"MENSAJE NUEVO:\n{message}"
+    )

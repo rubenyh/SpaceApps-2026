@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     # Same model for ingest and query; changing it requires re-ingesting.
     ollama_embed_model: str = "bge-m3"
     ollama_timeout_seconds: float = 20.0
+    # Max wait for the local interpreter (text -> observations) on non-alarm turns.
+    ollama_interpret_timeout_seconds: float = 8.0
     chroma_path: Path = Path("data/chroma")
     guides_collection: str = "medical_guides"
     # Cosine distance above which a retrieved chunk is dropped (tuned on bge-m3 eval).
