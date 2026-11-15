@@ -120,6 +120,7 @@ export function OrinaScreen({ astronautId }: Props) {
               {trendLabel}
               {trendUnit ? ` (${unitLabel(trendUnit)})` : ""} · {TREND_DAYS} days · dates in UTC
               {trendExcluded > 0 ? ` · ${trendExcluded} readings in another unit are not shown` : ""}
+              {trendRange ? ` · Normal ${trendRange}${trendSensor?.config.provisional ? " · PROV." : ""}` : ""}
             </span>
             <LineChart
               points={trendSame.map((r) => ({ t: Date.parse(r.recorded_at), v: r.value as number }))}
@@ -127,11 +128,6 @@ export function OrinaScreen({ astronautId }: Props) {
               end={now}
               normalMin={trendSensor?.config.normal_min ?? null}
               normalMax={trendSensor?.config.normal_max ?? null}
-              zoneLabel={
-                trendRange
-                  ? `Normal ${trendRange}${trendSensor?.config.provisional ? " · PROV." : ""}`
-                  : undefined
-              }
               showPoints
               width={560}
               height={250}

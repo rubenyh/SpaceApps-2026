@@ -1,0 +1,533 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-15T01:30:22+00:00",
+  "title": "Design System: Biomedical console",
+  "extensions": {
+    "colorMeta": {
+      "bg": {
+        "role": "neutral",
+        "displayName": "Deep Space Navy",
+        "canonical": "oklch(17.6% 0.035 267)",
+        "tonalRamp": [
+          "#090B10",
+          "#21252F",
+          "#3B4251",
+          "#586175",
+          "#798298",
+          "#9DA5B7",
+          "#C3C9D6",
+          "#EBEEF6"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Panel Navy",
+        "canonical": "oklch(22.0% 0.042 265)",
+        "tonalRamp": [
+          "#090B11",
+          "#1F2531",
+          "#394255",
+          "#566179",
+          "#76829C",
+          "#9BA5BB",
+          "#C2C9D9",
+          "#EAEFF7"
+        ]
+      },
+      "surface-2": {
+        "role": "neutral",
+        "displayName": "Raised Navy",
+        "canonical": "oklch(25.5% 0.048 265)",
+        "tonalRamp": [
+          "#080B12",
+          "#1E2533",
+          "#374257",
+          "#54617D",
+          "#7482A0",
+          "#99A5BF",
+          "#C0C9DC",
+          "#E9EFF9"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Frame Line",
+        "canonical": "oklch(34.2% 0.053 264)",
+        "tonalRamp": [
+          "#080B12",
+          "#1D2534",
+          "#364259",
+          "#526180",
+          "#7283A3",
+          "#97A5C1",
+          "#BFCADD",
+          "#E9EFFA"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "oklch(29.1% 0.049 264)",
+        "tonalRamp": [
+          "#080B12",
+          "#1E2533",
+          "#374258",
+          "#53617E",
+          "#7483A0",
+          "#98A5BF",
+          "#C0C9DC",
+          "#E9EFF9"
+        ]
+      },
+      "brand": {
+        "role": "primary",
+        "displayName": "Mission Blue",
+        "canonical": "oklch(38.6% 0.148 261)",
+        "tonalRamp": [
+          "#020A1E",
+          "#0B234D",
+          "#183E81",
+          "#2B5DB4",
+          "#4C80DA",
+          "#79A5F1",
+          "#AACAFF",
+          "#DDF0FF"
+        ]
+      },
+      "brand-rule": {
+        "role": "primary",
+        "displayName": "Mission Red Rule",
+        "canonical": "oklch(54.7% 0.192 31)",
+        "tonalRamp": [
+          "#1E0100",
+          "#4D0100",
+          "#810000",
+          "#B51700",
+          "#DD4630",
+          "#F77B65",
+          "#FFAF9E",
+          "#FFE1D6"
+        ]
+      },
+      "on-signal": {
+        "role": "neutral",
+        "displayName": "Signal White",
+        "canonical": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Panel White",
+        "canonical": "oklch(96.6% 0.007 261)",
+        "tonalRamp": [
+          "#0B0B0C",
+          "#242527",
+          "#404245",
+          "#5F6166",
+          "#808287",
+          "#A3A5A9",
+          "#C7C9CC",
+          "#EDEEF0"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Muted Label",
+        "canonical": "oklch(76.1% 0.031 263)",
+        "tonalRamp": [
+          "#090B0F",
+          "#20252E",
+          "#3B4250",
+          "#586273",
+          "#788396",
+          "#9DA5B6",
+          "#C3C9D5",
+          "#EBEFF5"
+        ]
+      },
+      "text-faint": {
+        "role": "neutral",
+        "displayName": "Faint Label",
+        "canonical": "oklch(65.8% 0.039 263)",
+        "tonalRamp": [
+          "#080B10",
+          "#1F2530",
+          "#394253",
+          "#566278",
+          "#76839A",
+          "#9BA5BA",
+          "#C2C9D8",
+          "#EAEFF7"
+        ]
+      },
+      "accent": {
+        "role": "secondary",
+        "displayName": "Instrument Blue",
+        "canonical": "oklch(71.7% 0.147 261)",
+        "tonalRamp": [
+          "#020A1E",
+          "#0C234D",
+          "#1A3E81",
+          "#2D5DB3",
+          "#4E80DA",
+          "#7AA5F1",
+          "#ABCAFF",
+          "#DEF0FF"
+        ]
+      },
+      "state-alert": {
+        "role": "state",
+        "displayName": "Alert Coral",
+        "canonical": "oklch(70.6% 0.188 33)",
+        "tonalRamp": [
+          "#1E0100",
+          "#4C0300",
+          "#800500",
+          "#B31D00",
+          "#DC492D",
+          "#F67C64",
+          "#FFB09D",
+          "#FFE1D6"
+        ]
+      },
+      "state-alert-fill": {
+        "role": "state",
+        "displayName": "Alert Fill",
+        "canonical": "oklch(54.7% 0.192 31)",
+        "tonalRamp": [
+          "#1E0100",
+          "#4D0100",
+          "#810000",
+          "#B51700",
+          "#DD4630",
+          "#F77B65",
+          "#FFAF9E",
+          "#FFE1D6"
+        ]
+      },
+      "state-alert-tint": {
+        "role": "state",
+        "displayName": "Alert Wash",
+        "tonalRamp": [
+          "#1E0100",
+          "#4C0300",
+          "#800500",
+          "#B31D00",
+          "#DC492D",
+          "#F67C64",
+          "#FFB09D",
+          "#FFE1D6"
+        ]
+      },
+      "state-normal": {
+        "role": "state",
+        "displayName": "Normal Green",
+        "canonical": "oklch(77.9% 0.165 157)",
+        "tonalRamp": [
+          "#001104",
+          "#003111",
+          "#005522",
+          "#007B38",
+          "#009E58",
+          "#4DBE83",
+          "#95DCB1",
+          "#D3FAE1"
+        ]
+      },
+      "state-stale": {
+        "role": "state",
+        "displayName": "Old-Data Amber",
+        "canonical": "oklch(81.9% 0.147 80)",
+        "tonalRamp": [
+          "#150800",
+          "#391E00",
+          "#623700",
+          "#8B5400",
+          "#AF7600",
+          "#CC9C42",
+          "#E6C48B",
+          "#FFECCD"
+        ]
+      },
+      "state-nodata": {
+        "role": "state",
+        "displayName": "No-Data Gray",
+        "canonical": "oklch(65.8% 0.039 263)",
+        "tonalRamp": [
+          "#080B10",
+          "#1F2530",
+          "#394253",
+          "#566278",
+          "#76839A",
+          "#9BA5BA",
+          "#C2C9D8",
+          "#EAEFF7"
+        ]
+      },
+      "state-norange": {
+        "role": "state",
+        "displayName": "No-Range Sky",
+        "canonical": "oklch(76.9% 0.117 262)",
+        "tonalRamp": [
+          "#040B1A",
+          "#122445",
+          "#244075",
+          "#3A5FA3",
+          "#5A81C8",
+          "#83A5E2",
+          "#B2CAF5",
+          "#E1EFFF"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display-lg": {
+        "displayName": "Display Large",
+        "purpose": "Reading value on Vital signs."
+      },
+      "display": {
+        "displayName": "Display",
+        "purpose": "Reading value in a card (44px in small cards)."
+      },
+      "headline-lg": {
+        "displayName": "Headline Large",
+        "purpose": "Empty-state titles."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Attention-banner title."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Card titles."
+      },
+      "body-lg": {
+        "displayName": "Body Large",
+        "purpose": "Tabs, chat, empty-state copy."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase panel headings only."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Organ names, notes, sources, legend."
+      },
+      "mono-unit": {
+        "displayName": "Mono Unit",
+        "purpose": "Unit beside a reading value."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Ages, timestamps, axis ticks, track ends, clock."
+      }
+    },
+    "shadows": [
+      {
+        "name": "segmented-active-rule",
+        "value": "inset 0 -2px 0 var(--color-text)",
+        "purpose": "Drawn 2px underline of the active segmented button; not elevation."
+      },
+      {
+        "name": "track-bracket-ticks",
+        "value": "inset 1px 0 0 var(--state-normal), inset -1px 0 0 var(--state-normal)",
+        "purpose": "1px end ticks of the range-track normal bracket; not elevation."
+      }
+    ],
+    "motion": [
+      {
+        "name": "alert-pulse",
+        "value": "1.4s ease-in-out infinite (opacity 1 → 0.35 at 80%)",
+        "purpose": "Alert icon, alert chart marker, alert organ on the body map, loading skeleton. Becomes none under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact",
+        "value": "max-width: 1150px",
+        "purpose": "1024px minimum window: narrower side columns, header clock hidden."
+      }
+    ],
+    "borders": [
+      {
+        "name": "normal",
+        "value": "1px solid var(--color-border)"
+      },
+      {
+        "name": "alert",
+        "value": "2px solid var(--state-alert)"
+      },
+      {
+        "name": "stale",
+        "value": "2px dashed var(--state-stale)"
+      },
+      {
+        "name": "nodata",
+        "value": "2px dotted var(--state-nodata)"
+      },
+      {
+        "name": "norange",
+        "value": "3px double var(--state-norange)"
+      },
+      {
+        "name": "dubious",
+        "value": "2px solid var(--color-text-muted)"
+      }
+    ],
+    "focus": {
+      "value": "outline: 2px solid var(--color-accent); outline-offset: 2px",
+      "purpose": "Global :focus-visible ring."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action in a screen or panel.",
+      "html": "<button class=\"ds-btn\">Send</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border:none;border-radius:var(--radius-md);background:var(--color-accent);color:var(--color-bg);font-family:var(--font-sans);font-size:15px;font-weight:600;cursor:pointer}.ds-btn:hover{background:color-mix(in srgb,var(--color-accent) 88%,#ffffff)}.ds-btn:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}.ds-btn:disabled{opacity:.5;cursor:default}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary actions such as assistant suggestions.",
+      "html": "<button class=\"ds-btn-ghost\">How is my heart rate?</button>",
+      "css": ".ds-btn-ghost{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:transparent;color:var(--color-text);font-family:var(--font-sans);font-size:15px;cursor:pointer}.ds-btn-ghost:hover{border-color:var(--color-text-faint)}.ds-btn-ghost:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}"
+    },
+    {
+      "name": "Status Pills",
+      "kind": "chip",
+      "refersTo": "pill-alert",
+      "description": "Reading state tag: icon + label + border pattern; alert is the only filled one.",
+      "html": "<span class=\"ds-pill ds-pill--alert\"><svg class=\"ds-icon\" width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M8 1.2 L15.2 14.4 H0.8 Z\" fill=\"currentColor\"/><rect x=\"7.1\" y=\"5.4\" width=\"1.8\" height=\"4.8\" fill=\"var(--state-alert-fill)\"/><rect x=\"7.1\" y=\"11.3\" width=\"1.8\" height=\"1.8\" fill=\"var(--state-alert-fill)\"/></svg>Alert</span> <span class=\"ds-pill ds-pill--normal\"><svg class=\"ds-icon\" width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6.6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"/><path d=\"M4.8 8.2 L7.1 10.4 L11.3 5.9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>Normal</span> <span class=\"ds-pill ds-pill--stale\"><svg class=\"ds-icon\" width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6.6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"/><path d=\"M8 4.2 V8 L10.8 9.8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"/></svg>Old data</span>",
+      "css": ".ds-pill{display:inline-flex;align-items:center;gap:7px;padding:4px 11px 4px 9px;border-radius:var(--radius-sm);font-family:var(--font-sans);font-size:14px;font-weight:600;line-height:1.3;white-space:nowrap}.ds-pill--alert{background:var(--state-alert-fill);border:2px solid var(--state-alert-fill);color:#fff}.ds-pill--normal{border:1.5px solid var(--state-normal);color:var(--state-normal)}.ds-pill--stale{border:2px dashed var(--state-stale);color:var(--state-stale)}"
+    },
+    {
+      "name": "Tab Bar",
+      "kind": "nav",
+      "refersTo": "tab-active",
+      "description": "Primary navigation under the header band; a tab carries a state icon when it needs attention.",
+      "html": "<nav class=\"ds-tabs\"><button class=\"ds-tab\">Status</button><button class=\"ds-tab ds-tab--active\">Vital signs <span class=\"ds-tab__flag\"><svg class=\"ds-icon\" width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M8 1.2 L15.2 14.4 H0.8 Z\" fill=\"currentColor\"/><rect x=\"7.1\" y=\"5.4\" width=\"1.8\" height=\"4.8\" fill=\"var(--color-surface)\"/><rect x=\"7.1\" y=\"11.3\" width=\"1.8\" height=\"1.8\" fill=\"var(--color-surface)\"/></svg></span></button><button class=\"ds-tab\">Muscle</button></nav>",
+      "css": ".ds-tabs{display:flex;height:52px;padding:0 12px;border-bottom:1px solid var(--color-border);background:var(--color-surface)}.ds-tab{display:flex;align-items:center;gap:8px;height:52px;padding:0 20px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--color-text-muted);font-family:var(--font-sans);font-size:16px;cursor:pointer}.ds-tab:hover{color:var(--color-text)}.ds-tab:focus-visible{outline:2px solid var(--color-accent);outline-offset:-2px}.ds-tab--active{border-bottom-color:var(--color-accent);color:var(--color-text);font-weight:600}.ds-tab__flag{display:inline-flex;color:var(--state-alert)}"
+    },
+    {
+      "name": "Chat Input",
+      "kind": "input",
+      "refersTo": "input-chat",
+      "description": "Assistant message field, inset in Deep Space Navy.",
+      "html": "<input class=\"ds-input\" placeholder=\"Describe a symptom or ask about a reading\">",
+      "css": ".ds-input{min-width:320px;min-height:46px;padding:0 14px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-bg);color:var(--color-text);caret-color:var(--color-accent);font-family:var(--font-sans);font-size:16px}.ds-input::placeholder{color:var(--color-text-faint)}.ds-input:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "chip",
+      "refersTo": "segmented-button-active",
+      "description": "Time-window switch above charts.",
+      "html": "<div class=\"ds-seg\"><button class=\"ds-seg__btn ds-seg__btn--active\">15 min</button><button class=\"ds-seg__btn\">24 h</button><button class=\"ds-seg__btn\">7 days</button></div>",
+      "css": ".ds-seg{display:inline-flex;border:1px solid var(--color-border);border-radius:var(--radius-sm)}.ds-seg__btn{min-height:42px;padding:0 14px;border:none;background:transparent;color:var(--color-text-muted);font-family:var(--font-sans);font-size:14px;cursor:pointer}.ds-seg__btn+.ds-seg__btn{border-left:1px solid var(--color-rule)}.ds-seg__btn:hover{color:var(--color-text)}.ds-seg__btn:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}.ds-seg__btn--active{background:color-mix(in srgb,var(--color-text) 9%,transparent);box-shadow:inset 0 -2px 0 var(--color-text);color:var(--color-text);font-weight:600}"
+    },
+    {
+      "name": "Reading Card (alert)",
+      "kind": "card",
+      "refersTo": "card-alert",
+      "description": "One sensor reading: title, large tabular value with mono unit, age, state pill and explanation.",
+      "html": "<article class=\"ds-card ds-card--alert\"><div class=\"ds-card__head\"><div><div class=\"ds-card__title\">Heart rate</div><div class=\"ds-card__organ\">Heart</div></div><span class=\"ds-pill ds-pill--alert\"><svg class=\"ds-icon\" width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M8 1.2 L15.2 14.4 H0.8 Z\" fill=\"currentColor\"/><rect x=\"7.1\" y=\"5.4\" width=\"1.8\" height=\"4.8\" fill=\"var(--state-alert-fill)\"/><rect x=\"7.1\" y=\"11.3\" width=\"1.8\" height=\"1.8\" fill=\"var(--state-alert-fill)\"/></svg>Alert</span></div><div class=\"ds-card__reading\"><span class=\"ds-card__value\">147<span class=\"ds-card__unit\">bpm</span></span><span class=\"ds-card__age\">2 s ago</span></div><div class=\"ds-card__explain\">Above normal</div></article>",
+      "css": ".ds-card{display:flex;flex-direction:column;gap:12px;width:360px;padding:16px 18px;border:1px solid var(--color-border);border-radius:var(--radius-lg);background:var(--color-surface);color:var(--color-text);font-family:var(--font-sans)}.ds-card--alert{border:2px solid var(--state-alert);background:var(--state-alert-tint)}.ds-card__head,.ds-card__reading{display:flex;justify-content:space-between;gap:12px}.ds-card__reading{align-items:flex-end}.ds-card__title{font-size:19px;font-weight:600}.ds-card__organ,.ds-card__age{font-size:14px;color:var(--color-text-muted)}.ds-card__age{font-family:var(--font-mono)}.ds-card__value{font-size:56px;font-weight:500;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}.ds-card__unit{margin-left:6px;font-family:var(--font-mono);font-size:18px;font-weight:400;letter-spacing:0;color:var(--color-text-muted)}.ds-card__explain{font-weight:600;color:var(--state-alert)}.ds-pill{display:inline-flex;align-items:center;gap:7px;padding:4px 11px 4px 9px;border-radius:var(--radius-sm);font-size:14px;font-weight:600}.ds-pill--alert{background:var(--state-alert-fill);border:2px solid var(--state-alert-fill);color:#fff}"
+    },
+    {
+      "name": "Range Track",
+      "kind": "custom",
+      "description": "Rail with the normal span bracketed and a needle at the current value; end values in mono.",
+      "html": "<div class=\"ds-track\"><div class=\"ds-track__bar\"><div class=\"ds-track__rail\"></div><div class=\"ds-track__zone\" style=\"left:16.7%;width:33.3%\"></div><div class=\"ds-track__marker\" style=\"left:calc(36% - 1px)\"></div></div><div class=\"ds-track__scale\"><span class=\"ds-track__end\">40</span><span class=\"ds-track__range\"><span class=\"ds-prov\">PROV.</span>60–100 bpm · AHA</span><span class=\"ds-track__end\">160</span></div></div>",
+      "css": ".ds-track{display:flex;flex-direction:column;gap:6px;width:360px;font-family:var(--font-sans)}.ds-track__bar{position:relative;height:26px}.ds-track__rail{position:absolute;inset:12px 0 auto;height:2px;background:var(--color-border)}.ds-track__zone{position:absolute;top:6px;height:14px;background:color-mix(in srgb,var(--state-normal) 10%,transparent);box-shadow:inset 1px 0 0 var(--state-normal),inset -1px 0 0 var(--state-normal)}.ds-track__zone::before{content:'';position:absolute;inset:6px 0 auto;height:2px;background:color-mix(in srgb,var(--state-normal) 55%,transparent)}.ds-track__marker{position:absolute;top:3px;width:2px;height:22px;background:var(--state-normal)}.ds-track__marker::before{content:'';position:absolute;top:-1px;left:-4px;width:10px;height:6px;background:inherit}.ds-track__scale{display:flex;justify-content:space-between;font-size:14px;color:var(--color-text-faint)}.ds-track__end{font-family:var(--font-mono)}.ds-track__range{display:inline-flex;align-items:center;gap:8px;color:var(--color-text-muted)}.ds-prov{padding:1px 6px;border:1px solid var(--color-text-faint);border-radius:var(--radius-sm);color:var(--color-text);font-weight:600;letter-spacing:.06em}"
+    },
+    {
+      "name": "Instrument Line Chart",
+      "kind": "custom",
+      "description": "Static sample of the chart grammar: round ticks, 5% zone with margin edge values, near-white trace turning coral outside the zone, gap break, mono last value.",
+      "html": "<svg class=\"ds-chart\" viewBox=\"0 0 420 180\" role=\"img\" aria-label=\"Heart rate sample\"><g class=\"ds-chart__grid\"><line x1=\"50\" x2=\"358\" y1=\"12\" y2=\"12\"/><line x1=\"50\" x2=\"358\" y1=\"49\" y2=\"49\"/><line x1=\"50\" x2=\"358\" y1=\"86\" y2=\"86\"/><line x1=\"50\" x2=\"358\" y1=\"113\" y2=\"113\"/></g><g class=\"ds-chart__tick\"><text x=\"40\" y=\"17\" text-anchor=\"end\">150</text><text x=\"40\" y=\"54\" text-anchor=\"end\">125</text><text x=\"40\" y=\"91\" text-anchor=\"end\">100</text><text x=\"40\" y=\"128\" text-anchor=\"end\">75</text><text x=\"40\" y=\"155\" text-anchor=\"end\">50</text></g><rect class=\"ds-chart__zone\" x=\"50\" y=\"86\" width=\"308\" height=\"59\"/><line class=\"ds-chart__edge-line\" x1=\"50\" x2=\"358\" y1=\"86\" y2=\"86\"/><line class=\"ds-chart__edge-line\" x1=\"50\" x2=\"358\" y1=\"145\" y2=\"145\"/><text class=\"ds-chart__edge\" x=\"370\" y=\"91\">100</text><text class=\"ds-chart__edge\" x=\"370\" y=\"150\">60</text><line class=\"ds-chart__axis\" x1=\"50\" x2=\"358\" y1=\"150\" y2=\"150\"/><path class=\"ds-chart__line\" d=\"M50,110 L80,104 L110,112\"/><path class=\"ds-chart__line\" d=\"M140,108 L170,118 L200,100 L230,96 L260,92 L272,88\"/><path class=\"ds-chart__line ds-chart__line--out\" d=\"M272,88 L284,80 L310,60 L330,44 L345,30\"/><path class=\"ds-chart__end\" d=\"M345,24 L350.5,34 L339.5,34 Z\"/><text class=\"ds-chart__last\" x=\"370\" y=\"35\">147</text></svg>",
+      "css": ".ds-chart{display:block;width:420px;font-family:var(--font-mono);font-variant-numeric:tabular-nums}.ds-chart__grid line{stroke:var(--color-rule);stroke-width:1}.ds-chart__axis{stroke:var(--color-text-faint);stroke-width:1}.ds-chart__tick text{fill:var(--color-text-faint);font-size:14px}.ds-chart__zone{fill:var(--state-normal);fill-opacity:.05}.ds-chart__edge-line{stroke:var(--state-normal);stroke-opacity:.6;stroke-width:1}.ds-chart__edge{fill:var(--state-normal);font-size:14px}.ds-chart__line{fill:none;stroke:var(--color-text);stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}.ds-chart__line--out{stroke:var(--state-alert)}.ds-chart__end{fill:var(--state-alert);stroke:var(--color-surface);stroke-width:1.5}.ds-chart__last{fill:var(--color-text);font-size:14px;font-weight:500}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Flight Instrument Panel",
+    "overview": "The console reads like a medical instrument bolted into a spacecraft rack: a navy panel under a NASA-blue band with a red rule, readings set large in tabular figures, and every number standing on a hairline scale. It is a dark, dense, glanceable surface for a 1280×800 window (minimum 1024×700). Nothing floats; depth comes from three navy steps and 1px rules, and the only loud color on a calm screen is the state of a reading.\n\nState is the system's grammar. Each reading state owns a color, a drawn icon, a text label and a border pattern, and all three channels travel together, so an astronaut can tell \"alert\" from \"old data\" from \"no range\" in grayscale. Charts behave like instruments, not infographics: round ticks, a faint normal zone with its edge values printed in the margin, a near-white trace that turns red only where it leaves the zone, and a mono readout of the last value.\n\nThe identity is fixed: the blue band (#0B3D91) and red rule (#C8301A) carry the mission brand; IBM Plex Sans and Plex Mono carry the voice; corners stay tight (4/3/2px).",
+    "keyCharacteristics": [
+      "NASA-blue header band with a 3px red rule; navy surfaces below.",
+      "State shown by icon + text + border pattern, never by color alone.",
+      "Large tabular reading values in Plex Sans; units, ages, axes and clocks in Plex Mono.",
+      "Tight radii (4px containers, 3px controls, 2px tags) and 1px hairlines.",
+      "Flat: no drop shadows; tonal steps and rules give structure.",
+      "Instrument-style line charts and range tracks."
+    ],
+    "rules": [
+      {
+        "name": "The Three-Channel State Rule",
+        "body": "Every reading state is shown by icon + text + border pattern: alert 2px solid coral, old data 2px dashed amber, no data 2px dotted gray, no range 3px double sky, doubtful sample 2px solid muted. Color is the fourth channel, never the only one.",
+        "section": "colors"
+      },
+      {
+        "name": "The Red Means Out Rule",
+        "body": "Red appears only for the mission rule and for readings or services that are out of bounds. A healthy screen has no red below the header.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono Measures Rule",
+        "body": "If it was measured or timed (unit, age, axis, clock, raw dimension), set it in Plex Mono with tabular figures. The headline reading value stays in Plex Sans 500 tabular.",
+        "section": "typography"
+      },
+      {
+        "name": "The 14px Floor Rule",
+        "body": "No text below 14px, including chart ticks and SVG labels.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Instrument Rule",
+        "body": "Surfaces never lift. Emphasis comes from state borders, the alert fill, or a tonal step, never from a shadow or glow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Squared Tag Rule",
+        "body": "No radius above 4px anywhere; status tags are squared (2px).",
+        "section": "shapes"
+      },
+      {
+        "name": "The Instrument Chart Rule",
+        "body": "Charts read like gauges: round ticks, zone edges labelled in the margin, one near-white trace, red only outside the zone, gaps left as gaps, the last value in Mono.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** pair every state color with its drawn icon, its text label and its border pattern (Three-Channel State Rule).",
+      "**Do** set units, ages, axes and clocks in Plex Mono with tabular figures, and keep all text at 14px or above.",
+      "**Do** keep corners at 4px (containers), 3px (controls), 2px (tags).",
+      "**Do** build depth from bg / surface / surface-2 and 1px border or rule lines.",
+      "**Do** draw new charts with the instrument grammar: niceScale ticks, 5% zone tint with edge values in the margin, 1.5px near-white trace that turns coral only outside the zone, breaks at gaps, Mono last-value label.",
+      "**Do** keep the blue band and red rule as the only brand surface, in the header.",
+      "**Do** keep interactive targets at least 44px tall."
+    ],
+    "donts": [
+      "**Don't** convey a state by color alone, or tint a normal reading anything but green.",
+      "**Don't** use red for decoration, emphasis or brand fills outside the header rule; red means out of bounds.",
+      "**Don't** add drop shadows, glows or gradients for elevation.",
+      "**Don't** round corners past 4px or make status tags pill-shaped.",
+      "**Don't** bridge missing data in a chart or show an old value as if it were current; dim it and mark it.",
+      "**Don't** use text glyphs (arrows, ×) as icons; draw them as SVG like the state icons."
+    ]
+  }
+}
