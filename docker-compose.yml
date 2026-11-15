@@ -10,7 +10,7 @@ x-onboard-env: &onboard-env
 
 services:
   onboard-api:
-    build: &onboard-build
+    build:
       context: .
       dockerfile: services/onboard-api/Dockerfile
     image: space-apps/onboard-api
@@ -35,8 +35,10 @@ services:
       retries: 30
 
   demo-init:
-    build: *onboard-build  # same image; cached after the first build
-    image: space-apps/onboard-api
+    image: space-apps/onboard-api  # built by onboard-api
+    pull_policy: never
+    healthcheck:
+      disable: true  # the image healthcheck probes the API, not this job
     command: ["python", "scripts/prepare_demo.py"]
     environment: *onboard-env
     volumes:
@@ -51,6 +53,7 @@ services:
     command: ["python", "-u", "/firmware/simulator.py", "--url", "http://onboard-api:8000"]
     volumes:
       - ./firmware:/firmware:ro
+    init: true  # forwards SIGTERM so `docker compose down` stops it at once
     depends_on:
       onboard-api:
         condition: service_healthy
