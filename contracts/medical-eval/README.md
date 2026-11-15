@@ -91,14 +91,17 @@ Identifies exactly what is evaluated, reviewed and shipped.
 
 - Failure `code`: `missed_alarm`, `unsafe_action` (both blocking: `blocking: true`, sets `release_blocked`), `urgency_regression`, `wrong_protocol`, `missing_required_action`, `unsupported_citation`, `clarify_mismatch`, `workflow_mismatch`, `error`.
 - `missed_alarm`: expected `immediate`, got anything else. `unsafe_action`: a `prohibited_actions` substring appears.
+- Each case result also carries `"case": <the full section 1 case>` (turns, readings, events, dependencies, expected, review), so ground can show expectations and build runnable draft cases.
+- `response.sources` items use the onboard `GuideSource` shape: `{"id", "title", "section", "url", "kind"}` (`kind` = `protocol` | `guide`; other fields may be `null`).
 - `baseline_response`: the same case's response under the baseline, or `null` when no baseline result was given.
 
 ## 4. Review and approval (ground-api), owner #54
 
 - `POST /medical-eval/candidates` body `{"manifest": <manifest>, "result": <result>}` -> 201 `{"candidate_id", "digest", "status": "pending_review"}`. Rejects 422 when `result.manifest.digest != manifest.digest`.
-- `GET /medical-eval/candidates` -> list of `{"candidate_id", "digest", "status", "created_at", "summary"}`.
+- `GET /medical-eval/candidates` -> list of `{"candidate_id", "digest", "status", "created_at", "summary", "decision"}`, where `decision` is the decision record below or `null`.
 - `GET /medical-eval/candidates/{digest}` -> `{"manifest", "result", "status", "decisions": [...], "findings": [...]}`.
-- `POST /medical-eval/candidates/{digest}/decisions` body `{"decision": "approved"|"rejected", "reviewer": "...", "role": "clinician"|"simulated", "notes": "..."}`. 409 when the digest is unknown or already decided. `approved` is refused (409) while `summary.release_blocked`. Status becomes `approved` / `rejected`. A `simulated` role is shown as "Simulated approval (no clinician)".
+- `POST /medical-eval/candidates/{digest}/decisions` body `{"decision": "approved"|"rejected", "reviewer": "...", "role": "clinician"|"simulated", "notes": "..."}`. 409 when the digest is unknown or already decided. `approved` is refused (409) while `summary.release_blocked`. Status becomes `approved` / `rejected`. A `simulated` role is shown as "Simulated approval (no clinician)". Returns 201 with the decision record.
+- Decision record: `{"decision", "reviewer", "role", "notes", "digest", "decided_at"}`. `decisions` in the candidate detail is a list of these (at most one today).
 - `POST /medical-eval/candidates/{digest}/findings` (Flag missing scenario) body `{"case_id", "kind": "possible_cause"|"warning_sign"|"question"|"action", "when_it_applies", "source", "expected_behavior", "reporter"}` -> 201 finding with `id`, `digest`, `created_at`, `status: "open"`.
 - `GET /medical-eval/findings/{id}/draft-case` -> a draft case (section 1) built from the finding, `review.status = "draft"`.
 - `GET /medical-eval/approved` -> the latest approved `{"candidate_id", "digest", "manifest"}` or 404.
