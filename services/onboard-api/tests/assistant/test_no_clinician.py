@@ -3,7 +3,7 @@
 Exact console transcript hello -> symptom -> shortness of breath with a simulated SpO2
 of 97 %, then severe breathing difficulty, missing readings, no ground link and Ollama /
 ChromaDB down. Every answer must give the astronaut something to do, never refer to an
-onboard clinician, keep unknown data unknown and report `not_sent`.
+onboard clinician, keep unknown data unknown and leave the report as a `draft`.
 """
 
 import json
@@ -40,8 +40,7 @@ def actionable(body: dict) -> None:
     source_ids = {s["id"] for s in body["sources"]}
     for step in body["steps"]:
         assert step["source_ids"] and set(step["source_ids"]) <= source_ids, step
-    assert body["report"]["transmission"] == "not_sent"
-    assert "not_sent" in body["report"]["text"]
+    assert body["report"]["transmission"] == "draft"
     no_clinician(body)
 
 
@@ -175,7 +174,7 @@ def test_out_of_coverage_gives_actions_without_a_clinician(ask) -> None:
     body = ask("me duele el oído", llm=FailingLLM(), retriever=FailingRetriever())
     assert body["urgency"] == "review_required" and body["action"] == prompts.OUT_OF_COVERAGE_ACTION
     assert body["missing_guidance"] == [prompts.OUT_OF_COVERAGE_MISSING]
-    assert body["report"]["transmission"] == "not_sent"
+    assert body["report"]["transmission"] == "draft"
     no_clinician(body)
 
 

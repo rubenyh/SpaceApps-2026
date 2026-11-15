@@ -1,6 +1,8 @@
+import type { ReactNode } from "react";
 import type { SensorKind, SensorStatus } from "../api/types";
 import { getAstronautStatus } from "../api/status";
 import { BodyMap } from "../components/BodyMap";
+import { MuscleLiveStat } from "../components/MuscleLivePanel";
 import { SensorCard } from "../components/SensorCard";
 import { ServiceBanner } from "../components/ServiceBanner";
 import { StateIcon, StatusPill } from "../components/StatusPill";
@@ -76,6 +78,7 @@ function SummaryBanner({ sensors }: { sensors: (SensorStatus | null)[] }) {
   const count = (st: string) => sensors.filter((s) => (s?.status ?? "no_data") === st).length;
   const notes = [
     count("stale") > 0 ? `${count("stale")} with old data` : "",
+    count("future") > 0 ? `${count("future")} captured ahead of the onboard clock` : "",
     count("no_data") > 0 ? `${count("no_data")} with no data` : "",
     count("no_range") > 0 ? `${count("no_range")} with no range` : "",
   ].filter(Boolean);
@@ -115,7 +118,7 @@ export function EstadoScreen({ astronautId, onNavigate }: Props) {
   const alerts = healthAlerts(data);
   const doubtfulSample = temp?.status === "alert" && temp.config.range_role === "sample_validity";
 
-  const card = (title: string, organ: string, s: SensorStatus | null, doubtful = false) => (
+  const card = (title: string, organ: string, s: SensorStatus | null, doubtful = false, extra?: ReactNode) => (
     <SensorCard
       title={title}
       organ={organ}
@@ -124,7 +127,9 @@ export function EstadoScreen({ astronautId, onNavigate }: Props) {
       loaded={loaded}
       offline={offline}
       tag={doubtful ? <StatusPill state="doubtful" /> : undefined}
-    />
+    >
+      {extra}
+    </SensorCard>
   );
 
   return (
@@ -150,7 +155,7 @@ export function EstadoScreen({ astronautId, onNavigate }: Props) {
       <div className="estado__grid">
         <div className="estado__col">
           {card("Blood oxygen", "SpO₂ · lungs", spo2)}
-          {card("Muscle density", "Limbs", muscle)}
+          {card("Muscle density", "Limbs", muscle, false, <MuscleLiveStat />)}
         </div>
         <div className="estado__center">
           <BodyMap

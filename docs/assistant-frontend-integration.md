@@ -7,11 +7,13 @@ El asistente médico es soporte informativo. **La misión no lleva personal clí
 ## Estado actual
 
 - Envío: `sendAssistantMessage()` en [`apps/spaceship-app/src/api/assistant.ts`](../apps/spaceship-app/src/api/assistant.ts) hace `POST /assistant/messages`.
-- URL base: `API_BASE_URL` en [`apps/spaceship-app/src/api/client.ts`](../apps/spaceship-app/src/api/client.ts). Usa `VITE_ONBOARD_API_URL` y, si no existe, `http://127.0.0.1:8000`. Tiempo de espera: 10 s.
+- URL base: `API_BASE_URL` en [`apps/spaceship-app/src/api/client.ts`](../apps/spaceship-app/src/api/client.ts). Usa `VITE_ONBOARD_API_URL` y, si no existe, `http://127.0.0.1:8000`. Tiempo de espera: 60 s para el asistente (`ASSISTANT_TIMEOUT_MS` en `api/assistant.ts`) y 10 s para las demás peticiones.
 - [`AsistenteScreen.tsx`](../apps/spaceship-app/src/screens/AsistenteScreen.tsx) envía `message`, `astronaut_id`, `reported_by` (selector "Informa") y `reported_symptoms` (selector de síntoma con Sí / No / No se sabe). Muestra todos los campos de la respuesta en el orden indicado abajo, con `matched_rules` en un detalle plegado. Los selectores no envían `onset`, `severity`, `persistence`, `started_at` ni `context`.
-- Aclaraciones: tras una respuesta con `needs_clarification`, el siguiente mensaje se envía con `buildRequest()` de [`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts): el mensaje original más el texto nuevo, la misma persona evaluada y la misma persona que informa, y los síntomas anteriores combinados con los nuevos. "Nuevo reporte" cancela la aclaración. Prueba: `node src/lib/assistant.check.ts`. Todavía no reenvía `clarification` (ver [Aclaraciones](#aclaraciones-endpoint-sin-estado)).
+- Aclaraciones: tras una respuesta con `needs_clarification`, el siguiente mensaje se envía con `buildRequest()` de [`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts). Si la respuesta traía `clarification`, la reenvía sin cambios y `message` lleva solo el texto nuevo. Si no, une el mensaje original y el texto nuevo. En ambos casos conserva la persona evaluada y la que informa, y combina los síntomas anteriores con los nuevos. "Nuevo reporte" cancela la aclaración. Prueba: `node src/lib/assistant.check.ts`. Detalle: [Aclaraciones](#aclaraciones-endpoint-sin-estado).
 
-**Nada se transmite.** `notify` indica a quién contárselo (tripulación, control de misión si hay enlace). `report.transmission` es siempre `not_sent`: el informe se copia a mano. Solo un mecanismo de envío real que confirme la entrega podrá usar otro valor; el envío automático queda fuera de este cambio.
+**Nada se transmite.** `notify` indica a quién contárselo (tripulación, control de misión si hay enlace). La única excepción es el informe de caso: la respuesta trae `report.id` y `report.transmission` `draft`, y solo se envía a tierra cuando la tripulación pulsa **Send to base** (`POST /case-reports/{id}/send`; estados `draft`, `queued`, `received`, `failed`). Contrato: [case-report](../contracts/case-report/README.md). No hay envío automático.
+
+Workflow `status`: preguntas rápidas sobre las lecturas propias ("Summarize my status today", "Which readings am I missing?"). Sin LLM ni ChromaDB; devuelve sin cambios la `clarification` pendiente. Campos nuevos de la respuesta: `assessed_at`, `readings_snapshot` (con `freshness` `current`, `stale` o `future`), `assessment` (`urgency`, `urgency_label`, `reported`, `action`, `escalation`) y `report.readings`. Fuente: [`schemas/assistant.py`](../services/onboard-api/src/onboard_api/schemas/assistant.py).
 
 ## Petición
 
@@ -47,14 +49,14 @@ Cuando `needs_clarification` es `true`, se muestra `clarifying_question` y se es
 | `astronaut_id` | Persona del caso. Si el siguiente POST trae otro `astronaut_id`, el caso se ignora y empieza uno nuevo. |
 | `observations` | Observaciones acumuladas: `symptom`, `status`, `origin` (`text`, `llm`, `structured`), `evidence` (palabras del usuario) y calificadores. |
 
-### Cómo la retomará Tauri (pendiente en la consola)
+### Cómo la retoma la consola
 
 1. Guardar `clarification` de la última respuesta junto a la pregunta mostrada.
 2. Al responder, enviar `message` **solo con el texto nuevo**, el mismo `astronaut_id` y `reported_by`, y `clarification` sin modificar. Los `reported_symptoms` de los selectores se siguen enviando igual.
 3. Si la nueva respuesta trae otra `clarification`, sustituir la guardada. Si trae `null` (acción, alarma o fuera de cobertura), el caso terminó.
 4. "Nuevo reporte" o cambiar de astronauta borra la `clarification` guardada.
 
-Hoy `buildRequest()` en [`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts) concatena el mensaje original con la respuesta y no envía `clarification`. Ese modo sigue funcionando (por ejemplo, el mensaje `hola` + salto de línea + `malestar físico` pregunta qué siente), pero no permite interpretar un "sí" o un "no" según la pregunta. Cambio previsto en `types.ts`: añadir `clarification?: Clarification | null` a `AssistantRequest` y `AssistantResponse`.
+`buildRequest()` en [`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts) sigue estos pasos cuando la respuesta trae `clarification` (campo de `AssistantRequest` y `AssistantResponse` en `types.ts`). Si una respuesta pide aclaración sin `clarification`, concatena el mensaje original con la respuesta. Ese modo de respaldo funciona (por ejemplo, `hola` + salto de línea + `malestar físico` pregunta qué siente), pero no permite interpretar un "sí" o un "no" según la pregunta.
 
 Ejemplo. Primer envío: `{"astronaut_id": "ana", "message": "Me duele la cabeza"}` devuelve `question_id: "neurologic_red_flags.headache_red_flags"` y la pregunta del ejemplo de aclaración de abajo. Reenvío:
 
@@ -82,7 +84,7 @@ Los avisos de lecturas (`data_notices`) solo aparecen cuando la ficha decidida u
 |---|---|---|
 | 1 | `urgency`, `action`, `mission_procedures`, `steps`, `notify` | Bloque principal. `immediate` domina la pantalla. Debajo de la acción, el procedimiento de la misión (si `loaded` es `false`: "no cargado en el asistente, usa la copia de la misión") y los pasos agrupados por `who`: `self` (puedes hacerlo solo), `crew` (requiere otro tripulante), `equipment` (requiere equipo). Cada paso muestra sus fuentes (`source_ids` apuntan a `sources[].id`). |
 | 2 | `clarifying_question` | Solo si `needs_clarification`. Una sola vez. |
-| 3 | `report` | Informe para copiar (`text`) con botón de copiar y la etiqueta "No enviado" (`transmission: "not_sent"`). |
+| 3 | `report` | "Review & send to base": texto (`text`), lecturas del informe (`readings`), botón de copiar y **Send to base**, con el estado de entrega (`transmission`: Draft, Queued, Received by base, Failed). |
 | 4 | `reply` | Explicación. Ya empieza por `action` y puede contener la pregunta: la consola quita ambas (`explanation()` en `lib/assistant.ts`) para no repetirlas. |
 | 5 | `missing_guidance` | Guía que las fichas no tienen, dicha de forma explícita. |
 | 6 | `protocol_id`, `additional_protocol_ids`, `findings`, `possible_causes` | Evidencia. Las lecturas simuladas (`source` `simulated`, `demo` o `simulated:*`) llevan "SIMULADA". `possible_causes` nunca como probabilidad. |
@@ -111,6 +113,8 @@ Etiquetas de `possible_causes[].status`:
 | `insufficient_evidence` | Evidencia insuficiente |
 
 ## Ejemplo: alarma
+
+Los dos ejemplos son anteriores al envío de informes: hoy `transmission` vale `draft` y la respuesta incluye además `report.id`, `report.readings`, `assessed_at`, `readings_snapshot` y `assessment`.
 
 Petición: `{"astronaut_id": "ana", "message": "Siento presión en el pecho desde hace un rato y sudor frío"}`. Respuesta real del servicio (fichas v2.0.0, Ollama y ChromaDB caídos; los textos dependen de las fichas y pueden cambiar):
 

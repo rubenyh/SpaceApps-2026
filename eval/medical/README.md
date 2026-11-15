@@ -3,7 +3,8 @@
 Synthetic, versioned cases for the onboard medical assistant (issue #52). The case format is
 section 1 of [`contracts/medical-eval/README.md`](../../contracts/medical-eval/README.md). Its JSON
 Schema is [`cases/v1/case.schema.json`](cases/v1/case.schema.json). The runner (#53) sends each
-case to `POST /assistant/messages` and compares the last response with `expected`.
+case to `POST /assistant/messages` and compares the last response with `expected`. How to run it and read the
+output: [`docs/RAG-AND-EVALUATION.md`](../../docs/RAG-AND-EVALUATION.md#medical-case-suite).
 
 **No clinician has reviewed any of these cases yet. Every case is `draft`.** The team wrote the
 expected values from the protocol cards

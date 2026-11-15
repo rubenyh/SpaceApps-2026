@@ -5,7 +5,7 @@ from pydantic import AwareDatetime, BaseModel
 from onboard_api.schemas.readings import Reading
 from onboard_api.schemas.sensors import SensorConfig, SensorKind
 
-ReadingStatus = Literal["normal", "alert", "no_data", "stale", "no_range"]
+ReadingStatus = Literal["normal", "alert", "no_data", "future", "stale", "no_range"]
 
 
 class SensorStatus(BaseModel):
@@ -13,9 +13,11 @@ class SensorStatus(BaseModel):
 
     Status precedence:
       1. no reading at all                -> "no_data"
-      2. older than stale_after_seconds   -> "stale" (value shown, not evaluated)
-      3. no range, or a value_text value  -> "no_range"
-      4. outside [normal_min, normal_max] -> "alert", otherwise "normal"
+      2. captured ahead of the onboard clock beyond the tolerance -> "future"
+         (value shown with a clock warning, not evaluated, not current evidence)
+      3. older than stale_after_seconds   -> "stale" (value shown, not evaluated)
+      4. no range, or a value_text value  -> "no_range"
+      5. outside [normal_min, normal_max] -> "alert", otherwise "normal"
     """
 
     kind: SensorKind

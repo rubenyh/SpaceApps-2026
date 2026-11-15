@@ -4,6 +4,7 @@ import { listReadings } from "../api/readings";
 import { getAstronautStatus } from "../api/status";
 import type { Point } from "../components/chartScale";
 import { LineChart } from "../components/LineChart";
+import { MuscleLivePanel } from "../components/MuscleLivePanel";
 import { Panel } from "../components/Panel";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { SensorCard } from "../components/SensorCard";
@@ -81,7 +82,7 @@ export function MusculoScreen({ astronautId }: Props) {
 
   const hasRange = sensor !== null && rangeText(sensor.config) !== null;
   const ttl = sensor?.config.stale_after_seconds ?? null;
-  const fresh = sensor !== null && sensor.status !== "stale" && sensor.status !== "no_data";
+  const fresh = sensor !== null && sensor.status !== "stale" && sensor.status !== "future" && sensor.status !== "no_data";
 
   return (
     <div className="screen">
@@ -129,33 +130,36 @@ export function MusculoScreen({ astronautId }: Props) {
             </div>
           ) : null}
         </div>
-        <Panel
-          title="Trend"
-          aside={<SegmentedControl label="Period" options={RANGES} value={range} onChange={setRange} />}
-        >
-          <div className="panel__caption">
-            <span className="caption">
-              {unit ? `Value in ${unitLabel(unit)}` : "Value"} · {sameUnit.length} readings · dates in UTC
-              {excluded > 0 ? ` · ${excluded} in another unit are not plotted or compared` : ""}
-            </span>
-            <span className="caption caption--legend">
-              <span className="legend-line" aria-hidden="true" />
-              First reading
-            </span>
-          </div>
-          <LineChart
-            points={points}
-            start={start}
-            end={end}
-            status={loaded ? shownStatus(sensor, offline) : undefined}
-            showPoints
-            baseline={first?.v ?? null}
-            width={790}
-            height={410}
-            label="Muscle density"
-            emptyText="No readings in this period"
-          />
-        </Panel>
+        <div className="musculo__main">
+          <MuscleLivePanel />
+          <Panel
+            title="Muscle density trend"
+            aside={<SegmentedControl label="Period" options={RANGES} value={range} onChange={setRange} />}
+          >
+            <div className="panel__caption">
+              <span className="caption">
+                {unit ? `Value in ${unitLabel(unit)}` : "Value"} · {sameUnit.length} readings · dates in UTC
+                {excluded > 0 ? ` · ${excluded} in another unit are not plotted or compared` : ""}
+              </span>
+              <span className="caption caption--legend">
+                <span className="legend-line" aria-hidden="true" />
+                First reading
+              </span>
+            </div>
+            <LineChart
+              points={points}
+              start={start}
+              end={end}
+              status={loaded ? shownStatus(sensor, offline) : undefined}
+              showPoints
+              baseline={first?.v ?? null}
+              width={790}
+              height={410}
+              label="Muscle density"
+              emptyText="No readings in this period"
+            />
+          </Panel>
+        </div>
       </div>
     </div>
   );

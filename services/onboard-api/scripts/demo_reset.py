@@ -7,8 +7,9 @@ with the API already running from the same folder (`uv run fastapi dev`):
 History ends "yesterday" in that zone, so today's live log lands on local today.
 
 1. Checks the API is up and serves the wellbeing routes.
-2. Backs up data/wellbeing.db to data/backups/ and empties its tables (schema kept,
-   onboard.db untouched).
+2. Backs up data/wellbeing.db to data/backups/ and empties its tables (schema kept).
+   onboard.db is only changed through the API: the demo crew is registered with
+   POST /astronauts, and renamed with PATCH if it exists under another name.
 3. Loads the SIMULATED history (seed 7) and the synthetic Watch export for ast-01,
    shifted so it ends yesterday.
 4. Checks ast-01 is ready for today's live log and prints the crew status.
@@ -53,6 +54,31 @@ def get(base: str, path: str) -> dict:
         ) from error
 
 
+def register_crew(base: str) -> list[str]:
+    """Register the demo crew; rename (PATCH) whoever already exists with another name."""
+    for astronaut_id, name in CREW.items():
+        ensure_astronaut(base, astronaut_id, name)  # POST; 409 keeps the old name
+    current = {a["id"]: a["display_name"] for a in get(base, "/astronauts")}
+    changed = []
+    for astronaut_id, name in CREW.items():
+        old = current[astronaut_id]
+        if old == name:
+            continue
+        request = urllib.request.Request(
+            f"{base}/astronauts/{astronaut_id}", method="PATCH",
+            data=json.dumps({"display_name": name}).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            urllib.request.urlopen(request, timeout=10).close()
+        except urllib.error.HTTPError as error:
+            raise SystemExit(
+                f"PATCH /astronauts/{astronaut_id} -> HTTP {error.code}: {error.read().decode()}"
+            ) from error
+        changed.append(f"{astronaut_id}: {old} -> {name}")
+    return changed
+
+
 def backup_and_wipe(db_path: Path) -> Path | None:
     backup = None
     if db_path.exists():
@@ -95,8 +121,8 @@ def main() -> None:
     backup = backup_and_wipe(settings.db_path)
     print(f"Respaldo: {backup or '(no había wellbeing.db)'}")
 
-    for astronaut_id, name in CREW.items():
-        ensure_astronaut(base, astronaut_id, name)
+    changed = register_crew(base)
+    print("Nombres cambiados: " + ("; ".join(changed) if changed else "ninguno"))
     today = settings.day_of(datetime.now(UTC))
     conn = connect_wellbeing(settings.db_path)
     try:

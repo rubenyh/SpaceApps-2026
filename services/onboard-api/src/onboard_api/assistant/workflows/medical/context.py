@@ -10,7 +10,9 @@ from onboard_api.repositories.astronauts import AstronautRepository
 from onboard_api.repositories.database import connect
 from onboard_api.repositories.readings import ReadingRepository
 from onboard_api.repositories.sensors import SensorConfigRepository
-from onboard_api.schemas.assistant import OperationalEvent
+from onboard_api.schemas.assistant import OperationalEvent, SnapshotReading
+from onboard_api.schemas.readings import is_simulated_source
+from onboard_api.services.status import freshness
 
 # Kinds read for every case. Pulse and SpO2 are always expected; the others
 # are only described when present.
@@ -38,8 +40,6 @@ _UNAVAILABLE = "Readings repository unavailable: no readings were checked."
 # Validity when a kind has no sensor_config row (plan's provisional demo value).
 # A row with stale_after_seconds NULL still means "never stale".
 DEFAULT_STALE_AFTER_SECONDS = 300
-# Clock skew tolerated for capture times slightly ahead of `now`.
-FUTURE_SKEW_SECONDS = 5
 
 
 def format_age(seconds: int) -> str:
@@ -97,10 +97,7 @@ class SqliteReadingsProvider:
                 continue
             config = configs.get(kind)
             limit = config.stale_after_seconds if config else DEFAULT_STALE_AFTER_SECONDS
-            raw_age = int((now - row.recorded_at).total_seconds())
-            future = raw_age < -FUTURE_SKEW_SECONDS
-            age = max(0, raw_age)
-            stale = future or (limit is not None and age > limit)
+            fresh, age = freshness(row.recorded_at, now, limit)
             ctx.latest[kind] = VitalReading(
                 kind=kind,
                 value=row.value,
@@ -110,16 +107,19 @@ class SqliteReadingsProvider:
                 quality=row.quality,
                 source=row.source,
                 age_seconds=age,
-                stale=stale,
+                stale=fresh != "current",
                 id=row.id,
+                received_at=row.received_at,
+                freshness=fresh,
             )
-            if future:
+            if fresh == "future":
+                ahead = int((row.recorded_at - now).total_seconds())
                 warn(
                     kind,
                     f"The {label} reading has a capture time in the future"
-                    f" ({-raw_age} s ahead of the clock): not used as a current reading."
+                    f" ({ahead} s ahead of the clock): not used as a current reading."
                 )
-            elif stale:
+            elif fresh == "stale":
                 warn(
                     kind,
                     f"The {label} reading is {format_age(age)} old"
@@ -137,6 +137,22 @@ class SqliteReadingsProvider:
                     "Muscle sensor: method and unit pending; the value is not interpreted."
                 )
         return ctx
+
+
+def snapshot(ctx: ReadingsContext | None, kinds=None) -> list[SnapshotReading]:
+    """Loaded readings as the contract's SnapshotReading (all, or only `kinds`)."""
+    if ctx is None:
+        return []
+    return [
+        SnapshotReading(
+            id=r.id, kind=r.kind, value=r.value, value_text=r.value_text, unit=r.unit,
+            recorded_at=r.recorded_at, received_at=r.received_at or r.recorded_at,
+            quality=r.quality, source=r.source, simulated=is_simulated_source(r.source),
+            freshness=r.freshness, age_seconds=r.age_seconds,
+        )
+        for k, r in ctx.latest.items()
+        if kinds is None or k in kinds
+    ]
 
 
 class StaticEventSource:

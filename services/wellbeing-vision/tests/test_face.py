@@ -146,7 +146,7 @@ def test_yawn_at_new_threshold_and_face_width():
     from wellbeing_vision.face import face_frame
     from types import SimpleNamespace as NS
     names = ["jawOpen", "browDownLeft", "browDownRight", "mouthPressLeft", "mouthPressRight",
-             "eyeBlinkLeft", "eyeBlinkRight"]
+             "eyeBlinkLeft", "eyeBlinkRight", "eyeLookDownLeft", "eyeLookDownRight", "eyeLookUpLeft", "eyeLookUpRight"]
     ff = face_frame(0.0, xy, [NS(category_name=n, score=0.1) for n in names], np.eye(4))
     assert ff.face_px == 200.0 and ff.eye_blink == 0.1
 
@@ -160,11 +160,60 @@ def _talking(t):
 def test_talking_is_not_lip_press_but_a_silent_press_is():
     m = _run(lambda t: _frame(t, **_talking(t)) if t < 8 else _frame(t, lip_press=0.4 if 12 <= t < 14 else 0.10))
     assert m.tension().lip_press_peak_1s == 0.3
-    # Mean over 12 quiet s: the 2 s press alone gives 0.05; only the first syllable before the jaw moves leaks.
-    assert abs(m.tension().lip_press_delta - 0.05) < 0.015
+    # Mean over 12 quiet s: the 2 s press alone gives 0.05; the first syllable, before the second opening
+    # proves it is talking, leaks.
+    assert 0.05 <= m.tension().lip_press_delta < 0.08
 
 
 def test_mostly_talking_reports_lip_press_as_null():
     m = _run(lambda t: _frame(t, **_talking(t)) if t < 15 else _frame(t))
     assert m.tension().lip_press_delta is None and m.tension().lip_press_peak_1s is None
     assert m.tension().brow_lower_delta == 0.0
+
+
+def test_reading_posture_is_not_closure_tension_or_nods():
+    # S3-like: 5 s looking down with lowered lids (eyeBlink 0.5) and lowered brows, three times.
+    def reading(t):
+        down = (t % 10) >= 5
+        return _frame(t, look_down=0.5 if down else 0.0, pitch=18.0 if down else 0.0,
+                      eye_blink=0.5 if down else 0.1, brow_down=0.6 if down else 0.1)
+    m = _run(reading, seconds=30)
+    f, ten = m.fatigue(), m.tension()
+    assert f.nod_count == 0
+    assert f.perclos == 0.0  # the 0.5 s before it counts as looking down is dropped too
+    assert ten.brow_lower_peak_1s == 0.0
+    assert m.valid_frame_ratio < 0.6  # looking away from the camera lowers quality
+
+
+def test_deep_closure_counts_even_looking_down():
+    # Drowsy: eyes shut and head down for 3 s.
+    m = _run(lambda t: _frame(t, look_down=0.5, eye_blink=0.7) if 5 <= t < 8 else _frame(t))
+    assert m.fatigue().perclos == 0.15
+
+
+def test_blink_while_glancing_down_still_counts():
+    # A short glance down (0.3 s, under the hold) with a closure: kept.
+    m = _run(lambda t: _frame(t, look_down=0.5, eye_blink=0.5) if (t % 2) < 0.3 else _frame(t))
+    assert m.fatigue().perclos > 0.1 and m.blinks.count == 10
+
+
+def test_nod_is_a_drop_and_return_not_a_posture_or_jitter():
+    nods = _run(lambda t: _frame(t, pitch=25.0 if (t % 5) < 1 else 0.0, look_up=0.3))  # eyes stay on camera
+    assert nods.fatigue().nod_count == 4
+    jitter = _run(lambda t: _frame(t, pitch=(16.0 if int(t * 30) % 2 else 14.0) if 5 <= t < 12 else 0.0))
+    assert jitter.fatigue().nod_count == 0
+
+
+def test_single_mouth_openings_are_not_talking():
+    # One short opening every 2 s (swallowing, a sigh): never two within 1 s.
+    m = _run(lambda t: _frame(t, jaw_open=0.15 if (t % 2) < 0.15 else 0.05))
+    assert m.quiet_s > 19
+
+
+def test_talking_with_a_still_jaw_is_caught_by_lip_swings_but_a_held_press_is_not():
+    # Traced: talking to the camera barely moves jawOpen, but mouthPress swings below neutral (~ -0.15).
+    talk = _run(lambda t: _frame(t, lip_press=0.10 + (-0.25 if int(t * 6) % 2 else -0.05)))
+    assert talk.quiet_s < 2
+    # A held press: rises to +0.4 over neutral with small jitter, 3 s, twice.
+    press = _run(lambda t: _frame(t, lip_press=0.5 + 0.03 * (int(t * 10) % 2) if (t % 10) < 3 else 0.10))
+    assert press.talking_s < 1 and press.tension().lip_press_peak_1s >= 0.4

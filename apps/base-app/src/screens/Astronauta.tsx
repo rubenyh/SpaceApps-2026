@@ -72,7 +72,7 @@ export function Astronauta({ crew, crewAt, offline, now, selectedId, onSelect }:
         <select id="astro-select" value={member.astronaut_id} onChange={(e) => onSelect(e.target.value)}>
           {crew.map((m) => (
             <option key={m.astronaut_id} value={m.astronaut_id}>
-              {m.display_name} ({m.astronaut_id})
+              {m.display_name === m.astronaut_id ? m.astronaut_id : `${m.display_name} (${m.astronaut_id})`}
             </option>
           ))}
         </select>
@@ -104,7 +104,7 @@ export function Astronauta({ crew, crewAt, offline, now, selectedId, onSelect }:
         </tbody>
       </table>
       <p className="hint">
-        PROV.: provisional demo range, not clinically validated. Radiation marker: urinary 8-OHdG,
+        PROV.: provisional range, not clinically validated. Radiation marker: urinary 8-OHdG,
         an indirect marker of oxidative DNA damage, never a dose (ISS crew dose: 0.2–0.5 mSv/day).
       </p>
 

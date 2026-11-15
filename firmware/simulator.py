@@ -13,6 +13,7 @@ Simulated data, not clinically validated. Stdlib only:
 
     python3 firmware/simulator.py                    # API on 127.0.0.1:8000
     python3 firmware/simulator.py --urine-every 120  # faster urine samples
+    python3 firmware/simulator.py --real-urine ast-01   # ast-01's urine pH/salinity/temp from the ESP32
 """
 
 import argparse
@@ -27,11 +28,10 @@ from datetime import UTC, datetime, timedelta
 
 DEVICE_ID = "biomon-sim-01"
 # Per astronaut: display name, resting HR, SpO2, starting muscle density and urinary 8-OHdG.
-# ast-02 rests above the 60-100 bpm range so the console shows an alert, and its 8-OHdG
-# sits at the top of the range so some samples come out high.
+# Values stay inside the configured normal ranges: the demo crew is one healthy astronaut.
+# Elena Ruiz is a fictional demo profile, the same as in wellbeing (docs/wellbeing/demo-crew.md).
 CREW = {
-    "ast-01": {"name": "Demo Uno", "hr": 72, "spo2": 98.0, "muscle": 42.0, "ohdg": 4.0},
-    "ast-02": {"name": "Demo Dos", "hr": 108, "spo2": 96.0, "muscle": 40.5, "ohdg": 5.4},
+    "ast-01": {"name": "Elena Ruiz", "hr": 72, "spo2": 98.0, "muscle": 42.0, "ohdg": 4.0},
 }
 # Urine radiation marker: 8-OHdG (oxidative DNA damage, raised by ionizing radiation).
 # Indirect marker, not a dose. Range: healthy-adult IQR, chemical methods (Graille et al. 2020).
@@ -48,6 +48,8 @@ MUSCLE_LOSS_PER_DAY = 0.09  # u.a./day, microgravity atrophy trend
 
 
 class Astronaut:
+    real_urine = False  # True: the ESP32 analyser (serial_bridge.py) sends this astronaut's pH, salinity, temperature
+
     def __init__(self, astronaut_id: str, profile: dict, rng: random.Random):
         self.id = astronaut_id
         self.profile = profile
@@ -65,40 +67,40 @@ class Astronaut:
         if not exercising:
             self.exercise_until = None
         # Mean-reverting walk around the resting value (or a workout target).
-        target = self.profile["hr"] + (45 if exercising else 0)
+        target = self.profile["hr"] + (20 if exercising else 0)
         self.hr += 0.15 * (target - self.hr) + rng.gauss(0, 1.5)
-        self.spo2 += 0.2 * (self.profile["spo2"] - (1.5 if exercising else 0) - self.spo2) + rng.gauss(0, 0.3)
+        self.spo2 += 0.2 * (self.profile["spo2"] - (0.5 if exercising else 0) - self.spo2) + rng.gauss(0, 0.3)
 
         if rng.random() < 0.01:  # probe off the finger: firmware sends nothing
             return []
-        quality = "good"
-        hr, spo2 = self.hr, self.spo2
-        if rng.random() < 0.03:  # motion artifact
-            quality = "suspect"
-            hr += rng.gauss(0, 15)
-            spo2 -= abs(rng.gauss(0, 3))
+        # Clamped to the normal ranges (60-100 bpm, 95-100 %).
         return [
-            reading(self.id, "heart_rate", "bpm", when, value=max(30, round(hr)), quality=quality, source="simulated:pulse-ox"),
-            reading(self.id, "spo2", "%", when, value=min(100, max(70, round(spo2))), quality=quality, source="simulated:pulse-ox"),
+            reading(self.id, "heart_rate", "bpm", when, value=min(100, max(60, round(self.hr))), source="simulated:pulse-ox"),
+            reading(self.id, "spo2", "%", when, value=min(100, max(95, round(self.spo2))), source="simulated:pulse-ox"),
         ]
 
     def urine(self, when: datetime) -> list[dict]:
         rng = self.rng
-        self.hydration = min(1.0, max(0.0, self.hydration + rng.gauss(0, 0.1)))
+        self.hydration = min(1.0, max(0.4, self.hydration + rng.gauss(0, 0.1)))  # never badly dehydrated
         dry = 1 - self.hydration
         salinity = round(10 + 18 * dry + rng.gauss(0, 1.5), 1)
         ph = round(6.2 + rng.gauss(0, 0.4), 1)
-        temperature = round(36.0 - rng.uniform(0, 2.5) - (6 if rng.random() < 0.05 else 0), 1)
+        temperature = round(36.0 - rng.uniform(0, 2.5), 1)
         temp_quality = "good" if 32 <= temperature <= 38 else "suspect"  # sample_validity range
         source = "simulated:urine-analyser"
-        return [
-            reading(self.id, "urine_ph", "pH", when, value=ph, source=source),
-            reading(self.id, "urine_salinity", "mS/cm", when, value=salinity, source=source),
+        out = [
             reading(self.id, "urine_color", "rgb_hex", when, value_text=urine_color(dry), source=source),
-            reading(self.id, "urine_temperature", "°C", when, value=temperature, quality=temp_quality, source=source),
             reading(self.id, "urine_radiation_marker", RADIATION_CONFIG["unit"], when,
-                    value=max(0.5, round(self.profile["ohdg"] + rng.gauss(0, 0.5), 2)), source=source),
+                    value=min(RADIATION_CONFIG["normal_max"], max(RADIATION_CONFIG["normal_min"], round(self.profile["ohdg"] + rng.gauss(0, 0.5), 2))),
+                    source=source),
         ]
+        if not self.real_urine:
+            out += [
+                reading(self.id, "urine_ph", "pH", when, value=ph, source=source),
+                reading(self.id, "urine_salinity", "mS/cm", when, value=salinity, source=source),
+                reading(self.id, "urine_temperature", "°C", when, value=temperature, quality=temp_quality, source=source),
+            ]
+        return out
 
     def muscle(self, when: datetime, boot: datetime) -> list[dict]:
         days = (when - boot).total_seconds() / 86400
@@ -219,6 +221,8 @@ def main() -> None:
     parser.add_argument("--urine-every", type=float, default=600, help="seconds between urine samples")
     parser.add_argument("--muscle-every", type=float, default=3600, help="seconds between muscle scans")
     parser.add_argument("--no-history", action="store_true", help="skip the flash-log upload on boot")
+    parser.add_argument("--real-urine", action="append", default=[], choices=list(CREW), metavar="ID",
+                        help="astronaut whose urine pH/salinity/temperature come from the ESP32 (serial_bridge.py); colour and 8-OHdG stay simulated (repeatable)")
     parser.add_argument("--seed", type=int, help="random seed for reproducible runs")
     args = parser.parse_args()
 
@@ -227,6 +231,8 @@ def main() -> None:
     now = datetime.now(UTC)
     boot = now - timedelta(days=30)  # muscle trend starts 30 days ago
     crew = [Astronaut(i, p, rng) for i, p in CREW.items()]
+    for a in crew:
+        a.real_urine = a.id in args.real_urine
 
     log(f"boot, crew {', '.join(CREW)}, uplink {args.url}")
     while not uplink.register_crew():

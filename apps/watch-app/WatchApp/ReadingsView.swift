@@ -3,12 +3,14 @@ import SwiftUI
 struct ReadingsView: View {
     let baseURL: String
     let astronautID: String
+    let vitals: String
     @State private var status: Status?
     @State private var lastOK: Date?
     @State private var offline = false
 
     var body: some View {
         List {
+            Label(vitals, systemImage: "heart").font(.footnote)
             if offline {
                 Text(lastOK == nil ? "Sin conexión" : "Sin conexión · datos de \(Labels.clock(lastOK))")
                     .font(.footnote)

@@ -8,6 +8,10 @@ class AstronautCreate(BaseModel):
     display_name: str = Field(min_length=1, max_length=80)
 
 
+class AstronautUpdate(BaseModel):
+    display_name: str = Field(min_length=1, max_length=80)
+
+
 class Astronaut(BaseModel):
     id: str
     display_name: str

@@ -10,7 +10,10 @@ from ground_api.schemas import (
     Alert,
     Astronaut,
     BatchAccepted,
+    CaseReportAck,
+    CaseReportV1,
     GroundAcknowledgment,
+    GroundCaseReport,
     GroundIncident,
     GroundIncidentUpdate,
     GroundReading,
@@ -130,6 +133,27 @@ CREATE TABLE IF NOT EXISTS eval_findings (
     status TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS eval_findings_by_digest ON eval_findings (digest, created_at);
+-- contracts/case-report v1. received_at: ground clock at first receipt.
+CREATE TABLE IF NOT EXISTS case_reports (
+    ship_id TEXT NOT NULL,
+    report_id TEXT NOT NULL,
+    astronaut_id TEXT,
+    reported_by TEXT,
+    sent_by TEXT,
+    urgency TEXT NOT NULL,
+    protocol_id TEXT,
+    action TEXT,
+    assessed_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    sent_at TEXT NOT NULL,
+    incident_id TEXT,
+    text TEXT NOT NULL,
+    readings_json TEXT NOT NULL,
+    knowledge_version_json TEXT,
+    received_at TEXT NOT NULL,
+    PRIMARY KEY (ship_id, report_id)
+);
+CREATE INDEX IF NOT EXISTS case_reports_by_received ON case_reports (received_at);
 """
 
 _READING_COLUMNS = (
@@ -418,6 +442,14 @@ def _to_incident(conn: sqlite3.Connection, row: sqlite3.Row) -> GroundIncident:
             if u.type == "acknowledged" and u.acknowledged_by
         ],
         updates=updates,
+        report_ids=[
+            r[0]
+            for r in conn.execute(
+                "SELECT report_id FROM case_reports WHERE ship_id = ? AND incident_id = ?"
+                " ORDER BY received_at DESC, rowid DESC",
+                (row["ship_id"], row["id"]),
+            )
+        ],
     )
 
 
@@ -435,6 +467,75 @@ def get_incident(conn: sqlite3.Connection, incident_id: str) -> GroundIncident |
         "SELECT * FROM incidents WHERE id = ? ORDER BY rowid LIMIT 1", (incident_id,)
     ).fetchone()
     return _to_incident(conn, row) if row else None
+
+
+# --- Case reports (contracts/case-report) -------------------------------------------------
+
+
+def insert_case_report(conn: sqlite3.Connection, r: CaseReportV1, now: datetime) -> CaseReportAck:
+    """Store once per (ship_id, report_id); a resend returns the first received_at."""
+    report_id = str(r.report_id)
+    conn.execute(
+        "INSERT INTO case_reports (ship_id, report_id, astronaut_id, reported_by, sent_by, urgency,"
+        " protocol_id, action, assessed_at, created_at, sent_at, incident_id, text, readings_json,"
+        " knowledge_version_json, received_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        " ON CONFLICT DO NOTHING",
+        (
+            r.ship_id, report_id, r.astronaut_id, r.reported_by, r.sent_by, r.urgency,
+            r.protocol_id, r.action, to_db(r.assessed_at), to_db(r.created_at), to_db(r.sent_at),
+            r.incident_id, r.text,
+            json.dumps([x.model_dump(mode="json") for x in r.readings], ensure_ascii=False),
+            r.knowledge_version.model_dump_json() if r.knowledge_version else None,
+            to_db(now),
+        ),
+    )
+    received = conn.execute(
+        "SELECT received_at FROM case_reports WHERE ship_id = ? AND report_id = ?", (r.ship_id, report_id)
+    ).fetchone()[0]
+    return CaseReportAck(report_id=report_id, received_at=from_db(received))
+
+
+def _to_case_report(row: sqlite3.Row) -> GroundCaseReport:
+    return GroundCaseReport(
+        schema_version=1,
+        report_id=row["report_id"],
+        ship_id=row["ship_id"],
+        astronaut_id=row["astronaut_id"],
+        reported_by=row["reported_by"],
+        sent_by=row["sent_by"],
+        urgency=row["urgency"],
+        protocol_id=row["protocol_id"],
+        action=row["action"],
+        assessed_at=from_db(row["assessed_at"]),
+        created_at=from_db(row["created_at"]),
+        sent_at=from_db(row["sent_at"]),
+        incident_id=row["incident_id"],
+        text=row["text"],
+        readings=json.loads(row["readings_json"]),
+        knowledge_version=json.loads(row["knowledge_version_json"] or "null"),
+        received_at=from_db(row["received_at"]),
+    )
+
+
+def list_case_reports(
+    conn: sqlite3.Connection, astronaut_id: str | None, incident_id: str | None, urgency: str | None
+) -> list[GroundCaseReport]:
+    """Newest received first; each filter applies only when given."""
+    rows = conn.execute(
+        "SELECT * FROM case_reports WHERE (:a IS NULL OR astronaut_id = :a)"
+        " AND (:i IS NULL OR incident_id = :i) AND (:u IS NULL OR urgency = :u)"
+        " ORDER BY received_at DESC, rowid DESC",
+        {"a": astronaut_id, "i": incident_id, "u": urgency},
+    ).fetchall()
+    return [_to_case_report(row) for row in rows]
+
+
+def get_case_report(conn: sqlite3.Connection, report_id: str) -> GroundCaseReport | None:
+    # One ship in the demo: if two ships share an id, the first stored wins.
+    row = conn.execute(
+        "SELECT * FROM case_reports WHERE report_id = ? ORDER BY rowid LIMIT 1", (report_id,)
+    ).fetchone()
+    return _to_case_report(row) if row else None
 
 
 # --- Medical evaluation review (contracts/medical-eval section 4) ---------------------------

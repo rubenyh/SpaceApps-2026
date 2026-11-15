@@ -1,85 +1,65 @@
 ---
 name: Biomedical console
-description: Onboard astronaut health console: navy instrument panel, NASA band and rule, state that never relies on color alone.
+description: Onboard astronaut health console in the ground console's split-flap identity: steel and flap surfaces, Barlow Condensed, red and amber states that never rely on colour alone.
 colors:
-  bg: "#0A1020"
-  surface: "#111A2E"
-  surface-2: "#17223A"
-  border: "#2A3854"
-  rule: "#1F2B44"
-  brand: "#0B3D91"
-  brand-rule: "#C8301A"
-  on-signal: "#FFFFFF"
-  text: "#F1F4F9"
-  text-muted: "#A7B2C6"
-  text-faint: "#8592AA"
-  accent: "#6EA2FF"
-  state-alert: "#FF6A4D"
-  state-alert-fill: "#C8301A"
-  state-alert-tint: "rgba(255, 106, 77, 0.08)"
-  state-normal: "#3DD68C"
-  state-stale: "#F5B841"
-  state-nodata: "#8592AA"
-  state-norange: "#8AB4FF"
+  steel: "#15171a"
+  flap: "#0b0b0d"
+  housing: "#1c1e22"
+  frame: "#2a2d31"
+  steel-mid: "#5b5e63"
+  label: "#a7aaaf"
+  letter: "#f2f2f2"
+  amber: "#ffb000"
+  red: "#c8452f"
+  on-red: "#ffffff"
+  range-zone: "rgb(242 242 242 / 0.06)"
 typography:
-  display-lg:
-    fontFamily: "IBM Plex Sans, Helvetica Neue, Arial, system-ui, sans-serif"
-    fontSize: "72px"
-    fontWeight: 500
-    lineHeight: 1
-    letterSpacing: "-0.02em"
-    fontFeature: "tnum"
-  display:
-    fontFamily: "IBM Plex Sans, Helvetica Neue, Arial, system-ui, sans-serif"
-    fontSize: "56px"
-    fontWeight: 500
-    lineHeight: 1
-    letterSpacing: "-0.02em"
+  data:
+    fontFamily: "Barlow Condensed, sans-serif"
+    fontSize: "26px"
+    fontWeight: 600
+    lineHeight: 1.15
+    letterSpacing: "0.04em"
     fontFeature: "tnum"
   headline-lg:
-    fontFamily: "IBM Plex Sans, Helvetica Neue, Arial, system-ui, sans-serif"
+    fontFamily: "Barlow Condensed, sans-serif"
     fontSize: "28px"
-    fontWeight: 600
+    fontWeight: 700
+    letterSpacing: "0.08em"
   headline:
-    fontFamily: "IBM Plex Sans, Helvetica Neue, Arial, system-ui, sans-serif"
+    fontFamily: "Barlow Condensed, sans-serif"
     fontSize: "22px"
-    fontWeight: 600
+    fontWeight: 700
+    letterSpacing: "0.04em"
   title:
-    fontFamily: "IBM Plex Sans, Helvetica Neue, Arial, system-ui, sans-serif"
-    fontSize: "19px"
-    fontWeight: 600
-  body-lg:
-    fontFamily: "IBM Plex Sans, Helvetica Neue, Arial, system-ui, sans-serif"
+    fontFamily: "Barlow Condensed, sans-serif"
+    fontSize: "18px"
+    fontWeight: 700
+    letterSpacing: "0.12em"
+  nav:
+    fontFamily: "Barlow Condensed, sans-serif"
     fontSize: "16px"
-    fontWeight: 400
-    lineHeight: 1.55
+    fontWeight: 600
+    letterSpacing: "0.1em"
   body:
-    fontFamily: "IBM Plex Sans, Helvetica Neue, Arial, system-ui, sans-serif"
-    fontSize: "15px"
-    fontWeight: 400
-    lineHeight: 1.4
+    fontFamily: "Barlow Condensed, sans-serif"
+    fontSize: "17px"
+    fontWeight: 500
+    lineHeight: 1.35
+    fontFeature: "tnum"
   label:
-    fontFamily: "IBM Plex Sans, Helvetica Neue, Arial, system-ui, sans-serif"
+    fontFamily: "Barlow Condensed, sans-serif"
+    fontSize: "15px"
+    fontWeight: 700
+    letterSpacing: "0.1em"
+  caption:
+    fontFamily: "Barlow Condensed, sans-serif"
     fontSize: "14px"
     fontWeight: 600
     letterSpacing: "0.08em"
-  caption:
-    fontFamily: "IBM Plex Sans, Helvetica Neue, Arial, system-ui, sans-serif"
-    fontSize: "14px"
-    fontWeight: 400
-  mono-unit:
-    fontFamily: "IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace"
-    fontSize: "18px"
-    fontWeight: 400
-  mono:
-    fontFamily: "IBM Plex Mono, ui-monospace, Menlo, Consolas, monospace"
-    fontSize: "14px"
-    fontWeight: 400
     fontFeature: "tnum"
 rounded:
   sm: "2px"
-  md: "3px"
-  lg: "4px"
 spacing:
   "1": "4px"
   "2": "8px"
@@ -90,89 +70,109 @@ spacing:
   "8": "32px"
   "10": "40px"
 components:
-  header:
-    backgroundColor: "{colors.brand}"
-    textColor: "{colors.on-signal}"
-    height: "60px"
-    padding: "0 24px"
-  tab:
-    textColor: "{colors.text-muted}"
-    typography: "{typography.body-lg}"
-    height: "52px"
-    padding: "0 20px"
-  tab-active:
-    textColor: "{colors.text}"
-    height: "52px"
-    padding: "0 20px"
-  button-primary:
-    backgroundColor: "{colors.accent}"
-    textColor: "{colors.bg}"
-    rounded: "{rounded.md}"
+  sidebar:
+    backgroundColor: "{colors.steel}"
+    textColor: "{colors.letter}"
+    width: "208px"
+  nav-item:
+    textColor: "{colors.label}"
+    typography: "{typography.nav}"
     height: "44px"
-    padding: "0 18px"
+    padding: "0 20px"
+  nav-item-active:
+    textColor: "{colors.letter}"
+    typography: "{typography.nav}"
+    height: "44px"
+    padding: "0 20px"
+  topbar:
+    backgroundColor: "{colors.steel}"
+    textColor: "{colors.letter}"
+    typography: "{typography.title}"
+    height: "56px"
+    padding: "0 24px"
+  button:
+    backgroundColor: "{colors.flap}"
+    textColor: "{colors.letter}"
+    typography: "{typography.label}"
+    rounded: "{rounded.sm}"
+    height: "44px"
+    padding: "0 16px"
   button-ghost:
     backgroundColor: "transparent"
-    textColor: "{colors.text}"
-    rounded: "{rounded.md}"
+    textColor: "{colors.letter}"
+    typography: "{typography.label}"
+    rounded: "{rounded.sm}"
     height: "44px"
-    padding: "0 18px"
+    padding: "0 16px"
   button-on-alert:
-    backgroundColor: "{colors.on-signal}"
-    textColor: "{colors.state-alert-fill}"
-    rounded: "{rounded.md}"
+    backgroundColor: "{colors.letter}"
+    textColor: "{colors.flap}"
+    typography: "{typography.label}"
+    rounded: "{rounded.sm}"
     height: "44px"
-    padding: "0 18px"
-  pill-alert:
-    backgroundColor: "{colors.state-alert-fill}"
-    textColor: "{colors.on-signal}"
+    padding: "0 16px"
+  chip-alert:
+    backgroundColor: "{colors.red}"
+    textColor: "{colors.on-red}"
     typography: "{typography.caption}"
     rounded: "{rounded.sm}"
-    padding: "4px 11px 4px 9px"
-  pill-normal:
-    backgroundColor: "transparent"
-    textColor: "{colors.state-normal}"
+    padding: "2px 8px"
+  chip-stale:
+    backgroundColor: "{colors.amber}"
+    textColor: "{colors.flap}"
+    typography: "{typography.caption}"
     rounded: "{rounded.sm}"
-    padding: "4px 11px 4px 9px"
-  pill-stale:
+    padding: "2px 8px"
+  chip-muted:
     backgroundColor: "transparent"
-    textColor: "{colors.state-stale}"
+    textColor: "{colors.label}"
+    typography: "{typography.caption}"
     rounded: "{rounded.sm}"
-    padding: "4px 11px 4px 9px"
+    padding: "2px 8px"
   card:
-    backgroundColor: "{colors.surface}"
-    rounded: "{rounded.lg}"
-    padding: "16px 18px"
-  card-alert:
-    backgroundColor: "{colors.state-alert-tint}"
-    rounded: "{rounded.lg}"
-    padding: "16px 18px"
-  banner-alert:
-    backgroundColor: "{colors.state-alert-fill}"
-    textColor: "{colors.on-signal}"
-    rounded: "{rounded.lg}"
-    padding: "12px 18px 12px 20px"
-  panel:
-    backgroundColor: "{colors.surface}"
-    rounded: "{rounded.lg}"
-    padding: "16px 18px"
+    backgroundColor: "{colors.flap}"
+    textColor: "{colors.letter}"
+    rounded: "{rounded.sm}"
+    padding: "16px"
   panel-heading:
-    textColor: "{colors.text-muted}"
+    textColor: "{colors.letter}"
     typography: "{typography.label}"
-    height: "52px"
+    height: "48px"
+  flap-plate:
+    backgroundColor: "{colors.steel}"
+    textColor: "{colors.letter}"
+    typography: "{typography.data}"
+    rounded: "{rounded.sm}"
+  banner-alert:
+    backgroundColor: "{colors.red}"
+    textColor: "{colors.on-red}"
+    rounded: "{rounded.sm}"
+    padding: "12px 16px"
+  banner-stale:
+    backgroundColor: "{colors.amber}"
+    textColor: "{colors.flap}"
+    rounded: "{rounded.sm}"
+    padding: "12px 16px"
   input-chat:
-    backgroundColor: "{colors.bg}"
-    textColor: "{colors.text}"
-    typography: "{typography.body-lg}"
-    rounded: "{rounded.md}"
+    backgroundColor: "{colors.flap}"
+    textColor: "{colors.letter}"
+    rounded: "{rounded.sm}"
     height: "46px"
     padding: "0 14px"
+  select:
+    backgroundColor: "{colors.flap}"
+    textColor: "{colors.letter}"
+    rounded: "{rounded.sm}"
+    height: "44px"
+    padding: "0 40px 0 12px"
   segmented-button:
-    textColor: "{colors.text-muted}"
-    typography: "{typography.caption}"
+    backgroundColor: "{colors.flap}"
+    textColor: "{colors.label}"
     height: "42px"
     padding: "0 14px"
   segmented-button-active:
-    textColor: "{colors.text}"
+    backgroundColor: "{colors.flap}"
+    textColor: "{colors.letter}"
     height: "42px"
     padding: "0 14px"
 ---
@@ -181,156 +181,161 @@ components:
 
 ## Overview
 
-**Creative North Star: "The Flight Instrument Panel"**
+**Creative North Star: "The Departure Board"**
 
-The console reads like a medical instrument bolted into a spacecraft rack: a navy panel under a NASA-blue band with a red rule, readings set large in tabular figures, and every number standing on a hairline scale. It is a dark, dense, glanceable surface for a 1280×800 window (minimum 1024×700). Nothing floats; depth comes from three navy steps and 1px rules, and the only loud color on a calm screen is the state of a reading.
+The console shares one identity with the ground console (`apps/base-app`): a dark steel board where readings arrive on split-flap plates. It is laid out as a calm operations dashboard for a 1280×800 window (minimum 1024×700): a steel sidebar with the brand and seven navigation items, a 56px top bar, and a scrolling screen of flat flap-black cards. Nothing floats and nothing glows. Structure comes from 1px frame lines and a steel/flap/housing tonal step.
 
-State is the system's grammar. Each reading state owns a color, a drawn icon, a text label and a border pattern, and all three channels travel together, so an astronaut can tell "alert" from "old data" from "no range" in grayscale. Charts behave like instruments, not infographics: round ticks, a faint normal zone with its edge values printed in the margin, a near-white trace that turns red only where it leaves the zone, and a mono readout of the last value.
+A healthy screen is monochrome: letter white on black, labels in grey. Colour is reserved for trouble. Red means out of bounds, amber means old data, and grey outline means no data or no range. Every state also carries a drawn icon and a text label, so the screen reads in grayscale. The split flap is the one expressive device, and it is spent only on key reading values.
 
-The identity is fixed: the blue band (#0B3D91) and red rule (#C8301A) carry the mission brand; IBM Plex Sans and Plex Mono carry the voice; corners stay tight (4/3/2px).
+Everything is set in Barlow Condensed (500/600/700) with tabular figures, including measures, ages, axes and clocks. Labels, navigation, buttons and headings are uppercase and tracked. Corners are a uniform 2px.
 
 **Key Characteristics:**
-- NASA-blue header band with a 3px red rule; navy surfaces below.
-- State shown by icon + text + border pattern, never by color alone.
-- Large tabular reading values in Plex Sans; units, ages, axes and clocks in Plex Mono.
-- Tight radii (4px containers, 3px controls, 2px tags) and 1px hairlines.
-- Flat: no drop shadows; tonal steps and rules give structure.
-- Instrument-style line charts and range tracks.
+- Sidebar navigation (208px) plus a 56px top bar; no header band, no footer.
+- Steel page, flap-black cards, 1px frame lines, 2px corners, no shadows.
+- Barlow Condensed only, tabular figures everywhere, uppercase tracked labels.
+- Normal is plain letter white; red, amber and grey only for states, always with icon and text.
+- Split-flap plates on key reading values only.
+- Instrument-style line charts and range tracks in the same monochrome grammar.
 
 ## Colors
 
-A deep navy field with one brand band, one interactive blue, and five reserved state colors.
+A near-black steel board with one white letter colour, one grey label colour, and two signal colours that appear only when something is wrong.
 
 ### Primary
-- **Mission Blue** (brand): the 60px header band only. Text on it is white; its controls use white-mixed outlines (white 45% into the band).
-- **Mission Red Rule** (brand-rule): the 3px rule under the header band and the orbit stroke of the brand mark. Same hex as the alert fill: red belongs to the mission mark and to alerts, nowhere else.
+- **Letter White** (letter): primary text, reading values, chart trace, range needle, active nav item and its inset bar, focus ring, selection fill, caret. Normal state uses this colour; there is no "normal" hue.
 
 ### Secondary
-- **Instrument Blue** (accent): the one interactive color. Active tab underline, primary buttons, focus ring (2px outline, 2px offset), links, the clarification frame in the assistant, text selection (38% mix), caret.
+- **Signal Red** (red): out-of-bounds readings and failed services only. As a fill it carries white text (alert chip, attention banner, offline chip, immediate triage). As a foreground it is used only at large size: flap letters, 1px alert card border, chart trace outside the zone, alert markers and icons.
+- **Old-Data Amber** (amber): stale data. As a fill it carries flap-black text (stale chip, stale banner); as a foreground it marks the stale age line, the dashed stale needle and the stale chart end marker.
 
 ### Neutral
-- **Deep Space Navy** (bg): window background and inset fields (chat input, selects in the assistant).
-- **Panel Navy** (surface): cards, panels, tab bar, footer, table.
-- **Raised Navy** (surface-2): table header, chat bubbles, triage blocks, skeletons, body-map figure.
-- **Frame Line** (border): 1px borders of cards, panels, inputs, segmented controls; range rail.
-- **Hairline** (rule): grid lines, panel-head dividers, table row rules, stat underlines.
-- **Panel White** (text): primary text, chart trace, last-value label.
-- **Muted Label** (text-muted): secondary text, units, panel headings, captions.
-- **Faint Label** (text-faint): axis ticks, range-track end values, timestamps, disabled tabs.
-- **Signal White** (on-signal): text on the blue band and on the alert fill.
-
-### State
-- **Alert Coral** (state-alert): alert text, 2px solid alert border, chart trace outside the zone, alert markers. **Alert Fill** (state-alert-fill) carries white text on alert pills, the attention banner and immediate triage. **Alert Wash** (state-alert-tint) is the background of an alert card.
-- **Normal Green** (state-normal): normal pills (1.5px outline), the chart zone tint (5%) and edges (60%), the range-track bracket (10% fill).
-- **Old-Data Amber** (state-stale): dashed borders and text for stale readings.
-- **No-Data Gray** (state-nodata): dotted borders; the same value as Faint Label, by design: missing data looks absent.
-- **No-Range Sky** (state-norange): 3px double borders and the diamond marker.
+- **Steel** (steel): page, sidebar, top bar, and the plate behind split-flap letters.
+- **Flap Black** (flap): cards, panels, buttons, inputs, selects, segmented control, text on amber and on the white on-alert button.
+- **Housing** (housing): inset blocks inside cards: chat bubbles, table heads, triage blocks.
+- **Frame** (frame): every 1px card, panel and banner border, hairline dividers, chart grid, range rail, scrollbar thumb.
+- **Steel Mid** (steel-mid): control borders (buttons, selects, segmented control, PROV. tag), chart axis, dashed chart zone edges, range-track end ticks, button pressed state.
+- **Label Grey** (label): secondary text, units, ages, captions, inactive nav items, axis ticks, no-data and no-range chips and icons, dimmed stale and no-data values.
+- **White On Red** (on-red): text on the red fill only.
+- **Range Zone** (range-zone): the 6% white fill of the normal span on charts and range tracks.
 
 ### Named Rules
-**The Three-Channel State Rule.** Every reading state is shown by icon + text + border pattern: alert 2px solid coral, old data 2px dashed amber, no data 2px dotted gray, no range 3px double sky, doubtful sample 2px solid muted. Color is the fourth channel, never the only one.
+**The Plain Normal Rule.** A reading in range is letter white on flap black. Never tint normal green or any other hue; a calm screen has no colour.
 
-**The Red Means Out Rule.** Red appears only for the mission rule and for readings or services that are out of bounds. A healthy screen has no red below the header.
+**The Red Means Out Rule.** Red appears only for readings or services that are out of bounds. Small red text never sits on black: below flap size it goes on a red fill with white text.
+
+**The Two-Channel State Rule.** Every reading state is shown by a drawn icon and a text label (ALERT, OLD DATA, NO DATA, NO RANGE). Colour is an extra channel, never the only one.
 
 ## Typography
 
-**Display Font:** IBM Plex Sans (with Helvetica Neue, Arial, system-ui)
-**Body Font:** IBM Plex Sans
-**Label/Mono Font:** IBM Plex Mono (with ui-monospace, Menlo, Consolas)
+**Display Font:** Barlow Condensed (with sans-serif)
+**Body Font:** Barlow Condensed
+**Label/Mono Font:** Barlow Condensed with tabular figures (no separate mono face)
 
-**Character:** Plex Sans is the engineered, slightly technical voice of the panel; Plex Mono marks anything that is measured or timed. Bundled weights: Sans 400/500/600, Mono 400/500; 600 is the heaviest weight.
+**Character:** A narrow, engineered display face that reads like the lettering on a station board. Bundled weights 500/600/700 via @fontsource; 500 is the body weight, 700 the heaviest. `SpO<sub>2</sub>` is written with a `<sub>` because the face lacks the ₂ glyph.
 
 ### Hierarchy
-- **Display** (500, 56px, line-height 1, -0.02em, tabular): the current value in a reading card. 72px on Vital signs; 44px in small cards.
-- **Headline** (600, 22px): attention-banner title. 28px for empty-state titles.
-- **Title** (600, 19px): card titles (sensor name).
-- **Body** (400, 15px, 1.4): default text. 16px (1.55) for tabs, chat and empty-state copy.
-- **Label** (600, 14px, 0.08em, uppercase): panel headings only, in muted text above a hairline.
-- **Caption** (400, 14px): organ names, notes, sources, footer legend.
-- **Mono** (400, 14px, tabular): ages ("2 s ago"), timestamps, axis ticks, track end values, UTC clock. Units sit in Mono 18px muted beside the value; stats in Mono 500 22px.
+- **Data** (600, 26px, 36px from 1200px, line-height 1.15, 0.04em, tabular): reading values on flap plates in cards.
+- **Headline Large** (700, 28px, 0.08em, uppercase): whole-screen empty-state titles.
+- **Headline** (700, 22px, 0.04em, uppercase): attention-banner title. Stats use 600 22px.
+- **Title** (700, 18px, 0.12em, uppercase): top-bar screen title. Brand is 700 20px 0.08em uppercase; card titles 700 16px 0.1em uppercase.
+- **Nav** (600, 16px, 0.1em, uppercase): sidebar navigation items.
+- **Body** (500, 17px, line-height 1.35; 1.45 for chat and paragraphs): default text, chat, selects. 16px for secondary body.
+- **Label** (700, 15px, 0.08–0.1em, uppercase): panel headings, buttons, segmented buttons, top-bar crew and clock (600).
+- **Caption** (600, 14px, 0.06–0.08em): chips, ages, stat labels, axis ticks, notes. Uppercase on chips, ages and stat labels.
 
 ### Named Rules
-**The Mono Measures Rule.** If it was measured or timed (unit, age, axis, clock, raw dimension), set it in Plex Mono with tabular figures. The headline reading value stays in Plex Sans 500 tabular.
-
 **The 14px Floor Rule.** No text below 14px, including chart ticks and SVG labels.
+
+**The Tracked Label Rule.** Anything that names rather than says (nav, headings, buttons, chips, ages, stat labels) is uppercase with 0.04–0.12em tracking at 600–700. Sentences stay sentence case.
+
+**The Tabular Board Rule.** Every number is tabular (`font-variant-numeric: tabular-nums` on body), so values never jitter as they change.
 
 ## Layout
 
-Fixed window frame: 60px header band, 52px tab bar, scrolling main area with 20px padding, 40px footer carrying the state legend. Spacing is a 4px scale (4, 8, 12, 16, 20, 24, 32, 40); the default gap between blocks is 16px, between large grid columns 20px. Cards and panels are inset 16px vertical and 18px horizontal.
+The window is a two-column grid: sidebar (208px; 168px below 1150px) spanning full height, and a right column of a 56px top bar over a scrolling main area with 24px padding. Screens stack blocks with a 24px gap; card grids gap 16px. Spacing is a 4px scale (4, 8, 12, 16, 20, 24, 32, 40). Cards are inset 16px.
 
-Screens are fixed grids sized for 1280px: Status uses 370px side columns around a flexible body map; Muscle a 390px side column; Urine a flexible column plus a column up to 600px; Assistant a flexible chat plus a 330px side panel. Below 1150px (the 1024px minimum window) side columns shrink (300px, 320px, 420px) and the header clock hides. Not designed for mobile. Interactive targets are at least 44px tall.
+Card grids auto-fit where the content is a set of equal readings (Vital signs: `minmax(360px, 1fr)`; Urine cards: `minmax(160px, 1fr)`). Fixed columns hold where a centre object anchors the screen: Status puts 370px reading columns around the body map (248px below 1150px); Muscle uses a 390px side column; Assistant a flexible chat beside a 330px panel. Top-bar connection chips wrap to two lines below 1500px instead of widening the page. Not designed for mobile. Every interactive target is at least 44px tall.
 
 ## Elevation & Depth
 
-Flat. Depth comes from three navy steps (bg, surface, surface-2) and 1px lines (border for frames, rule for interior hairlines). There are no drop shadows. The only box-shadows are inset 1–2px lines used as drawn rules: the 2px underline of the active segmented button and the 1px end ticks of the range-track bracket.
+Flat. Depth comes from three tonal steps (steel page, flap cards, housing insets) and 1px frame lines. There are no drop shadows, glows or gradients. The only box-shadows are inset lines used as drawn marks: the 3px left bar of the active nav item, the 3px underline of the active segmented button, and the 1px steel-mid end ticks of the range-track zone.
 
 ### Named Rules
-**The Flat Instrument Rule.** Surfaces never lift. Emphasis comes from state borders, the alert fill, or a tonal step, never from a shadow or glow.
+**The Flat Board Rule.** Surfaces never lift. Emphasis comes from a red border, a red or amber fill, or a split-flap plate, never from a shadow.
 
 ## Shapes
 
-Tight, near-square corners: 4px on containers (cards, panels, banners, table frame, info boxes), 3px on controls (buttons, inputs, selects, swatches, triage), 2px on tags and small frames (status pills, PROV. tag, segmented control, header controls, chat bubbles). Nothing is pill-shaped or circular except chart end markers and the "normal" icon. Borders are 1px by default; state borders are 2px (3px for the double no-range border). Status icons are drawn 16px SVG shapes: filled triangle with cut-out "!" for alert, circled check, circled clock, circled dash, diamond.
+One corner: 2px on everything (cards, panels, banners, buttons, inputs, selects, chips, flap plates). Nothing is pill-shaped. Borders are 1px; state never changes border width or pattern, only the alert turns the border red. Status icons are drawn 16px SVG shapes (triangle with cut-out "!" for alert, circled clock, circled dash, diamond), with the alert "!" cut out in the colour behind it.
 
 ### Named Rules
-**The Squared Tag Rule.** No radius above 4px anywhere; status tags are squared (2px).
+**The Square Corner Rule.** No radius other than 2px anywhere.
 
 ## Components
 
 ### Buttons
-Compact and decisive.
-- **Shape:** gently squared (3px), 44px tall, 18px side padding, 15px semibold.
-- **Primary:** Instrument Blue fill with Deep Space Navy text.
-- **Ghost:** transparent with a 1px Frame Line border, Panel White text, regular weight.
-- **On alert:** white fill with Alert Fill text, used only inside the attention banner.
-- **Disabled:** 50% opacity. **Focus:** 2px Instrument Blue outline, 2px offset (global).
+Plain board switches.
+- **Shape:** 2px corners, 44px tall, 16px side padding, Label type (700 15px uppercase tracked).
+- **Default:** flap-black fill, 1px steel-mid border, letter text. Hover fills frame; pressed fills steel-mid.
+- **Ghost:** transparent with a 1px frame border.
+- **On alert:** letter-white fill with flap-black text, used only on the red attention banner.
+- **Disabled:** 45% opacity. **Focus:** 2px letter-white outline, 2px offset (global).
 
-### Status Pills
-- **Style:** 14px semibold, 2px corners, icon + label, padding 4px 11px 4px 9px.
-- **States:** alert is filled (Alert Fill, white text, cut-out icon); normal is a 1.5px green outline; old data dashed amber; no data dotted gray with muted text; no range double sky; doubtful sample solid muted.
+### Chips (status pills)
+- **Style:** 14px 700 uppercase, 0.08em, 2px corners, 1px border, icon + label, padding 2px 8px.
+- **States:** alert is red fill with white text; old data is amber fill with flap-black text; no data, no range and doubtful sample are a grey outline with grey text. Normal shows no chip colour. Wellbeing pills follow the same mapping (needs support red fill, attention amber outline, stale amber fill, no data grey).
 
 ### Cards / Containers
-- **Corner Style:** 4px.
-- **Background:** Panel Navy; alert cards take the Alert Wash.
+One pattern for every card, panel, banner and info box.
+- **Corner Style:** 2px.
+- **Background:** flap black.
 - **Shadow Strategy:** none (see Elevation & Depth).
-- **Border:** 1px Frame Line at rest; replaced by the state border pattern.
-- **Internal Padding:** 16px 18px. Stale and no-data cards dim their value to Faint Label.
-- **Panels:** same frame; the head is a 52px row with an uppercase Label heading over a Hairline, inset 18px.
+- **Border:** 1px frame; only the alert state turns it red. Stale and no-data cards dim the value to label grey and show the age in amber or grey.
+- **Internal Padding:** 16px. Panels have a 48px head row with a Label heading over a frame hairline, inset 16px.
+- **Banners:** alert is a red fill with white text and a white on-alert button; stale is an amber fill with dark text; service error is flap black with a red border and red icon.
+
+### Split-Flap Plate (signature)
+The key reading value in a reading card or sensor card sits on a steel plate with a 1px dark hinge line across its middle, in Data type. A changed value cascades character by character in 240ms; the cascade is skipped under reduced motion and for ticking values. Out-of-range values set the flap letters in red (large-text contrast). Loading uses blank flap tiles instead of a pulsing card. Tables, chat, wellbeing and every other text stay plain.
 
 ### Inputs / Fields
-- **Style:** 1px Frame Line, 3px corners, Deep Space Navy fill (chat) or Panel Navy (Records selects), 44–46px tall, 14px side padding.
-- **Focus:** global 2px Instrument Blue outline; caret in Instrument Blue.
+- **Style:** flap-black fill, 1px steel-mid border, 2px corners, 44–46px tall. Selects carry a drawn grey chevron and hover to a grey border.
+- **Focus:** global 2px letter-white outline; caret in letter white.
 
 ### Navigation
-- **Header band:** brand mark + "Biomedical console" (18px semibold), a 1px white-mixed divider, crew selector and connection status in 2px-corner white-mixed outlines, UTC clock in Mono. Offline swaps to a 2px coral border.
-- **Tab bar:** Panel Navy, 52px; tabs 16px muted, active tab Panel White semibold with a 2px Instrument Blue underline; a tab carries a state icon when its readings need attention.
-- **Footer:** the state legend (icon + label for each state) and the PROV. note, 14px muted.
+- **Sidebar:** brand "Biomedical console" (700 20px uppercase) in a 56px cell over a frame line, then seven items: Status, Vital signs, Muscle, Urine, Assistant, Records, Wellbeing. Items are 44px tall, Nav type in label grey; hover and active turn letter white; active adds a 3px inset bar on the left. An item carries a red alert or amber stale icon when its readings need attention (Wellbeing never does). Vertical tablist with arrow-key roving focus; disabled at 60% opacity when no crew member is loaded.
+- **Top bar:** screen title, crew selector, connection chips (1px frame outline; offline becomes the red fill with white text), UTC clock in 600 15px with the time in letter white.
 
 ### Segmented Control
-A 1px-framed strip with hairline separators; buttons 42px plus frame (44px target), 14px muted; active is Panel White semibold on a 9% white wash with a 2px inset underline.
+A 1px steel-mid frame with steel-mid separators; buttons 42px plus frame (44px target), 15px 600 uppercase in label grey; active is letter white with a 3px inset underline.
 
-### Range Track (signature)
-A 2px rail with the normal span bracketed: 1px green end ticks, 10% green fill, 55% green center line. A needle with a cap marks the current value; the cap points down (triangle) on alert, becomes a diamond on no range, and turns dashed faint on old data; no needle on no data. End values in Mono faint; the range text centered between them with its PROV. tag and source.
+### Range Track
+A 2px frame rail with the normal span as a 6% white zone between 1px steel-mid end ticks. A 2px letter-white needle with a cap marks the value; on alert it turns red with a downward triangle cap, on no range a grey diamond cap, on old data a dashed amber needle; no needle on no data.
 
-### Instrument Line Chart (signature)
-Hand-drawn SVG that keeps its CSS size at any width. Y ticks from a round-number scale (1, 2, 2.5, 5 × 10ⁿ), never past a physical cap (SpO₂ 100%); X ticks in UTC (times under two days, dates beyond). Grid in Hairline, axis in Faint Label, ticks Mono 14px. The normal zone is a 5% green tint with 60% green edge lines; edge values are printed in green in the right margin. The trace is Panel White at 1.5px and is drawn in Alert Coral only where it sits outside the zone. The line breaks at gaps (more than 3× the median interval) instead of bridging missing data. The last value is a Mono 500 label in the right margin with a faint leader, moved off the zone edge labels; the end marker repeats the state shape (circle, triangle, diamond, dashed hollow circle for old data). Optional: 3px square points for sparse series, a dotted baseline.
+### Instrument Line Chart
+Hand-drawn SVG. Grid in frame, axis in steel-mid, ticks 14px 600 in label grey from a round-number scale. The normal zone is a 6% white fill with dashed steel-mid edges and its edge values in the margin. The trace is letter white at 2px and turns red only where it leaves the zone. The line breaks at gaps (more than 3× the median interval) instead of bridging missing data. The last value is a 14px 600 letter-white label with a grey leader; the end marker repeats the state (red on alert, grey on no data or no range, dashed amber hollow on old data).
 
 ### Named Rules
-**The Instrument Chart Rule.** Charts read like gauges: round ticks, zone edges labelled in the margin, one near-white trace, red only outside the zone, gaps left as gaps, the last value in Mono.
+**The Flap Is For Readings Rule.** Split-flap plates hold key reading values and their loading skeleton, nothing else.
+
+**The Instrument Chart Rule.** Charts read like gauges: round ticks, zone edges in the margin, one white trace, red only outside the zone, gaps left as gaps.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** pair every state color with its drawn icon, its text label and its border pattern (Three-Channel State Rule).
-- **Do** set units, ages, axes and clocks in Plex Mono with tabular figures, and keep all text at 14px or above.
-- **Do** keep corners at 4px (containers), 3px (controls), 2px (tags).
-- **Do** build depth from bg / surface / surface-2 and 1px border or rule lines.
-- **Do** draw new charts with the instrument grammar: niceScale ticks, 5% zone tint with edge values in the margin, 1.5px near-white trace that turns coral only outside the zone, breaks at gaps, Mono last-value label.
-- **Do** keep the blue band and red rule as the only brand surface, in the header.
-- **Do** keep interactive targets at least 44px tall.
+- **Do** pair every state colour with its drawn icon and its text label (Two-Channel State Rule).
+- **Do** keep normal readings letter white (#f2f2f2) on flap black (#0b0b0d).
+- **Do** put small red or amber state text on a filled chip: red fill with white text, amber fill with dark text.
+- **Do** build every card, panel and banner from the one pattern: flap fill, 1px frame border, 2px corners, no shadow; only alert turns the border red.
+- **Do** set all text in Barlow Condensed with tabular figures, keep it at 14px or above, and uppercase-track labels, nav, headings, buttons and chips.
+- **Do** keep interactive targets at least 44px tall and the 2px letter-white focus outline visible.
+- **Do** honour `prefers-reduced-motion`: no alert pulse and no flap cascade.
+- **Do** draw new charts with the instrument grammar: round ticks, 6% zone with dashed edges, 2px white trace that turns red only outside the zone, breaks at gaps.
 
 ### Don't:
-- **Don't** convey a state by color alone, or tint a normal reading anything but green.
-- **Don't** use red for decoration, emphasis or brand fills outside the header rule; red means out of bounds.
+- **Don't** convey a state by colour alone, and don't tint a normal reading green or any hue.
+- **Don't** use red or amber for decoration, emphasis, brand or navigation.
 - **Don't** add drop shadows, glows or gradients for elevation.
-- **Don't** round corners past 4px or make status tags pill-shaped.
+- **Don't** use any corner radius other than 2px, or pill-shaped tags.
+- **Don't** put split-flap plates on anything other than key reading values.
+- **Don't** vary border style or width by state (no dashed, dotted or double borders on cards).
 - **Don't** bridge missing data in a chart or show an old value as if it were current; dim it and mark it.
 - **Don't** use text glyphs (arrows, ×) as icons; draw them as SVG like the state icons.

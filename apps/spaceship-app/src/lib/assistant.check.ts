@@ -1,5 +1,5 @@
 // Self-check for lib/assistant.ts. Run: node src/lib/assistant.check.ts
-import { buildRequest, explanation, mergeSymptoms } from "./assistant.ts";
+import { TRANSMISSION_LABELS, assessmentOf, buildRequest, explanation, isNearBottom, mergeSymptoms } from "./assistant.ts";
 
 function eq(actual: unknown, expected: unknown, what: string): void {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
@@ -36,5 +36,21 @@ eq(buildRequest({ message: "x".repeat(3999) }, "abc", null, null, []).message.le
 eq(explanation({ reply: "Act.\n\nWhy it matters.", action: "Act.", clarifying_question: null }), "Why it matters.", "drop action");
 eq(explanation({ reply: "¿Qué sientes?", action: null, clarifying_question: "¿Qué sientes?" }), "", "drop question");
 eq(explanation({ reply: "Card text.\n\n¿Desde cuándo?", action: "Other.", clarifying_question: "¿Desde cuándo?" }), "Card text.", "keep card text");
+
+// Card head: the server summary wins; older servers fall back to urgency + action.
+const summary = { urgency: "review_required" as const, urgency_label: "Review required", reported: "Dizziness reported", action: "Limit movement and monitor", escalation: ["x"] };
+eq(assessmentOf({ assessment: summary, urgency: "immediate", action: "other" }), summary, "server summary");
+eq(
+  assessmentOf({ urgency: "immediate", action: "Call crew" }),
+  { urgency: "immediate", urgency_label: "Emergency: act now", reported: "", action: "Call crew", escalation: [] },
+  "fallback summary",
+);
+eq(assessmentOf({ assessment: null, urgency: null, action: null }), null, "no card");
+
+eq([TRANSMISSION_LABELS.draft, TRANSMISSION_LABELS.received, TRANSMISSION_LABELS.failed], ["Draft", "Received by base", "Failed"], "transmission labels");
+
+eq(isNearBottom(920, 1500, 500), true, "near bottom");
+eq(isNearBottom(900, 1500, 500), false, "far from bottom");
+eq(isNearBottom(0, 400, 500), true, "short log");
 
 console.log("assistant.check: ok");

@@ -6,6 +6,8 @@ Demo en Mexicali, zona de misión `America/Tijuana`. Todo en PowerShell, desde l
 
 Lo que se ve en vivo es real (la bitácora de hoy de ast-01); el historial de 21 días es **simulado**, y se dice abiertamente.
 
+La tripulación es ficticia: Elena Ruiz (ast-01), Marco Tanaka (ast-02), Sofía Mendel (ast-03) y Daniel Okafor (ast-04). Sus historias y qué decir de cada una: [wellbeing/demo-crew.md](wellbeing/demo-crew.md).
+
 ## 1. Preparación
 
 Hay dos caminos, y los dos dan el mismo resultado con la zona de Mexicali:
@@ -42,7 +44,7 @@ cd services\onboard-api
 uv run python scripts/demo_reset.py --tz America/Tijuana
 ```
 
-Respalda `data\wellbeing.db` en `data\backups\`. Carga el historial SIMULADO (semilla 7) y el export de ejemplo del Watch para ast-01, y termina con esta tabla, que debe salir así:
+Respalda `data\wellbeing.db` en `data\backups\`. Registra a los 4 con sus nombres; si alguno ya existía con otro nombre (por ejemplo, del simulador de sensores), lo renombra con `PATCH /astronauts/{id}` e imprime `Nombres cambiados: ...`. Carga el historial SIMULADO (semilla 7) y el export de ejemplo del Watch para ast-01, y termina con esta tabla, que debe salir así:
 
 ```
 ast-01     ok               -           no            -
@@ -80,6 +82,35 @@ uv run wellbeing-vision models
 ```
 
 La bitácora en vivo se graba durante la demo (paso 2.4).
+
+**Registrar a la tripulación** (una vez, antes de la demo, en la Terminal 3)
+
+Las plantillas de cara se quedan en `services\wellbeing-vision\data\faces\` (local, nunca se envían ni se suben a git). Regístralas con la **cámara, la distancia y la luz de la demo**:
+
+- Una sola persona en cuadro, sentada donde va a estar en la demo.
+- `--samples 30`, girando la cabeza despacio (izquierda, derecha, arriba, abajo) mientras se llena la barra.
+- La cámara del teléfono (cam 1) llega en espejo: lleva `--flip 1` en **todos** los comandos.
+
+```powershell
+uv run wellbeing-vision enroll --astronaut ast-01 --camera 1 --flip 1 --samples 30
+uv run wellbeing-vision enroll --astronaut ast-02 --camera 1 --flip 1 --samples 30
+uv run wellbeing-vision enroll --astronaut ast-03 --camera 0 --samples 30
+```
+
+Sin `--append`, registrar **reemplaza** las plantillas de esa persona. Si alguien va a salir en las dos cámaras, regístralo después en la otra con `--append`, que suma plantillas:
+
+```powershell
+uv run wellbeing-vision enroll --astronaut ast-01 --camera 0 --samples 30 --append
+```
+
+Si la cara nueva coincide con otro astronauta (o, con `--append`, no coincide con las plantillas que ya tiene), pregunta antes de guardar. Contesta `n` y revisa quién está frente a la cámara.
+
+Comprueba cada cámara con `identify` (no envía nada; `q` termina e imprime `Recognized: ...`). Cada quien debe salir con su nombre, no como `unknown-N`. En la prueba del 15 de noviembre salieron 0.85 a 0.95 a 1280x720:
+
+```powershell
+uv run wellbeing-vision identify --camera 1 --flip 1
+uv run wellbeing-vision identify --camera 0
+```
 
 **Terminal 4 (opcional): consola**
 
@@ -135,11 +166,13 @@ Mensaje: su checklist dice "estoy bien", pero las señales pasivas (cámara, fis
 
 ### 2.4 ast-01: bitácora EN VIVO
 
-En la **Terminal 3**, frente a la cámara a ~50 cm, con buena luz:
+En la **Terminal 3**, frente a la cámara a ~50 cm, con buena luz. Con la cámara del teléfono:
 
 ```powershell
-uv run wellbeing-vision bitacora --astronaut ast-01 --seconds 60
+uv run wellbeing-vision bitacora --astronaut ast-01 --camera 1 --flip 1 --seconds 60
 ```
+
+Con la cámara de la laptop, quita `--camera 1 --flip 1`.
 
 Los primeros 3 s son el neutral del día: hay que mirar a la cámara sin hablar. `q` o `Esc` terminan antes.
 
@@ -153,7 +186,26 @@ $w | Format-List level, latest_origin, live_days, simulated_days, mixed_days
 
 Mensaje: la bitácora de hoy se compara contra su línea base, con z cerca de 0 en reposo. Si actúas cansancio o tensión (ojos entrecerrados, ceño fruncido), suben PERCLOS y el pico de ceño. Un solo día **no** genera alerta.
 
-### 2.5 Envío al psicólogo en Tierra (consentimiento)
+### 2.5 Modo ambiente EN VIVO
+
+En la **Terminal 3**, cada cámara es un módulo (cam 0 = `modulo-a`, cam 1 = `modulo-b`):
+
+```powershell
+uv run wellbeing-vision ambiente --cameras 0 1 --flip 1 --window 60
+```
+
+Déjalo correr al menos un minuto. Cada ventana de 60 s envía, por módulo, quién estuvo y con quién (co-presencia) y una sesión de movimiento por persona (con 10 s o más de pose). `q` termina; una ventana cortada se envía si duró 10 s o más. Si las dos cámaras ven la misma zona, agrega `--overlap`: si no, la misma persona sale en las dos como "seen from …" y aparecen traslados entre módulos.
+
+Consola: actividad y vida social de ast-01 marcadas LIVE.
+
+```powershell
+$w = Invoke-RestMethod "$B/astronauts/ast-01/wellbeing"
+($w.indicators | Where-Object kind -in "activation","social").components | Format-Table component, latest_value, latest_origin
+```
+
+Mensaje: las cámaras de ambiente no guardan video, sólo números: tiempo acompañado, distancia y movimiento. `social.accompanied_minutes` sale LIVE cuando dos astronautas reconocidos comparten módulo.
+
+### 2.6 Envío al psicólogo en Tierra (consentimiento)
 
 ```powershell
 $today = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date), "Pacific Standard Time").ToString("yyyy-MM-dd")
@@ -246,6 +298,83 @@ Después levanta la API. `demo_reset.py` hace un respaldo cada vez que corre, as
 - [ ] `demo_reset.py --tz America/Tijuana` corrido hoy, y su tabla con los 4 casos como en la sección 1.
 - [ ] Prueba de cámara sin enviar nada: `uv run wellbeing-vision bitacora --astronaut ast-01 --seconds 10 --dry-run`. Se abre la vista, la cara se detecta y pasa el neutral.
 - [ ] Luz frontal, cámara a ~50 cm, fondo tranquilo, notificaciones de Windows apagadas, cargador conectado.
+- [ ] Tripulación registrada con la cámara de la demo, e `identify` en cada cámara da el nombre correcto (sección 1).
+- [ ] Si visión corre en otra laptop: la de visión imprime `API OK` con la IP de la API y la diferencia de reloj está entre -5 y 5 s (sección 5).
+- [ ] Prueba de ambiente sin enviar nada: `uv run wellbeing-vision ambiente --cameras 0 1 --flip 1 --seconds 30 --dry-run`. Al cerrar debe decir 10 FPS o más por cámara.
 - [ ] Consola abierta y conectada a la API (o, si no está la pestaña, esta guía abierta en el paso 2.1).
 - [ ] Plan B a mano: hay respaldos en `services\onboard-api\data\backups\` (los crea `demo_reset.py`) y esta guía abierta en la sección 3.
 - [ ] Frase lista: "el historial es simulado; la bitácora de hoy es real; el sistema no diagnostica, apoya".
+
+## 5. Visión en otra laptop
+
+Para la demo, visión corre en la laptop de Hiram (cámaras y caras registradas ahí) y la API y la consola corren en la de Rubén. Las dos laptops tienen que estar en la misma red. Las caras registradas no salen de la laptop de visión: por la red sólo viajan los números.
+
+**En la laptop de la API (Rubén)**
+
+1. Levanta la API escuchando en la red, no sólo en `127.0.0.1`:
+
+   ```powershell
+   cd services\onboard-api
+   $env:WELLBEING_MISSION_TZ = "America/Tijuana"
+   $env:ONBOARD_TELEMETRY_ENABLED = "false"
+   uv run fastapi dev --host 0.0.0.0
+   ```
+
+   Con Docker: `$env:ONBOARD_API_HOST = "0.0.0.0"` antes de `.\run.ps1` (por defecto el compose sólo publica en `127.0.0.1`).
+
+2. Abre el puerto 8000 sólo en redes privadas. Hazlo una vez, en PowerShell **como administrador**:
+
+   ```powershell
+   New-NetFirewallRule -DisplayName "onboard-api 8000 (demo)" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow -Profile Private
+   Get-NetConnectionProfile | Select-Object InterfaceAlias, Name, NetworkCategory
+   ```
+
+   Si al levantar la API Windows pregunta si permite Python, acepta para redes privadas. Si alguna vez se canceló ese aviso, quedó una regla que **bloquea** `python.exe`, y esa gana sobre la que permite el puerto. Bórrala en *Firewall de Windows Defender → Configuración avanzada → Reglas de entrada*: es la de Python con acción *Bloquear*.
+
+   Si la red sale como `Public`, la regla no aplica. Cámbiala con `Set-NetConnectionProfile -InterfaceAlias "Wi-Fi" -NetworkCategory Private` (como administrador). Después de la demo, quita la regla con `Remove-NetFirewallRule -DisplayName "onboard-api 8000 (demo)"`.
+
+3. Saca la IP de esa laptop:
+
+   ```powershell
+   (Get-NetIPConfiguration | Where-Object IPv4DefaultGateway).IPv4Address.IPAddress
+   ```
+
+   Si sale más de una, usa la de la red donde está la otra laptop (`ipconfig` muestra a qué adaptador pertenece cada una).
+
+**En la laptop de visión (Hiram)**
+
+4. Prueba que llega, con la IP del paso 3:
+
+   ```powershell
+   $B = "http://192.168.1.20:8000"   # cambia por la IP de la laptop de la API
+   Test-NetConnection 192.168.1.20 -Port 8000 | Select-Object TcpTestSucceeded
+   (Invoke-RestMethod "$B/wellbeing/parameters").mission_tz   # debe decir America/Tijuana
+   ```
+
+5. Apunta visión a esa API. Puedes usar la variable, una vez por terminal:
+
+   ```powershell
+   $env:WELLBEING_VISION_API_URL = $B
+   ```
+
+   o la opción `--api-url`, que tiene prioridad sobre la variable:
+
+   ```powershell
+   uv run wellbeing-vision bitacora --astronaut ast-01 --camera 1 --flip 1 --seconds 60 --api-url $B
+   uv run wellbeing-vision ambiente --cameras 0 1 --flip 1 --window 60 --api-url $B
+   ```
+
+   Al arrancar, visión imprime `API OK at http://...:8000 (mission_tz=America/Tijuana)`. Si dice `API not reachable` o `timeout`, sigue funcionando: guarda los resúmenes en `outbox\pending.jsonl` y los manda en orden cuando la API vuelve a contestar. Revisa la red, la IP y el firewall.
+
+6. Relojes sincronizados: la API asigna cada sesión al día según la hora de **la laptop de visión**. En las dos laptops, *Configuración → Hora e idioma → Fecha y hora → Sincronizar ahora*. Para comprobar la diferencia desde la laptop de visión:
+
+   ```powershell
+   $r = Invoke-WebRequest "$B/wellbeing/parameters" -UseBasicParsing
+   ([datetime]$r.Headers["Date"] - (Get-Date)).TotalSeconds   # debe estar entre -5 y 5
+   ```
+
+**Respaldo: hotspot**
+
+Las redes de eventos suelen aislar a los equipos entre sí (`Test-NetConnection` falla aunque las dos laptops tengan internet). En ese caso, conecta las dos laptops al hotspot de un teléfono y repite los pasos 3 a 5: la IP cambia, así que también cambia `$B`. Otra opción es el hotspot móvil de Windows en la laptop de la API (*Configuración → Red e Internet → Zona con cobertura inalámbrica móvil*). Con él, esa laptop suele quedar en `192.168.137.1`. Confírmalo con `ipconfig`, y revisa que esa red también esté en `Private` (paso 2).
+
+Si nada conecta, visión puede correr en la misma laptop que la API, con las cámaras conectadas ahí. Las caras se registran en cada laptop, así que en ese caso hay que registrar a la tripulación otra vez (sección 1).

@@ -1,6 +1,6 @@
 # Contrato de bienestar (salud mental) · onboard-api
 
-Estado: **v1, implementado** (rama `agent/hiram/wellbeing-backend`) · Dueño: Hiram · Consumidores: consola (Cedric), proceso de visión (`wellbeing-vision`, endpoints 6 y 7 según su borrador).
+Estado: **v1, implementado** (en `main`) · Dueño: Hiram · Consumidores: consola (Cedric), proceso de visión (`wellbeing-vision`, endpoints 6 y 7 según su borrador).
 
 El módulo `onboard_api.wellbeing` detecta **cambios sostenidos de cada astronauta respecto a su propia línea base**. No diagnostica: sus salidas son de apoyo ("necesita apoyo"), nunca etiquetas clínicas.
 
@@ -68,7 +68,7 @@ Se reutiliza la convención física donde aplica (`no_data`, `stale`). `no_range
 | Valor | Mostrar como (consola en inglés) | Cuándo |
 |---|---|---|
 | `ok` | OK (BIEN) | Ninguna fuente muestra un cambio sostenido |
-| `attention` | ATTENTION (ATENCIÓN) | Una fuente con cambio sostenido, o discrepancia (ver abajo) |
+| `attention` | ATTENTION (ATENCIÓN) | Una fuente con cambio sostenido |
 | `needs_support` | NEEDS SUPPORT (NECESITA APOYO) | Dos o más fuentes distintas con cambio sostenido |
 | `baseline_pending` | CALIBRATING (CALIBRANDO) | Aún no hay días suficientes para la línea base |
 | `stale` | NO RECENT DATA (SIN DATOS RECIENTES) | El último dato es más viejo que `stale_after_days` |
@@ -88,7 +88,7 @@ Se reutiliza la convención física donde aplica (`no_data`, `stale`). `no_range
 4. Un día está **desviado** si el z del indicador (o de la fuente) es ≥ `z_threshold`. Es **sostenido** si hay ≥ `sustain_days` días desviados seguidos hasta el último dato. Un día sin datos no rompe la racha; un día con datos normales, sí.
 5. **Nivel:** según cuántas fuentes tienen cambio sostenido (tabla de arriba).
 6. **Confianza:** con cambio sostenido, 1 fuente = `low`, 2 = `medium`, 3 o más = `high`. Si el nivel es `ok`, la confianza refleja la cobertura: cuántas fuentes tienen datos recientes y línea base (1 = `low`, 2 = `medium`, 3 o más = `high`).
-7. **Discrepancia:** el checklist no muestra cambio sostenido, pero al menos una fuente pasiva sí. Sube el nivel a `attention` como mínimo.
+7. **Discrepancia:** el checklist tiene línea base y datos recientes y no muestra cambio sostenido, pero al menos una fuente pasiva (`vision`, `physiology`, `social`) sí. No cambia el nivel por sí misma: esa fuente pasiva ya cuenta para el nivel, así que una discrepancia siempre viene con `attention` o `needs_support`. Agrega `discrepancy: true` y una nota de apoyo.
 8. **Inicio (`onset_date`):** el primer día de la racha sostenida más antigua. Responde a "¿desde cuándo?".
 9. **Tendencia:** media del z de los últimos `trend_window_days` días frente a los anteriores. Una diferencia mayor que `trend_min_delta` da `worsening` o `improving`.
 
@@ -282,7 +282,7 @@ En modo ambiente (`"session_type": "ambiente"`), `motion` lleva:
 - Los picos (`*_peak_1s`) son opcionales: un envío sin ellos sigue siendo válido. `brow_lower_peak_1s` entra a la fusión como componente propio del indicador `stress`, porque una mueca de 1–2 s casi no mueve el promedio de una bitácora de 90 s pero sí el pico.
 - **Labios apretados fuera de la fusión (provisional).** `lip_press_delta` y `lip_press_peak_1s` se aceptan (también `null`) y se guardan, pero no puntúan. Visión ya excluye los cuadros con habla, y con eso los labios quedan en ~0 en reposo y en 0.164 / 0.466 al apretarlos. Pero sólo hay una sesión de labios apretados, y como dos componentes más de `stress` diluyen al ceño, que es la señal validada: una mueca breve de ceño dejaría de cruzar el umbral. Se revisa cuando haya más sesiones y una forma de combinarlos que no promedie el ceño hacia abajo. El ceño sí separa: pico de 0.05–0.13 en reposo frente a 0.66 actuado. El piso de escala de `vision.brow_lower_peak_1s` es 0.08 (PROVISIONAL), aproximadamente la variación real en reposo (0.046–0.129). Así un pico de reposo alto (0.129) da z < 1, y uno actuado (0.663) llega al tope de z = 5.
 - El día de la sesión es el de `started_at`. Varias sesiones del mismo día se promedian.
-- `astronaut_id` puede ser `"unknown-<track>"` (persona no identificada). Se acepta y se guarda, pero **nunca entra en ninguna línea base** ni en la fusión.
+- `astronaut_id` puede ser `"unknown-<track>"` (persona no identificada). Se acepta y se guarda, pero **nunca entra en ninguna línea base** ni en la fusión. Un `unknown-*` no es un astronauta: sólo se acepta aquí y en co-presencia. `GET /astronauts/unknown-*/wellbeing` (y su `timeline` y `checkins`), `PUT …/checkins/{day}`, `POST /wellbeing/signals` y los paquetes a Tierra responden `404`.
 
 Response `201`: lo mismo más `id`, `received_at` y `simulated`. Errores: `404` si el astronauta no existe (y no es `unknown-*`); `422` si `ended_at < started_at`, si no viene ningún grupo de métricas o si algo está fuera de rango.
 
@@ -329,7 +329,7 @@ Una entrada por astronauta registrado, ordenados por `astronaut_id`. **Sin detal
   "generated_at": "2026-11-14T18:05:00.000000Z",
   "provisional": true,
   "members": [
-    {"astronaut_id": "ast-01", "display_name": "X", "level": "ok", "trend": "stable", "latest_origin": "mixed"},
+    {"astronaut_id": "ast-01", "display_name": "Elena Ruiz", "level": "ok", "trend": "stable", "latest_origin": "mixed"},
     {"astronaut_id": "ast-02", "display_name": "Y", "level": "needs_support", "trend": "worsening", "latest_origin": "simulated"},
     {"astronaut_id": "ast-03", "display_name": "Z", "level": "baseline_pending", "trend": "unknown", "latest_origin": "live"}
   ]
