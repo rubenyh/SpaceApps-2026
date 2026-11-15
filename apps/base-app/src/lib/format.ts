@@ -34,21 +34,21 @@ export function readingValueText(r: GroundReading | null | undefined): string {
   return "--";
 }
 
-/** "12 s", "3 min", "26 h", "3 días". */
+/** "12 s", "3 min", "26 h", "3 days". */
 export function formatDuration(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
   if (s < 60) return `${s} s`;
   if (s < 3600) return `${Math.floor(s / 60)} min`;
   if (s < 48 * 3600) return `${Math.floor(s / 3600)} h`;
   const d = Math.floor(s / 86400);
-  return `${d} ${d === 1 ? "día" : "días"}`;
+  return `${d} ${d === 1 ? "day" : "days"}`;
 }
 
-/** "hace 12 s". Empty when unknown. */
+/** "12 s ago". Empty when unknown. */
 export function formatAge(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) return "";
-  if (seconds < 0) return "fecha futura";
-  return `hace ${formatDuration(seconds)}`;
+  if (seconds < 0) return "future date";
+  return `${formatDuration(seconds)} ago`;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -65,7 +65,7 @@ export function utcMinutes(ms: number): string {
   return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 }
 
-const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** "14 nov" in UTC. */
 export function utcDay(ms: number): string {

@@ -9,17 +9,17 @@ interface Props {
 }
 
 function content(e: LedgerEntry): string {
-  if (e.batches === null) return "Último lote antes de abrir la consola";
-  const readings = e.readings === 0 ? "sin lecturas (latido)" : `${e.readings} lecturas`;
-  return e.batches > 1 ? `${e.batches} lotes · ${readings}` : readings;
+  if (e.batches === null) return "Last batch before this console opened";
+  const readings = e.readings === 0 ? "no readings (heartbeat)" : `${e.readings} readings`;
+  return e.batches > 1 ? `${e.batches} batches · ${readings}` : readings;
 }
 
 /** Batches this console has observed through GET /link, newest first. */
 export function Ledger({ ledger, link, offline }: Props) {
   if (ledger.length === 0) {
-    let text = "Consultando el enlace…";
-    if (offline) text = "Sin registro de lotes: el servicio de tierra no responde.";
-    else if (link && !link.last_batch_received_at) text = "Aún no ha llegado ningún lote de la nave.";
+    let text = "Checking the link…";
+    if (offline) text = "No batch log: the ground service is not answering.";
+    else if (link && !link.last_batch_received_at) text = "No batch has arrived from the ship yet.";
     return <p className="empty">{text}</p>;
   }
   return (
@@ -27,11 +27,11 @@ export function Ledger({ ledger, link, offline }: Props) {
       <table className="log">
         <thead>
           <tr>
-            <th scope="col">Lote</th>
-            <th scope="col">Contenido</th>
-            <th scope="col">Enviado (nave)</th>
-            <th scope="col">Recibido (tierra)</th>
-            <th scope="col">Tránsito</th>
+            <th scope="col">Batch</th>
+            <th scope="col">Content</th>
+            <th scope="col">Sent (ship)</th>
+            <th scope="col">Received (ground)</th>
+            <th scope="col">Transit</th>
           </tr>
         </thead>
         <tbody>
@@ -50,9 +50,9 @@ export function Ledger({ ledger, link, offline }: Props) {
         </tbody>
       </table>
       <p className="hint">
-        Lotes observados por esta consola desde que se abrió, consultando el enlace cada 2 s. El
-        servicio de tierra no guarda una lista de lotes; si llegan varios entre dos consultas se
-        agrupan en una fila.
+        Batches seen by this console since it opened, checking the link every 2 s. The ground
+        service keeps no batch list; several batches that arrive between two checks share one
+        row.
       </p>
     </>
   );

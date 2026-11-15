@@ -105,29 +105,29 @@ export function linkState(link: Link | null, sinceSeconds: number | null, unreac
 
 /** Short state words for the top bar (stable between ticks). */
 export const LINK_HEADLINES: Record<LinkState, string> = {
-  unknown: "Consultando",
-  unreachable: "Tierra sin respuesta",
-  no_batch: "Sin lotes todavía",
-  ok: "Enlace al día",
-  late: "Lote retrasado",
-  lost: "Sin enlace",
+  unknown: "Checking",
+  unreachable: "Ground not answering",
+  no_batch: "No batches yet",
+  ok: "Link up",
+  late: "Batch late",
+  lost: "No link",
 };
 
 /** Plain words for the link state, with the time without data. */
 export function linkWords(state: LinkState, sinceSeconds: number | null): string {
   switch (state) {
     case "unknown":
-      return "Consultando servicio de tierra";
+      return "Checking the ground service";
     case "unreachable":
-      return "Servicio de tierra sin respuesta";
+      return "Ground service not answering";
     case "no_batch":
-      return "Aún no ha llegado ningún lote";
+      return "No batch has arrived yet";
     case "ok":
-      return "Enlace al día";
+      return "Link up";
     case "late":
-      return `Lote retrasado: ${formatDuration(sinceSeconds ?? 0)} sin datos`;
+      return `Batch late: ${formatDuration(sinceSeconds ?? 0)} without data`;
     case "lost":
-      return `Sin lotes desde hace ${formatDuration(sinceSeconds ?? 0)}`;
+      return `No link: no batch for ${formatDuration(sinceSeconds ?? 0)}`;
   }
 }
 
