@@ -14,6 +14,7 @@ Simulated data, not clinically validated. Stdlib only:
     python3 firmware/simulator.py                    # API on 127.0.0.1:8000
     python3 firmware/simulator.py --urine-every 120  # faster urine samples
     python3 firmware/simulator.py --real-vitals ast-01  # ast-01 wears a real Apple Watch
+    python3 firmware/simulator.py --real-urine ast-01   # ast-01's urine pH/salinity/temp from the ESP32
 """
 
 import argparse
@@ -50,6 +51,7 @@ MUSCLE_LOSS_PER_DAY = 0.09  # u.a./day, microgravity atrophy trend
 
 class Astronaut:
     real_vitals = False  # True: a real wearable (apps/watch-app) sends this astronaut's pulse-ox
+    real_urine = False  # True: the ESP32 analyser (serial_bridge.py) sends this astronaut's pH, salinity, temperature
 
     def __init__(self, astronaut_id: str, profile: dict, rng: random.Random):
         self.id = astronaut_id
@@ -96,14 +98,18 @@ class Astronaut:
         temperature = round(36.0 - rng.uniform(0, 2.5) - (6 if rng.random() < 0.05 else 0), 1)
         temp_quality = "good" if 32 <= temperature <= 38 else "suspect"  # sample_validity range
         source = "simulated:urine-analyser"
-        return [
-            reading(self.id, "urine_ph", "pH", when, value=ph, source=source),
-            reading(self.id, "urine_salinity", "mS/cm", when, value=salinity, source=source),
+        out = [
             reading(self.id, "urine_color", "rgb_hex", when, value_text=urine_color(dry), source=source),
-            reading(self.id, "urine_temperature", "°C", when, value=temperature, quality=temp_quality, source=source),
             reading(self.id, "urine_radiation_marker", RADIATION_CONFIG["unit"], when,
                     value=max(0.5, round(self.profile["ohdg"] + rng.gauss(0, 0.5), 2)), source=source),
         ]
+        if not self.real_urine:
+            out += [
+                reading(self.id, "urine_ph", "pH", when, value=ph, source=source),
+                reading(self.id, "urine_salinity", "mS/cm", when, value=salinity, source=source),
+                reading(self.id, "urine_temperature", "°C", when, value=temperature, quality=temp_quality, source=source),
+            ]
+        return out
 
     def muscle(self, when: datetime, boot: datetime) -> list[dict]:
         days = (when - boot).total_seconds() / 86400
@@ -226,6 +232,8 @@ def main() -> None:
     parser.add_argument("--no-history", action="store_true", help="skip the flash-log upload on boot")
     parser.add_argument("--real-vitals", action="append", default=[], choices=list(CREW), metavar="ID",
                         help="astronaut whose pulse-ox comes from a real watch: no simulated heart rate/SpO2 (repeatable)")
+    parser.add_argument("--real-urine", action="append", default=[], choices=list(CREW), metavar="ID",
+                        help="astronaut whose urine pH/salinity/temperature come from the ESP32 (serial_bridge.py); colour and 8-OHdG stay simulated (repeatable)")
     parser.add_argument("--seed", type=int, help="random seed for reproducible runs")
     args = parser.parse_args()
 
@@ -236,6 +244,7 @@ def main() -> None:
     crew = [Astronaut(i, p, rng) for i, p in CREW.items()]
     for a in crew:
         a.real_vitals = a.id in args.real_vitals
+        a.real_urine = a.id in args.real_urine
 
     log(f"boot, crew {', '.join(CREW)}, uplink {args.url}")
     while not uplink.register_crew():

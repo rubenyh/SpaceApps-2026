@@ -12,7 +12,7 @@ NASA Space Apps 2026 monorepo. An astronaut console (Tauri) talks to an onboard 
 | `services/onboard-api/` | FastAPI 0.163, Python 3.12, uv. Package `onboard_api` in `src/`. App `onboard_api.main:app`. | Readings API, SQLite repository, `POST /assistant/messages` (LangGraph medical workflow, Ollama, ChromaDB), pytest |
 | `services/ground-api/` | FastAPI 0.163, Python 3.12, uv. Package `ground_api` in `src/`. App `ground_api.main:app`. | Health route only |
 | `services/wellbeing-vision/` | Camera collector for the wellbeing module. Python 3.12, uv, OpenCV + MediaPipe. Own process, CLI `wellbeing-vision`. Sends derived metrics only (never frames) to onboard-api `POST /wellbeing/vision-sessions`. | Daily video log; identity, co-presence and demo mode planned |
-| `firmware/` | `simulator.py`: software stand-in for the biomonitor device (pulse-ox, urine analyser, muscle scanner). Posts to onboard-api `/readings` with source `simulated:*`; buffers while the API is down. Stdlib only. | Simulated until real hardware exists |
+| `firmware/` | `simulator.py`: software stand-in for the biomonitor device (pulse-ox, urine analyser, muscle scanner). Posts to onboard-api `/readings` with source `simulated:*`; buffers while the API is down. Stdlib only. `serial_bridge.py`: real ESP32-S3 urine analyser over USB serial (`temp;pH;mg/L;` lines) → urine temperature, pH and salinity, source `serial:urine-analyser`. | Real urine pH/salinity/temperature; rest simulated |
 | `db/` | SQLite migrations (`db/migrations/onboard/`, applied at onboard-api startup) and `db/data-dictionary.md` (tables, columns, allowed values). Only onboard-api has a database. | |
 | `.claude/agents/`, `.claude/skills/` | Claude Code subagents and skills. | |
 
@@ -35,7 +35,8 @@ Planned, not in the repo yet: hardware collectors (pySerial, OpenCV, MediaPipe),
 | `services/onboard-api` | `uv run fastapi dev` | Uses `[tool.fastapi] entrypoint`. Default port 8000. `GET /` returns `{"status":"ok"}`. |
 | `services/ground-api` | `uv sync --locked` then `uv run fastapi dev --port 8001` | Use a different port than onboard. |
 | `services/*` | `uv add <pkg>` / `uv add --dev <pkg>` | Always commit `uv.lock` together with `pyproject.toml`. |
-| repo root | `python3 firmware/simulator.py` | Live device feed for the console (needs onboard-api running). `--urine-every 120` for faster samples, `--real-vitals ast-01` when a real watch sends that pulse. Self-check: `cd firmware && python3 test_simulator.py`. |
+| repo root | `python3 firmware/simulator.py` | Live device feed for the console (needs onboard-api running). `--urine-every 120` for faster samples, `--real-vitals ast-01` when a real watch sends that pulse, `--real-urine ast-01` when the ESP32 sends that urine. Self-check: `cd firmware && python3 test_simulator.py`. |
+| `services/onboard-api` | `uv run --with pyserial python ../../firmware/serial_bridge.py` | ESP32 urine analyser → `/readings` (`--astronaut`, default `ast-01`; `--port` to skip auto-detect). Run the simulator with `--real-urine` alongside. |
 | `apps/spaceship-app` | `npm run build` | `tsc && vite build`. |
 | `apps/spaceship-app/src-tauri` | `cargo check` | On Git Bash, cargo is at `~/.cargo/bin/cargo.exe` (not on PATH). |
 | `apps/spaceship-app` | `npm run tauri dev` | Not run by Claude (opens a window). Vite port 1420. |

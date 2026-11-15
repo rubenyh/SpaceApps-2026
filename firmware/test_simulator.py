@@ -30,4 +30,20 @@ uplink.configure_radiation()  # API down: logs and returns, never raises
 # A real watch owns this astronaut's pulse-ox: no simulated vitals, urine still simulated.
 crew[0].real_vitals = True
 assert crew[0].vitals(now) == [] and crew[0].urine(now) and crew[1].real_vitals is False
+# The ESP32 owns this astronaut's pH, salinity and temperature: only colour and 8-OHdG stay simulated.
+crew[0].real_urine = True
+assert {r["kind"] for r in crew[0].urine(now)} == {"urine_color", "urine_radiation_marker"}
+assert len(crew[1].urine(now)) == 5
+
+# Serial bridge parser, with lines as the board prints them.
+from serial_bridge import parse_line
+
+rows = parse_line("26.1;6.94;0;\r\n", "ast-01", now)
+assert [(r["kind"], r["value"], r["unit"]) for r in rows] == [
+    ("urine_temperature", 26.1, "°C"), ("urine_ph", 6.94, "pH"), ("urine_salinity", 0.0, "mg/L")], rows
+assert rows[0]["quality"] == "suspect" and rows[1]["quality"] == "good"
+assert all(r["source"] == "serial:urine-analyser" and r["astronaut_id"] == "ast-01" for r in rows)
+assert parse_line("36.5;6.2;120", "ast-01", now)[0]["quality"] == "good"
+for bad in ("", "26.1;6.9", "26.1;abc;0;", "\x00\xff;;;", "boot ok", "1;2;3;4;"):
+    assert parse_line(bad, "ast-01", now) == [], bad
 print("ok")

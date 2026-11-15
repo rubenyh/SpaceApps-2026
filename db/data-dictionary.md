@@ -72,7 +72,7 @@ One crew reading. Rows are only inserted (`POST /readings`); the API has no upda
 | `recorded_at` | TEXT | NOT NULL | | Capture time (from the client), timestamp. |
 | `received_at` | TEXT | NOT NULL | | Time the server stored the row, timestamp. |
 | `quality` | TEXT | NOT NULL | | CHECK `IN ('good','suspect','bad')` (app: `Quality` in `schemas/readings.py`). |
-| `source` | TEXT | NOT NULL | | Origin, e.g. `manual`, `serial:pulse`. API: 1 to 64 characters. |
+| `source` | TEXT | NOT NULL | | Origin, e.g. `manual`, `serial:pulse`, `serial:urine-analyser` (ESP32, `firmware/serial_bridge.py`; `urine_salinity` in `mg/L`, simulated rows use `mS/cm`). API: 1 to 64 characters. |
 
 Table CHECK `(value IS NULL) <> (value_text IS NULL)`: exactly one of `value` and `value_text` is set. The API checks the same rule before inserting (422).
 
