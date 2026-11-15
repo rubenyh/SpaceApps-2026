@@ -1,7 +1,10 @@
 """Reset the wellbeing demo in one step (idempotent). Run from services/onboard-api
 with the API already running from the same folder (`uv run fastapi dev`):
 
-    uv run python scripts/demo_reset.py [--base http://127.0.0.1:8000] [--perclos LOW HIGH]
+    uv run python scripts/demo_reset.py [--tz America/Tijuana] [--base URL] [--perclos LOW HIGH]
+
+--tz must match the API's WELLBEING_MISSION_TZ (default: whatever the API uses).
+History ends "yesterday" in that zone, so today's live log lands on local today.
 
 1. Checks the API is up and serves the wellbeing routes.
 2. Backs up data/wellbeing.db to data/backups/ and empties its tables (schema kept,
@@ -20,6 +23,7 @@ import urllib.request
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from import_apple_health import mission_tz
 from import_apple_health import post as post_signal
 from simulate_wellbeing import ensure_astronaut
 
@@ -76,28 +80,35 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", default="http://127.0.0.1:8000")
     parser.add_argument("--perclos", type=float, nargs=2, metavar=("LOW", "HIGH"))
+    parser.add_argument("--tz", help="mission time zone, e.g. America/Tijuana")
     args = parser.parse_args()
     base = args.base.rstrip("/")
 
-    get(base, "/wellbeing/parameters")
-    settings = WellbeingSettings()
+    api_tz = mission_tz(base).key
+    if args.tz and args.tz != api_tz:
+        sys.exit(
+            f"La API usa la zona {api_tz}, no {args.tz}. Reiníciala con "
+            f'$env:WELLBEING_MISSION_TZ = "{args.tz}" o quita --tz.'
+        )
+    settings = WellbeingSettings(mission_tz=api_tz)
+    print(f"Zona de misión: {api_tz}")
     backup = backup_and_wipe(settings.db_path)
     print(f"Respaldo: {backup or '(no había wellbeing.db)'}")
 
     for astronaut_id, name in CREW.items():
         ensure_astronaut(base, astronaut_id, name)
-    today = datetime.now(UTC).date()
+    today = settings.day_of(datetime.now(UTC))
     conn = connect_wellbeing(settings.db_path)
     try:
         simulate(WellbeingRepository(conn), today, seed=7,
-                 perclos=tuple(args.perclos) if args.perclos else None)
+                 perclos=tuple(args.perclos) if args.perclos else None, tz=settings.tz)
     finally:
         conn.close()
     print(f"Historial SIMULADO cargado (21 días, semilla 7) en {settings.db_path}")
 
     with open_export(SAMPLE) as stream:
-        signals = list(iter_signals(stream, "ast-01", source=SAMPLE_SOURCE))
-    shift = (today - timedelta(days=1)) - max(s.recorded_at.date() for s in signals)
+        signals = list(iter_signals(stream, "ast-01", source=SAMPLE_SOURCE, tz=settings.tz))
+    shift = (today - timedelta(days=1)) - max(settings.day_of(s.recorded_at) for s in signals)
     for signal in signals:
         moved = signal.model_copy(update={"recorded_at": signal.recorded_at + shift})
         post_signal(base, moved.model_dump_json().encode())
