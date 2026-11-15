@@ -108,7 +108,9 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
   ones show in grey.
 - One astronaut, one count: identity is unique within a camera, and an astronaut seen by two cameras at once
   stays in the module they belong to; the other camera shows "ast-01 (seen from modulo-a)" in grey and does
-  not count them. A transfer needs them unseen in the old module for 3 s and steadily in the new one for 3 s.
+  not count them. A transfer needs them unseen in the old module for 10 s and steadily in the new one for
+  5 s (PROVISIONAL). If an astronaut keeps showing as "seen from" in the other camera, the cameras overlap:
+  aim them apart or use `--overlap`.
 - Every window (60 s) and module: `POST /wellbeing/co-presence` with occupants (1 s or more), pairs
   (seconds together, mean distance in shoulder widths, facing ratio) and quality (camera coverage). Empty
   windows are not sent. A window cut short by quitting is sent if it lasted 10 s or more.

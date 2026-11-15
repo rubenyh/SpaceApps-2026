@@ -29,9 +29,10 @@ from wellbeing_vision.tracker import IoUTracker, resolve
 
 MAX_DT_S = 0.5  # cap per-frame time so a slow frame does not inflate presence
 MIN_PARTIAL_S = 10.0  # a window cut short by quitting is still sent if it lasted this long
-TRANSFER_GONE_S = 3.0  # PROVISIONAL: a transfer needs the person unseen in the old module this long...
-TRANSFER_HOLD_S = 3.0  # ...and seen steadily in the new one this long
-SIGHTING_GAP_S = 1.0  # a longer gap restarts the "seen steadily" clock
+# PROVISIONAL. With 3 s / 3 s / 1 s the real trace amb3-2 had "a -> b" and "b -> a" 22 s apart; with these, one.
+TRANSFER_GONE_S = 10.0  # a transfer needs the person unseen in the old module this long...
+TRANSFER_HOLD_S = 5.0  # ...and seen steadily in the new one this long
+SIGHTING_GAP_S = 2.0  # a longer gap restarts the "seen steadily" clock
 MAX_PAIR_ROWS = 3
 FOOTER = "Provisional thresholds · no video is stored"
 TRACE_FIELDS = ("t", "module", "track", "label", "counted", "face", "pose", "shoulder_px", "head_turn_sw", "elsewhere")

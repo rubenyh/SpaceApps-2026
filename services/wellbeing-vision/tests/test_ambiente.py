@@ -57,7 +57,7 @@ def _run(monkeypatch, tmp_path, sees, template=lambda self, frame, face: V, **kw
 
 
 def test_two_modules_send_windows_and_see_a_transfer(monkeypatch, tmp_path, capsys):
-    co = _run(monkeypatch, tmp_path, lambda cam, n: cam == (n // 2 >= 150))  # cam 0, then cam 1
+    co = _run(monkeypatch, tmp_path, lambda cam, n: cam == (n // 2 >= 75))  # cam 0, then cam 1
     assert {c.module_id for c in co} == {"modulo-a", "modulo-b"}
     assert all(o.astronaut_id == "ast-01" and 0 < o.seconds_present <= 10 for c in co for o in c.occupants)
     assert capsys.readouterr().out.count("Transfer ast-01: modulo-a -> modulo-b") == 1
@@ -75,8 +75,8 @@ def test_transfer_needs_the_old_module_left_and_the_new_one_held():
     for k in range(40):  # both cameras see ast-01 for 4 s: stays in modulo-a, no transfer
         assert homes.update({"ast-01": {"modulo-a", "modulo-b"}}, k * 0.1) == []
     assert homes.counted_in("ast-01", {"modulo-a", "modulo-b"}) == "modulo-a"
-    events = [e for k in range(40, 120) for e in homes.update({"ast-01": {"modulo-b"}}, k * 0.1)]
-    assert events == ["ast-01: modulo-a -> modulo-b"]  # once, 3 s after leaving modulo-a
+    events = [(k, e) for k in range(40, 200) for e in homes.update({"ast-01": {"modulo-b"}}, k * 0.1)]
+    assert [e for _, e in events] == ["ast-01: modulo-a -> modulo-b"] and events[0][0] in (139, 140)  # once, ~10 s after
 
 
 def test_same_astronaut_in_two_cameras_is_counted_once():
