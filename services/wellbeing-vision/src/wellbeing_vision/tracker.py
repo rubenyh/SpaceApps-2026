@@ -145,8 +145,8 @@ def observations(faces: list[Face], poses: list[np.ndarray]) -> list[tuple[Face 
         out.append((f, poses[best] if best is not None else None))
     for k, pose in enumerate(poses):
         b = body(pose)
-        if k in used or b is None:
-            continue
+        if k in used or b is None or body_box(pose) is None:
+            continue  # a track needs a box: shoulders alone (2 points) do not make one
         if any(b.sw < f.width and iou(body_box(pose), f.box) > 0 for f in faces):
             continue  # the misfire again: shoulders narrower than a face it overlaps is not a second person
         out.append((None, pose))

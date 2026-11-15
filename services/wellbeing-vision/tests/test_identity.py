@@ -198,3 +198,12 @@ def test_phantom_faces_are_dropped():
     unsure.row[14] = 0.75  # no body and not confident enough
     assert observations([tiny, unsure], []) == []
     assert observations([unsure], [_pose(350, 50)])[0][0] is unsure  # with a body it is a person
+
+
+def test_a_pose_with_shoulders_but_no_box_does_not_make_a_boxless_track():
+    # Shoulders exactly at the visibility bar and nothing else: body() accepts it, but it has no box.
+    p = np.zeros((33, 3))
+    p[11], p[12] = (100, 200, 0.5), (300, 200, 0.5)
+    tr = IoUTracker()
+    for k in range(3):
+        assert all(t.box is not None for t in tr.update([], k * 0.1, [p]))

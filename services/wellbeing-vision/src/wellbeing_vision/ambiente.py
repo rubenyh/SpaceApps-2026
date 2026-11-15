@@ -169,7 +169,7 @@ def run_ambiente(settings: Settings, sink: Sink, cameras: list[int], window_s: f
     windows = {m: ModuleWindow(m, "vision:" + "+".join(f"cam{i}" for i in cameras if module_of[i] == m), start)
                for m in dict.fromkeys(module_of.values())}
     homes, labels, scores, transfers = Homes(), {}, {}, []
-    window_t0, sent, n, t = 0.0, 0, len(cams), 0.0
+    window_t0, sent, n, t, errors = 0.0, 0, len(cams), 0.0, 0
     view = _Window("Ambient - wellbeing-vision")
     pool = ThreadPoolExecutor(max_workers=n)  # OpenCV and MediaPipe release the GIL: cameras run in parallel
     trace = unused_path(trace) if trace else None
@@ -179,66 +179,71 @@ def run_ambiente(settings: Settings, sink: Sink, cameras: list[int], window_s: f
         tracer.writerow(TRACE_FIELDS)
     try:
         while not seconds or time.monotonic() - t0 < seconds:
-            if not all(pool.map(lambda c: c.step(gallery, t0), cams)):
-                break
-            t = time.monotonic() - t0
-            sightings: dict[str, set[str]] = {}
-            for c in cams:
-                for tr in c.seen:
-                    if tr.astronaut:
-                        sightings.setdefault(tr.astronaut, set()).add(c.module_id)
-                        scores[tr.astronaut] = tr.score
-            for e in [] if overlap else homes.update(sightings, t):
-                transfers = (transfers + [f"{datetime.now():%H:%M:%S} {e}"])[-3:]
-                print("Transfer", e)
-            assign(cams, homes, sightings)
-            for m, w in windows.items():
-                people = {}
-                for c in (c for c in cams if c.module_id == m):
+            try:
+                if not all(pool.map(lambda c: c.step(gallery, t0), cams)):
+                    break
+                t = time.monotonic() - t0
+                sightings: dict[str, set[str]] = {}
+                for c in cams:
                     for tr in c.seen:
-                        labels[tr.id] = tr.label
-                        counted = tr.elsewhere is None and tr.mature(t, settings.min_track_s)
-                        if counted:
-                            people[tr.id] = tr.pose
-                        if tracer:
-                            b = body(tr.pose)
-                            tracer.writerow([f"{t:.3f}", c.module_id, tr.id, tr.label, int(counted),
-                                             int(tr.face_seen == tr.last_seen), int(tr.pose is not None),
-                                             f"{b.sw:.0f}" if b else "", f"{b.turn:.2f}" if b else "", tr.elsewhere or ""])
-                w.add(max(c.dt for c in cams if c.module_id == m), people)
-            if t - window_t0 >= window_s:
-                sent += _flush(windows, sink, labels, scores, start + timedelta(seconds=t))
-                window_t0 = t
+                        if tr.astronaut:
+                            sightings.setdefault(tr.astronaut, set()).add(c.module_id)
+                            scores[tr.astronaut] = tr.score
+                for e in [] if overlap else homes.update(sightings, t):
+                    transfers = (transfers + [f"{datetime.now():%H:%M:%S} {e}"])[-3:]
+                    print("Transfer", e)
+                assign(cams, homes, sightings)
+                for m, w in windows.items():
+                    people = {}
+                    for c in (c for c in cams if c.module_id == m):
+                        for tr in c.seen:
+                            labels[tr.id] = tr.label
+                            counted = tr.elsewhere is None and tr.mature(t, settings.min_track_s)
+                            if counted:
+                                people[tr.id] = tr.pose
+                            if tracer:
+                                b = body(tr.pose)
+                                tracer.writerow([f"{t:.3f}", c.module_id, tr.id, tr.label, int(counted),
+                                                 int(tr.face_seen == tr.last_seen), int(tr.pose is not None),
+                                                 f"{b.sw:.0f}" if b else "", f"{b.turn:.2f}" if b else "", tr.elsewhere or ""])
+                    w.add(max(c.dt for c in cams if c.module_id == m), people)
+                if t - window_t0 >= window_s:
+                    sent += _flush(windows, sink, labels, scores, start + timedelta(seconds=t))
+                    window_t0 = t
 
-            # Preview: cameras stacked top to bottom, after the per-camera flip/turn and nothing else.
-            tiles, boxes, lines, sections = [], [], [], []
-            for k, c in enumerate(cams):
-                h, w = c.frame.shape[:2]
-                tiles.append(cv2.resize(c.frame, (640, round(640 * h / w))))
-                also = []
-                for tr in sorted(c.seen, key=lambda tr: tr.id):
-                    name = settings.astronauts.get(tr.astronaut, tr.astronaut) if tr.astronaut else tr.label
-                    if tr.elsewhere and tr.elsewhere != c.module_id:
-                        name = f"{name} (seen from {tr.elsewhere})"
-                        also.append(name)
-                    young = not tr.mature(t, settings.min_track_s)
-                    color = MUTED if young or tr.elsewhere else GREEN if tr.astronaut else AMBER
-                    x0, y0, x1, y1 = tr.box  # face, or the body while the face is not seen
-                    boxes.append((x0 / w, (k + y0 / h) / n, x1 / w, (k + y1 / h) / n, name, color))
-                    if tr.pose is not None:  # each camera takes 1/n of the stacked preview's height
-                        lines += [((a[0], (k + a[1]) / n), (b[0], (k + b[1]) / n)) for a, b in skeleton(tr.pose, w, h)]
-                if overlap and k > 0:
-                    continue
-                where = "top" if k == 0 and n > 1 else "bottom" if n > 1 else "view"
-                fps = " / ".join(f"{x.fps:.0f}" for x in cams) if overlap else f"{c.fps:.0f}"
-                head = f"{c.module_id.upper()} · {'ALL CAMERAS' if overlap else f'CAM {c.index} ({where})'} · {fps} FPS"
-                sections.append((head, panel_rows(settings, windows[c.module_id], labels, also)))
-            if transfers:
-                sections.append(("TRANSFERS", [Row(e, "", MUTED) for e in transfers]))
-            left = max(0.0, window_s - (t - window_t0))
-            status = f"WINDOW {int(left) // 60}:{int(left) % 60:02d} · {sent} sent"
-            if not view.show(render(np.vstack(tiles), "AMBIENT", status, sections, FOOTER, boxes=boxes, lines=lines)):
-                break
+                # Preview: cameras stacked top to bottom, after the per-camera flip/turn and nothing else.
+                tiles, boxes, lines, sections = [], [], [], []
+                for k, c in enumerate(cams):
+                    h, w = c.frame.shape[:2]
+                    tiles.append(cv2.resize(c.frame, (640, round(640 * h / w))))
+                    also = []
+                    for tr in sorted(c.seen, key=lambda tr: tr.id):
+                        name = settings.astronauts.get(tr.astronaut, tr.astronaut) if tr.astronaut else tr.label
+                        if tr.elsewhere and tr.elsewhere != c.module_id:
+                            name = f"{name} (seen from {tr.elsewhere})"
+                            also.append(name)
+                        young = not tr.mature(t, settings.min_track_s)
+                        color = MUTED if young or tr.elsewhere else GREEN if tr.astronaut else AMBER
+                        x0, y0, x1, y1 = tr.box  # face, or the body while the face is not seen
+                        boxes.append((x0 / w, (k + y0 / h) / n, x1 / w, (k + y1 / h) / n, name, color))
+                        if tr.pose is not None:  # each camera takes 1/n of the stacked preview's height
+                            lines += [((a[0], (k + a[1]) / n), (b[0], (k + b[1]) / n)) for a, b in skeleton(tr.pose, w, h)]
+                    if overlap and k > 0:
+                        continue
+                    where = "top" if k == 0 and n > 1 else "bottom" if n > 1 else "view"
+                    fps = " / ".join(f"{x.fps:.0f}" for x in cams) if overlap else f"{c.fps:.0f}"
+                    head = f"{c.module_id.upper()} · {'ALL CAMERAS' if overlap else f'CAM {c.index} ({where})'} · {fps} FPS"
+                    sections.append((head, panel_rows(settings, windows[c.module_id], labels, also)))
+                if transfers:
+                    sections.append(("TRANSFERS", [Row(e, "", MUTED) for e in transfers]))
+                left = max(0.0, window_s - (t - window_t0))
+                status = f"WINDOW {int(left) // 60}:{int(left) % 60:02d} · {sent} sent"
+                if not view.show(render(np.vstack(tiles), "AMBIENT", status, sections, FOOTER, boxes=boxes, lines=lines)):
+                    break
+            except Exception as e:  # one bad frame must never end the session: log it, keep going
+                errors += 1
+                if errors == 1 or errors % 100 == 0:
+                    print(f"Frame error #{errors} (skipped): {type(e).__name__}: {e}")
     finally:
         t = time.monotonic() - t0
         if t - window_t0 >= MIN_PARTIAL_S:
@@ -250,4 +255,5 @@ def run_ambiente(settings: Settings, sink: Sink, cameras: list[int], window_s: f
         if trace_file:
             trace_file.close()
         print(f"Sent {sent} records. FPS per camera: "
-              + ", ".join(f"cam{c.index} {c.frames / t:.1f}" for c in cams if t > 0))
+              + ", ".join(f"cam{c.index} {c.frames / t:.1f}" for c in cams if t > 0)
+              + (f". Frames skipped by errors: {errors}" if errors else ""))

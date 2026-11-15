@@ -116,3 +116,17 @@ def test_per_camera_flip_and_turn():
     both, desc = orientation(True, 90)
     assert both(frame).shape == (3, 2, 3) and desc == "mirrored, turned 90°"
     assert orientation(False, 0) == (None, "as delivered")
+
+
+def test_an_error_in_one_frame_does_not_stop_the_loop(monkeypatch, tmp_path, capsys):
+    real, calls = amb.assign, itertools.count()
+
+    def flaky(*a):
+        if next(calls) == 5:
+            raise TypeError("cannot unpack non-iterable NoneType object")
+        return real(*a)
+
+    monkeypatch.setattr(amb, "assign", flaky)
+    co = _run(monkeypatch, tmp_path, lambda cam, n: cam == 0)
+    assert len([c for c in co if c.module_id == "modulo-a"]) == 4  # every window still sent
+    assert "Frame error" in capsys.readouterr().out
