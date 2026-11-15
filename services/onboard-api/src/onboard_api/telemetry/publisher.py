@@ -33,6 +33,8 @@ logger = logging.getLogger(__name__)
 BATCH_SIZE = 500
 INCIDENT_BATCH_SIZE = 500
 MAX_BACKOFF_SECONDS = 60.0
+# While paused (demo link outage), how often run() checks for resume. No backoff.
+PAUSE_CHECK_SECONDS = 0.5
 
 
 class TelemetryAstronaut(BaseModel):
@@ -121,6 +123,8 @@ class TelemetryPublisher:
         self.pending: TelemetryBatch | None = None
         self.failures = 0
         self.batches_sent = 0
+        # Controlled link outage (POST /telemetry/pause): nothing is sent, nothing is lost.
+        self.paused = False
 
     def _build_batch(self) -> TelemetryBatch:
         conn = connect(self._db_path)
@@ -184,6 +188,9 @@ class TelemetryPublisher:
 
     async def run(self) -> None:
         while True:
+            if self.paused:
+                await asyncio.sleep(PAUSE_CHECK_SECONDS)
+                continue
             try:
                 more = await self.step()
                 self.failures = 0

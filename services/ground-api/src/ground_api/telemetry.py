@@ -105,3 +105,23 @@ def incident(incident_id: str, conn: Connection) -> GroundIncident:
     if found is None:
         raise HTTPException(404, f"incident {incident_id} not found")
     return found
+
+
+@router.delete("/demo/incidents")
+def reset_incidents(astronaut_id: str, request: Request, conn: Connection) -> dict[str, int]:
+    """Demo reset: delete one astronaut's incidents and their updates (idempotent)."""
+    if not request.app.state.settings.demo_controls_enabled:
+        raise HTTPException(403, "demo controls are off (set GROUND_DEMO_CONTROLS_ENABLED=true)")
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        conn.execute(
+            "DELETE FROM incident_updates WHERE (ship_id, incident_id) IN"
+            " (SELECT ship_id, id FROM incidents WHERE astronaut_id = ?)",
+            (astronaut_id,),
+        )
+        deleted = conn.execute("DELETE FROM incidents WHERE astronaut_id = ?", (astronaut_id,)).rowcount
+        conn.execute("COMMIT")
+    except Exception:
+        conn.execute("ROLLBACK")
+        raise
+    return {"deleted": deleted}

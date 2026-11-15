@@ -299,3 +299,16 @@ def test_incidents_newest_first_and_began_at_waits_for_created(client: TestClien
     created_3 = {**CREATED, "id": str(uuid.uuid4()), "incident_id": "inc-3"}
     client.post("/telemetry/v1/batches", json=batch(readings=[], incident_updates=[created_3]))
     assert client.get("/incidents/inc-3").json()["began_at"] == "2026-11-14T18:05:00Z"
+
+
+def test_demo_reset_is_off_by_default_then_deletes_one_astronaut(client: TestClient) -> None:
+    client.post("/telemetry/v1/batches", json=batch(readings=[], incident_updates=[CREATED, ACKED]))
+    who = CREATED["astronaut_id"]
+    assert client.delete("/demo/incidents", params={"astronaut_id": who}).status_code == 403
+    client.app.state.settings.demo_controls_enabled = True
+    assert client.delete("/demo/incidents", params={"astronaut_id": "nobody"}).json() == {"deleted": 0}
+    assert client.delete("/demo/incidents", params={"astronaut_id": who}).json() == {"deleted": 1}
+    assert client.get("/incidents").json() == []
+    # Updates are gone too: the same ids are accepted again as new.
+    accepted = client.post("/telemetry/v1/batches", json=batch(readings=[], incident_updates=[CREATED]))
+    assert accepted.json()["incident_updates_accepted"] == 1

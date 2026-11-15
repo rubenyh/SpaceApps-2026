@@ -43,3 +43,6 @@ class Settings(BaseSettings):
     ground_api_url: str = "http://127.0.0.1:8001"
     telemetry_interval_seconds: float = 5.0
     ship_id: str = "ship-01"
+    # Demo controls (docs/demo-outage.md): POST /telemetry/pause|resume and
+    # DELETE /demo/incidents. Off by default; docker-compose turns them on.
+    demo_controls_enabled: bool = False

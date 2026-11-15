@@ -253,3 +253,50 @@ def test_offline_ack_follows_created_with_original_time(
     assert (ack["type"], ack["acknowledged_by"]) == ("acknowledged", "ana")
     assert ack["occurred_at"] == "2026-11-14T12:02:00Z"
     assert incident(db_path, incident_id).ground_delivery == "delivered"
+
+
+def test_paused_run_sends_nothing_and_does_not_back_off(db_path: Path, client: TestClient, monkeypatch) -> None:
+    ground = FakeGround()
+    delays: list[float] = []
+    pub: list[TelemetryPublisher] = []
+
+    async def fake_sleep(delay: float) -> None:
+        delays.append(delay)
+        assert ground.batches == [] or len(delays) == 3
+        if len(delays) == 2:
+            pub[0].paused = False  # link restored
+        if len(delays) == 3:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr(publisher_module.asyncio, "sleep", fake_sleep)
+
+    async def scenario() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(ground), base_url="http://ground") as http:
+            pub.append(TelemetryPublisher(http, db_path, "ship-01", 5))
+            pub[0].paused = True
+            with pytest.raises(asyncio.CancelledError):
+                await pub[0].run()
+
+    asyncio.run(scenario())
+    pause = publisher_module.PAUSE_CHECK_SECONDS
+    assert delays == [pause, pause, 5]  # resume sends at once, normal interval after
+    assert len(ground.batches) == 1 and pub[0].failures == 0
+
+
+def test_demo_controls_off_by_default_and_reset_deletes_only_that_astronaut(
+    client: TestClient, astronaut: str, db_path: Path
+) -> None:
+    assert client.get("/telemetry/link").json() == {"enabled": False, "paused": False, "failures": 0, "batches_sent": 0}
+    assert client.post("/telemetry/pause").status_code == 403
+    assert client.delete("/demo/incidents", params={"astronaut_id": "ana"}).status_code == 403
+
+    client.app.state.settings.demo_controls_enabled = True
+    assert client.post("/telemetry/pause").status_code == 409  # telemetry off in tests
+    urgent_incident(client, db_path)
+    client.post("/astronauts", json={"id": "bea", "display_name": "Bea"})
+    other = post(client, db_path, {"astronaut_id": "bea", "message": "I can't breathe."},
+                 llm=Forbidden("llm"), retriever=Forbidden("retriever"))[0]["incident"]["id"]
+    for expected in (1, 0):  # idempotent
+        response = client.delete("/demo/incidents", params={"astronaut_id": "ana"})
+        assert response.json() == {"deleted": expected}
+    assert [i["id"] for i in client.get("/incidents").json()] == [other]

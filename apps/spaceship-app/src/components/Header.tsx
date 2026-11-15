@@ -1,6 +1,8 @@
 import type { Astronaut } from "../api/types";
+import { getEarthLink, type EarthLink } from "../api/status";
 import type { ConnectionState } from "../hooks/connection";
 import { useNow } from "../hooks/useNow";
+import { usePolling } from "../hooks/usePolling";
 import { formatUtcDay, formatUtcSeconds } from "../lib/format";
 import { StateIcon, type VisualState } from "./StatusPill";
 
@@ -17,11 +19,21 @@ const CONNECTION: Record<ConnectionState, { icon: VisualState; text: string }> =
   offline: { icon: "alert", text: "No connection to the service" },
 };
 
+/** Ship-to-Earth telemetry link, worded like the ground console's link bar. */
+function earthLink(link: EarthLink): { state: ConnectionState; icon: VisualState; text: string } {
+  if (!link.enabled) return { state: "unknown", icon: "no_data", text: "Earth link: off" };
+  if (link.paused) return { state: "offline", icon: "alert", text: "Earth link: down (simulated outage)" };
+  if (link.failures > 0) return { state: "offline", icon: "alert", text: "Earth link: ground not answering" };
+  return { state: "online", icon: "normal", text: "Earth link: up" };
+}
+
 /** Top band: brand, crew selector, UTC clock and connection indicator. */
 export function Header({ astronauts, selectedId, onSelect, connection }: Props) {
   const now = useNow(1000);
   const list = astronauts ?? [];
   const conn = CONNECTION[connection];
+  const earth = usePolling("earth-link", (signal) => getEarthLink(signal), 2000);
+  const el = earth.data ? earthLink(earth.data) : null;
 
   return (
     <header className="header">
@@ -58,6 +70,12 @@ export function Header({ astronauts, selectedId, onSelect, connection }: Props) 
           <StateIcon state={conn.icon} />
           {conn.text}
         </span>
+        {el ? (
+          <span className={`header__conn header__conn--${el.state}`} role="status" aria-live="polite">
+            <StateIcon state={el.icon} />
+            {el.text}
+          </span>
+        ) : null}
       </div>
     </header>
   );
