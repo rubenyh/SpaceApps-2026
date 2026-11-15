@@ -31,36 +31,32 @@ DISCREPANCY_DAY = 15
 BAD_DAY = 17
 
 # Daily-log (bitacora) ranges, uniform (low, high). Simulation parameters, not
-# clinical ranges. ALL PROVISIONAL until logs from the corrected vision build
-# (more robust neutral calibration, speech-filtered lips) are measured.
-# Source: 3 rest logs, new build, 60 s at ~50 cm, reading/talking naturally,
-# no grimaces (data/rest.jsonl of wellbeing-vision, 2026-11-15): S1, S2, S3.
+# clinical ranges. One person only, so PROVISIONAL. Measured: corrected vision
+# build (speech-filtered lips, robust neutral), 60 s at ~50 cm, talking to the
+# camera (R1-R3), plus one silent pressed-lips log (L2), 2026-11-15.
 VISION_REST = {
-    "blink_rate_per_min": (19.0, 26.0),  # S1-S3: 26.0, 23.2, 19.5 (talking/reading)
-    # S1 0.949, S2 0.925. S3 (1.24) left out: its neutral calibration was biased.
-    "eye_openness_vs_neutral": (0.90, 1.05),
-    "yawn_count": (0, 2),  # 0 in S1-S3; up to 2 in the first session
-    "nod_count": (0, 2),  # 0 in S1-S3; up to 2 in the first session
-    # S1-S3: 0.183, 0.122, 0.065. Kept wide on purpose: it swings with each
-    # session's neutral calibration. Override with simulate(perclos=...) / --perclos.
-    "perclos": (0.06, 0.19),
-    "brow_lower_delta": (0.015, 0.03),  # S1-S3: 0.015, 0.029, 0.020
-    "brow_lower_peak_1s": (0.045, 0.13),  # S1-S3: 0.046, 0.129, 0.094 (acted: 0.663)
-    # Stored but not scored: talking alone peaks at 0.41-0.49.
-    "lip_press_delta": (0.035, 0.09),  # S1-S3: 0.047, 0.090, 0.039
-    "lip_press_peak_1s": (0.41, 0.49),  # S1-S3: 0.459, 0.492, 0.414
+    "blink_rate_per_min": (14.0, 25.0),  # R1-R3: 14.5-24.2 (talking)
+    "eye_openness_vs_neutral": (0.94, 1.13),  # R1-R3: 0.944-1.131
+    "perclos": (0.06, 0.11),  # R1-R3: 0.062-0.107. Override with --perclos.
+    "yawn_count": (0, 2),  # assumed: 0 in R1-R3, up to 2 in an earlier session
+    "nod_count": (0, 2),  # assumed: 0 in R1-R3, up to 2 in an earlier session
+    "brow_lower_delta": (0.015, 0.03),  # earlier rest logs; R1-R3 (0.005-0.038) agree
+    "brow_lower_peak_1s": (0.045, 0.13),  # earlier rest logs; R1-R3 (0.011-0.109) agree
+    "lip_press_delta": (0.0, 0.003),  # R1-R3: 0.001-0.002 (speech frames excluded)
+    "lip_press_peak_1s": (0.0, 0.0),  # R1-R3: 0.0 (one session null)
 }
-# Altered days (more fatigue and tension). Assumed, for the demo story only.
+# Altered days (more fatigue and tension). ASSUMED, for the demo story only;
+# lips anchored on L2 (pressed lips: 0.164 / 0.466), brow peak on an acted 0.663.
 # PERCLOS on altered days is derived from the rest range (see _vision_ranges).
 VISION_ALTERED = {
-    "blink_rate_per_min": (19.0, 26.0),
+    "blink_rate_per_min": (14.0, 25.0),
     "eye_openness_vs_neutral": (0.70, 0.80),
     "yawn_count": (2, 4),
     "nod_count": (2, 4),
     "brow_lower_delta": (0.06, 0.10),
-    "brow_lower_peak_1s": (0.35, 0.65),  # acted reference peak: 0.663
-    "lip_press_delta": (0.035, 0.09),  # not scored
-    "lip_press_peak_1s": (0.41, 0.49),  # not scored
+    "brow_lower_peak_1s": (0.35, 0.65),
+    "lip_press_delta": (0.10, 0.20),
+    "lip_press_peak_1s": (0.35, 0.50),
 }
 
 
