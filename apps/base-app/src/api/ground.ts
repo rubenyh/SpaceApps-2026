@@ -1,5 +1,5 @@
 import { apiGet, buildPath } from "./client";
-import type { Alert, CrewMember, GroundReading, Link, SensorKind } from "./types";
+import type { Alert, CrewMember, GroundIncident, GroundReading, Link, SensorKind } from "./types";
 
 export const getLink = (signal?: AbortSignal) => apiGet<Link>("/link", signal);
 
@@ -20,3 +20,10 @@ export function getReadings(
 /** Newest first. Max limit 500. */
 export const getAlerts = (limit: number, signal?: AbortSignal) =>
   apiGet<Alert[]>(buildPath("/alerts", { limit }), signal);
+
+/** Newest began_at first. */
+export const getIncidents = (signal?: AbortSignal) => apiGet<GroundIncident[]>("/incidents", signal);
+
+/** 404 for an unknown incident. */
+export const getIncident = (id: string, signal?: AbortSignal) =>
+  apiGet<GroundIncident>(`/incidents/${encodeURIComponent(id)}`, signal);

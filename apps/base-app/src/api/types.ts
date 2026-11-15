@@ -81,3 +81,48 @@ export interface Alert {
   normal_max: number | null;
   side: "high" | "low";
 }
+
+// --- Incidents (incident contract section 7, ground GET /incidents) -----------
+
+export type IncidentUpdateType = "created" | "acknowledged" | "closed";
+
+export interface GroundMatchedRule {
+  rule_id: string;
+  protocol_id: string | null;
+  protocol_version: string | null;
+}
+
+export interface GroundAcknowledgment {
+  acknowledged_by: string;
+  /** Onboard event time (occurred_at of the acknowledged update). */
+  acknowledged_at: string;
+  /** Ground clock. */
+  received_at: string;
+}
+
+export interface GroundIncidentUpdate {
+  id: string;
+  type: IncidentUpdateType;
+  /** Original onboard event time. */
+  occurred_at: string;
+  /** Ground clock when the update was stored. */
+  received_at: string;
+  acknowledged_by: string | null;
+}
+
+/** GET /incidents item (newest began_at first) and GET /incidents/{id}. */
+export interface GroundIncident {
+  ship_id: string;
+  id: string;
+  astronaut_id: string | null;
+  /** null until the "created" update arrives. */
+  began_at: string | null;
+  urgency: string;
+  protocol_id: string | null;
+  protocol_version: string | null;
+  matched_rules: GroundMatchedRule[];
+  action: string | null;
+  acknowledgments: GroundAcknowledgment[];
+  /** Sorted by occurred_at asc. */
+  updates: GroundIncidentUpdate[];
+}
