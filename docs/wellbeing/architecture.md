@@ -91,7 +91,7 @@ Quién escribe qué:
 - **Por qué importa:** con `UTC`, en Mexicali (`America/Tijuana`) los datos de después de las 16:00 caen en el día siguiente. El test `test_17h_tijuana_falls_on_the_local_day_only_with_mission_tz` lo cubre.
 - La zona en uso sale en `GET /wellbeing/parameters` (`mission_tz`). La consola, `demo_reset.py`, `simulate_wellbeing.py` e `import_apple_health.py` la leen de ahí.
 - La zona aplica a todo el módulo, no por astronauta.
-- **Docker:** `docker-compose.yml` no pasa `WELLBEING_MISSION_TZ`, así que en Docker bienestar corre en `UTC`. **Pendiente** del PR #82, que agrega `America/Tijuana` por defecto. Mientras tanto, para la demo en Mexicali conviene el camino nativo ([runbook](../wellbeing-demo-runbook.md)).
+- **Docker:** `docker-compose.yml` pasa `WELLBEING_MISSION_TZ` con `America/Tijuana` por defecto (PR #82), así que Docker y el camino nativo agrupan los mismos días. Se cambia con `$env:WELLBEING_MISSION_TZ` antes de `.\run.ps1` ([runbook](../wellbeing-demo-runbook.md)).
 
 ## Integración con el resto
 

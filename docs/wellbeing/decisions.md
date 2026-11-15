@@ -78,7 +78,7 @@ Las fechas son las de los commits (hora local del equipo). Los PR se fusionaron 
 - Cambiar la zona reagrupa los datos sin migrar, salvo `checkins.day`, que se guarda tal cual.
 - La zona es una sola para todo el módulo, no por astronauta.
 - Los scripts leen la zona de la API (`GET /wellbeing/parameters`) y `demo_reset.py --tz` se detiene si no coincide.
-- En Docker sigue siendo `UTC` hasta que entre el PR #82 (**Pendiente**).
+- En Docker, `docker-compose.yml` usa `America/Tijuana` por defecto (PR #82).
 
 **Fuente:** PR #32 (commit `f39e5bb`); [`settings.py`](../../services/onboard-api/src/onboard_api/wellbeing/settings.py); [`test_wellbeing_mission_tz.py`](../../services/onboard-api/tests/test_wellbeing_mission_tz.py).
 
