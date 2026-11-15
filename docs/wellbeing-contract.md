@@ -329,7 +329,7 @@ Una entrada por astronauta registrado, ordenados por `astronaut_id`. **Sin detal
   "generated_at": "2026-11-14T18:05:00.000000Z",
   "provisional": true,
   "members": [
-    {"astronaut_id": "ast-01", "display_name": "X", "level": "ok", "trend": "stable", "latest_origin": "mixed"},
+    {"astronaut_id": "ast-01", "display_name": "Elena Ruiz", "level": "ok", "trend": "stable", "latest_origin": "mixed"},
     {"astronaut_id": "ast-02", "display_name": "Y", "level": "needs_support", "trend": "worsening", "latest_origin": "simulated"},
     {"astronaut_id": "ast-03", "display_name": "Z", "level": "baseline_pending", "trend": "unknown", "latest_origin": "live"}
   ]
