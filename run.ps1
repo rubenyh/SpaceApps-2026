@@ -25,8 +25,9 @@ if (-not $NoApps) {
     foreach ($app in 'spaceship-app', 'base-app') {
         $dir = Join-Path $PSScriptRoot "apps\$app"
         # Own window per console so each one's log stays readable; close the window to stop it.
+        # npm.cmd, not npm: npm.ps1 is blocked under the default execution policy (PSSecurityException).
         Start-Process powershell -WorkingDirectory $dir -ArgumentList '-NoExit', '-Command',
-            "`$host.UI.RawUI.WindowTitle='$app'; if (-not (Test-Path node_modules)) { npm install }; npm run tauri dev"
+            "`$host.UI.RawUI.WindowTitle='$app'; if (-not (Test-Path node_modules)) { npm.cmd install; if (`$LASTEXITCODE -ne 0) { Write-Host 'npm install failed for $app; not launching.' -ForegroundColor Red; return } }; npm.cmd run tauri dev"
     }
 }
 
