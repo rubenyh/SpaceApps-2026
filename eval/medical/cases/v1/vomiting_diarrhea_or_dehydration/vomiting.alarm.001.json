@@ -1,0 +1,47 @@
+{
+  "case_id": "vomiting.alarm.001",
+  "version": 1,
+  "family": "vomiting_diarrhea_or_dehydration",
+  "tags": [
+    "alarm"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "I'm vomiting and I feel confused",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "vomiting_diarrhea_or_dehydration",
+    "clarify": false,
+    "required_actions": [
+      "Vomiting or diarrhea with new confusion"
+    ],
+    "prohibited_actions": [
+      "stop drinking",
+      "nothing to worry"
+    ],
+    "acceptable_sources": [
+      "medlineplus-dehydration",
+      "medlineplus-nauseaandvomiting",
+      "medlineplus-diarrhea"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

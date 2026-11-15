@@ -58,6 +58,10 @@ class Interpretation:
     topic_hint: str | None = None
     # Concrete complaint outside the closed vocabulary ("me duele el oído"): out of coverage.
     uncovered: str | None = None
+    # Misspelled words read as symptom words, e.g. (("dyziness", "dizziness"),).
+    corrections: tuple[tuple[str, str], ...] = ()
+    # A misspelled word close to several symptoms: their codes, to ask which one.
+    spelling_options: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

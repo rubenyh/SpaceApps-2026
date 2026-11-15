@@ -1,4 +1,4 @@
-// Wellbeing marks: level pill, origin chip, trend, confidence. Never pulse; state is icon + text + border.
+// Wellbeing marks: level pill, origin chip, trend, confidence. No animation; state is icon + text + border.
 import type { Confidence, IndicatorStatus, Origin, SupportLevel, Trend } from "../api/types";
 import {
   CONFIDENCE_LABELS,

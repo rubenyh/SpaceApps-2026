@@ -1,0 +1,47 @@
+{
+  "case_id": "injury.alarm.003",
+  "version": 1,
+  "family": "injury_bleeding_or_burn",
+  "tags": [
+    "alarm"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "I hit my head and now I'm confused",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "injury_bleeding_or_burn",
+    "clarify": false,
+    "required_actions": [
+      "Blow to the head with danger signs"
+    ],
+    "prohibited_actions": [
+      "apply butter",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-headinjuries",
+      "medlineplus-bleeding",
+      "medlineplus-burns"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

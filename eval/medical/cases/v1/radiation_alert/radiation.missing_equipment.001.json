@@ -1,0 +1,54 @@
+{
+  "case_id": "radiation.missing_equipment.001",
+  "version": 1,
+  "family": "radiation_alert",
+  "tags": [
+    "missing_equipment",
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "¿Estuve expuesto a radiación? Solo tengo los datos de orina",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [
+    {
+      "astronaut_id": "ast-01",
+      "kind": "urine_radiation_marker",
+      "unit": "a.u.",
+      "quality": "good",
+      "source": "manual",
+      "age_seconds": 60,
+      "value": 0.4
+    }
+  ],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "informational",
+    "protocol_id": "radiation_alert",
+    "clarify": false,
+    "required_actions": [
+      "exposure cannot be estimated"
+    ],
+    "prohibited_actions": [
+      "you were not exposed",
+      "no exposure occurred"
+    ],
+    "acceptable_sources": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "No dosimetry: exposure cannot be estimated from urine."
+  }
+}

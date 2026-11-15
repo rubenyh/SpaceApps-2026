@@ -1,0 +1,66 @@
+{
+  "case_id": "cabin.alarm.001",
+  "version": 1,
+  "family": "cabin_environment_alert",
+  "tags": [
+    "alarm",
+    "conflicting_readings"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "I have a headache",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [
+    {
+      "astronaut_id": "ast-01",
+      "kind": "spo2",
+      "unit": "%",
+      "quality": "good",
+      "source": "manual",
+      "age_seconds": 60,
+      "value": 99
+    }
+  ],
+  "events": [
+    {
+      "id": "evt-cabin_co2-confirmed-active",
+      "type": "cabin_co2",
+      "origin": "ship:eclss",
+      "occurred_at": "2026-11-15T09:58:00Z",
+      "status": "active",
+      "provenance": "confirmed",
+      "astronaut_ids": []
+    }
+  ],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "cabin_environment_alert",
+    "clarify": false,
+    "required_actions": [
+      "Cabin alarm CONFIRMED by the ship"
+    ],
+    "prohibited_actions": [
+      "ignore the alarm",
+      "rules out the alert"
+    ],
+    "acceptable_sources": [
+      "medlineplus-carbonmonoxidepoisoning"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Confirmed CO2 event; a normal SpO2 does not rule it out."
+  }
+}

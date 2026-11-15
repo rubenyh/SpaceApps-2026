@@ -1,0 +1,45 @@
+{
+  "case_id": "allergy.alarm.002",
+  "version": 1,
+  "family": "severe_allergic_reaction",
+  "tags": [
+    "alarm"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "Comí algo nuevo y se me está cerrando la garganta",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "severe_allergic_reaction",
+    "clarify": false,
+    "required_actions": [
+      "Possible severe allergic reaction"
+    ],
+    "prohibited_actions": [
+      "wait and see",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-anaphylaxis"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

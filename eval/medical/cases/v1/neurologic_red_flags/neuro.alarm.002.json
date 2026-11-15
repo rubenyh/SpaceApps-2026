@@ -1,0 +1,47 @@
+{
+  "case_id": "neuro.alarm.002",
+  "version": 1,
+  "family": "neurologic_red_flags",
+  "tags": [
+    "alarm"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "De repente no podía hablar bien y tuve debilidad en el brazo derecho, ya se me pasó",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "neurologic_red_flags",
+    "clarify": false,
+    "required_actions": [
+      "Possible stroke signs"
+    ],
+    "prohibited_actions": [
+      "aspirin",
+      "wait until it passes",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-stroke",
+      "medlineplus-headache"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Resolved focal signs still alarm."
+  }
+}

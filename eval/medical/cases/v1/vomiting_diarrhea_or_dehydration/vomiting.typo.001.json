@@ -1,0 +1,47 @@
+{
+  "case_id": "vomiting.typo.001",
+  "version": 1,
+  "family": "vomiting_diarrhea_or_dehydration",
+  "tags": [
+    "typo"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "Tengo diarea desde ayer",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "vomiting_diarrhea_or_dehydration",
+    "clarify": false,
+    "required_actions": [
+      "You cannot keep fluids down"
+    ],
+    "prohibited_actions": [
+      "stop drinking",
+      "nothing to worry"
+    ],
+    "acceptable_sources": [
+      "medlineplus-dehydration",
+      "medlineplus-nauseaandvomiting",
+      "medlineplus-diarrhea"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Expectation depends on the typo and transcription fix of issue #51 (PR #56). Diarrhea since yesterday is persistent: prompt review."
+  }
+}
