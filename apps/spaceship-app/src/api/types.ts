@@ -276,6 +276,18 @@ export interface Finding {
   detail: string;
   /** "report" (text), "structured", "sqlite:<kind>", "event:<id>". */
   source: string;
+  /** Evidence quality. Optional for older servers. */
+  evidence_flags?: EvidenceFlag[];
+}
+
+export type EvidenceFlag = "simulated" | "stale" | "missing" | "poor_quality";
+
+/** Onboard incident stored for an `immediate` response. */
+export interface IncidentRef {
+  id: string | null;
+  recorded: boolean;
+  /** Why nothing was stored, when recorded is false. */
+  error: string | null;
 }
 
 /** Candidate from the protocol's reviewed catalog. Never a probability. */
@@ -334,4 +346,6 @@ export interface AssistantResponse {
   clarifying_question: string | null;
   /** Set with needs_clarification on medical/clarify replies: send it back unchanged. */
   clarification: Clarification | null;
+  /** Set only when urgency is "immediate". Optional for older servers. */
+  incident?: IncidentRef | null;
 }
