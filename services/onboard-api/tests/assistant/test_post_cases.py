@@ -16,7 +16,7 @@ from assistant.fakes import (
     FakeRetriever,
     chunk,
 )
-from assistant.medical_cases import CASES, FRESH, STALE, _event, _reading
+from assistant.medical_cases import CASES, FRESH, FUTURE, STALE, _event, _reading
 from onboard_api.assistant.state import AssistantDeps
 from onboard_api.assistant.workflows.medical import prompts
 from onboard_api.assistant.workflows.medical.context import (
@@ -188,19 +188,39 @@ def test_simultaneous_alarms(ask) -> None:
     assert len(lines) == len(set(lines))  # actions deduplicated
 
 
-@pytest.mark.parametrize("variant", ["fresh", "stale", "missing", "unavailable"])
-def test_severe_breathing_spo2_97_stays_immediate(ask, tmp_path: Path, variant: str) -> None:
-    readings = {
-        "fresh": [_reading("spo2", 97, "%")],
-        "stale": [_reading("spo2", 97, "%", recorded_at=STALE)],
-    }.get(variant, [])
+# variant -> (readings, flags expected on the SpO2 finding). "unavailable" breaks the repository.
+EVIDENCE_VARIANTS = {
+    "fresh": ([_reading("spo2", 97, "%")], []),
+    "simulated": ([_reading("spo2", 97, "%", source="simulated:pulse-ox")], ["simulated"]),
+    "demo": ([_reading("spo2", 97, "%", source="demo")], ["simulated"]),
+    "stale": ([_reading("spo2", 97, "%", recorded_at=STALE)], ["stale"]),
+    "future": ([_reading("spo2", 97, "%", recorded_at=FUTURE)], ["stale"]),
+    "suspect": ([_reading("spo2", 97, "%", quality="suspect")], ["poor_quality"]),
+    "simulated_stale_bad": ([_reading("spo2", 97, "%", recorded_at=STALE, quality="bad",
+                                      source="simulated:pulse-ox")], ["simulated", "stale", "poor_quality"]),
+    "missing": ([], ["missing"]),
+    "unavailable": ([], ["missing"]),
+}
+EVIDENCE_PATHS = {  # message -> (protocol, urgency): flags are the same on the alarm and review paths
+    "Me falta mucho el aire de repente": ("breathing_difficulty", "immediate"),
+    "Tengo fiebre y tos desde ayer": ("fever_or_respiratory_illness", "review_required"),
+}
+
+
+@pytest.mark.parametrize("message", EVIDENCE_PATHS, ids=["immediate", "review"])
+@pytest.mark.parametrize("variant", EVIDENCE_VARIANTS)
+def test_evidence_flags_on_reading_findings(ask, tmp_path: Path, message: str, variant: str) -> None:
+    """Flags label the evidence; they never change the card or urgency (severe breathing
+    with SpO2 97 % stays immediate whatever the reading)."""
+    readings, flags = EVIDENCE_VARIANTS[variant]
     provider = SqliteReadingsProvider(tmp_path) if variant == "unavailable" else None
-    body, *_ = ask(
-        {"message": "Me falta mucho el aire de repente", "astronaut_id": "ana"},
-        readings=readings,
-        provider=provider,
-    )
-    assert body["urgency"] == "immediate" and body["protocol_id"] == "breathing_difficulty"
+    body, *_ = ask({"message": message, "astronaut_id": "ana"}, readings=readings, provider=provider)
+    assert (body["protocol_id"], body["urgency"]) == EVIDENCE_PATHS[message]
+    source = "sqlite" if variant == "unavailable" else "sqlite:spo2"
+    [spo2] = [f for f in body["findings"] if f["source"] == source]
+    assert spo2["evidence_flags"] == flags
+    assert spo2["kind"] == ("data_gap" if "missing" in flags else "reading")
+    assert all(f["evidence_flags"] == [] for f in body["findings"] if not f["source"].startswith("sqlite"))
 
 
 def test_resolved_sudden_weakness_is_alarm(ask) -> None:
@@ -335,6 +355,23 @@ def test_ollama_failing_falls_back_to_card(ask) -> None:
     assert prompts.NOTICE_LLM_FAILED in body["data_notices"]
     assert body["action"] and body["reply"].startswith(body["action"].split("\n")[0][:40])
     assert kinds(body) == {"protocol"}
+
+
+@pytest.mark.parametrize(
+    "message, urgency",
+    [("Siento presión en el pecho desde hace un rato y sudor frío", "immediate"),
+     ("Me duele el pecho", "review_required")],
+    ids=["immediate", "review"],
+)
+def test_ollama_down_states_missing_mission_guidance(ask, message: str, urgency: str) -> None:
+    """With Ollama down, the card still answers and says which mission guidance it lacks."""
+    body, *_ = ask({"message": message, "astronaut_id": "ana"}, llm=FailingLLM())
+    assert body["protocol_id"] == "chest_pain" and body["urgency"] == urgency and body["action"]
+    assert body["missing_guidance"] and body["mission_procedures"]
+    assert not any(p["loaded"] for p in body["mission_procedures"])
+    report = body["report"]["text"]
+    assert "NOT loaded in the assistant" in report
+    assert all(m in report for m in body["missing_guidance"])
 
 
 def test_all_dependencies_down_alarm_still_immediate(ask) -> None:

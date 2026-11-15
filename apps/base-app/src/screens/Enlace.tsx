@@ -16,41 +16,41 @@ interface Props {
 
 export function Enlace({ link, since, state, crew, ledger, offline }: Props) {
   const configs = crew?.[0]?.sensors.map((s) => s.config) ?? [];
-  const none = "Aún no llegó ningún lote";
+  const none = "No batch has arrived yet";
 
   return (
     <>
-      <h1 className="sr-only">Enlace con la nave</h1>
+      <h1 className="sr-only">Link with the ship</h1>
       <div className="link-grid">
         <dl className="facts">
           <div>
-            <dt>Estado</dt>
+            <dt>Status</dt>
             <dd className={`link-state link-state--${state}`}>{linkWords(state, since)}</dd>
           </div>
           <div>
-            <dt>Nave</dt>
-            <dd>{link?.ship_id ?? <span className="muted">{link ? "Sin identificar: " + none.toLowerCase() : "--"}</span>}</dd>
+            <dt>Ship</dt>
+            <dd>{link?.ship_id ?? <span className="muted">{link ? "Unknown: " + none.toLowerCase() : "--"}</span>}</dd>
           </div>
           <div>
-            <dt>Último lote enviado (reloj de la nave)</dt>
+            <dt>Last batch sent (ship clock)</dt>
             <dd>{link?.last_batch_sent_at ? utcStamp(link.last_batch_sent_at) : <span className="muted">{none}</span>}</dd>
           </div>
           <div>
-            <dt>Último lote recibido (reloj de tierra)</dt>
+            <dt>Last batch received (ground clock)</dt>
             <dd>{link?.last_batch_received_at ? utcStamp(link.last_batch_received_at) : <span className="muted">{none}</span>}</dd>
           </div>
           <div>
-            <dt>Tiempo desde el último lote</dt>
+            <dt>Time since the last batch</dt>
             <dd>{since === null ? <span className="muted">{none}</span> : formatDuration(since)}</dd>
           </div>
           <div>
-            <dt>Lotes recibidos</dt>
+            <dt>Batches received</dt>
             <dd>
               <Flap text={link ? String(link.batches_received) : "--"} tiles width={6} />
             </dd>
           </div>
           <div>
-            <dt>Lecturas recibidas</dt>
+            <dt>Readings received</dt>
             <dd>
               <Flap text={link ? String(link.readings_received) : "--"} tiles width={6} />
             </dd>
@@ -58,25 +58,25 @@ export function Enlace({ link, since, state, crew, ledger, offline }: Props) {
         </dl>
 
         <div className="explain">
-          <h2>Qué es un dato viejo en tierra</h2>
+          <h2>What old data means on ground</h2>
           <p>
-            Tierra mide la edad de cada lectura con su propio reloj, desde que se registró en la nave.
-            El retraso del enlace cuenta: una lectura que ya era reciente a bordo puede llegar vieja.
-            Cuando su edad supera el límite de su sensor se marca en ámbar como dato viejo y no se
-            evalúa contra su rango.
+            Ground measures the age of each reading with its own clock, from when the ship recorded
+            it. Link delay counts: a reading that was recent onboard can arrive old. When its age
+            passes its sensor's limit it is marked in amber as old data and not checked against its
+            range.
           </p>
           <p>
-            Enlace retrasado: {LINK_LATE_S} s o más sin lotes. Sin enlace: {LINK_LOST_S} s o más. Si el
-            servicio de tierra no responde, todo valor conocido se muestra como dato viejo.
+            Batch late: {LINK_LATE_S} s or more without batches. No link: {LINK_LOST_S} s or more. If
+            the ground service does not answer, every known value is shown as old data.
           </p>
           {configs.length > 0 ? (
             <table className="log">
               <thead>
                 <tr>
                   <th scope="col">Sensor</th>
-                  <th scope="col">Viejo tras</th>
-                  <th scope="col">Rango</th>
-                  <th scope="col">Fuente del rango</th>
+                  <th scope="col">Old after</th>
+                  <th scope="col">Range</th>
+                  <th scope="col">Range source</th>
                 </tr>
               </thead>
               <tbody>
@@ -86,16 +86,16 @@ export function Enlace({ link, since, state, crew, ledger, offline }: Props) {
                       <SensorName kind={c.kind} />
                     </td>
                     <td className="num">
-                      {c.stale_after_seconds === null ? "Nunca" : formatDuration(c.stale_after_seconds)}
+                      {c.stale_after_seconds === null ? "Never" : formatDuration(c.stale_after_seconds)}
                     </td>
                     <td>
                       {c.kind === "urine_radiation_marker" ? (
-                        <span className="muted">Indicador indirecto</span>
+                        <span className="muted">Indirect marker</span>
                       ) : (
                         <RangeLabel config={c} />
                       )}
                     </td>
-                    <td>{c.range_source ?? <span className="muted">Sin fuente</span>}</td>
+                    <td>{c.range_source ?? <span className="muted">No source</span>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -105,7 +105,7 @@ export function Enlace({ link, since, state, crew, ledger, offline }: Props) {
       </div>
 
       <section className="section" aria-labelledby="link-ledger">
-        <h2 id="link-ledger">Lotes recibidos</h2>
+        <h2 id="link-ledger">Batches received</h2>
         <Ledger ledger={ledger} link={link} offline={offline} />
       </section>
     </>

@@ -48,14 +48,14 @@ export function Astronauta({ crew, crewAt, offline, now, selectedId, onSelect }:
     return (
       <p className="empty">
         {offline
-          ? "Sin datos de tripulación: el servicio de tierra no responde."
-          : "Cargando tripulación…"}
+          ? "No crew data: the ground service is not answering."
+          : "Loading crew…"}
       </p>
     );
   }
   if (crew.length === 0 || !member) {
     return (
-      <p className="empty">Aún no hay tripulación en tierra. Aparecerá con el primer lote que envíe la nave.</p>
+      <p className="empty">No crew on ground yet. Crew appears with the first batch the ship sends.</p>
     );
   }
 
@@ -65,9 +65,9 @@ export function Astronauta({ crew, crewAt, offline, now, selectedId, onSelect }:
   return (
     <>
       <div className="toolbar">
-        <h1 className="sr-only">Astronauta {member.display_name}</h1>
+        <h1 className="sr-only">Astronaut {member.display_name}</h1>
         <label className="toolbar__label" htmlFor="astro-select">
-          Astronauta
+          Astronaut
         </label>
         <select id="astro-select" value={member.astronaut_id} onChange={(e) => onSelect(e.target.value)}>
           {crew.map((m) => (
@@ -80,21 +80,21 @@ export function Astronauta({ crew, crewAt, offline, now, selectedId, onSelect }:
           <Flap text={ROW_LABELS[state]} />
         </span>
         <span className="toolbar__meta">
-          {age === null ? "Ningún dato recibido" : `Último dato ${formatAge(age)} (medido en tierra)`}
+          {age === null ? "No data received" : `Last data ${formatAge(age)} (measured on ground)`}
         </span>
       </div>
 
       <table className="sensors">
-        <caption className="sr-only">Sensores de {member.display_name}</caption>
+        <caption className="sr-only">Sensors of {member.display_name}</caption>
         <thead>
           <tr>
             <th scope="col">Sensor</th>
-            <th scope="col">Valor</th>
-            <th scope="col">Unidad</th>
-            <th scope="col">Rango</th>
-            <th scope="col">Calidad</th>
-            <th scope="col">Edad en tierra</th>
-            <th scope="col">Estado</th>
+            <th scope="col">Value</th>
+            <th scope="col">Unit</th>
+            <th scope="col">Range</th>
+            <th scope="col">Quality</th>
+            <th scope="col">Age on ground</th>
+            <th scope="col">Status</th>
           </tr>
         </thead>
         <tbody>
@@ -104,12 +104,12 @@ export function Astronauta({ crew, crewAt, offline, now, selectedId, onSelect }:
         </tbody>
       </table>
       <p className="hint">
-        PROV.: rango provisional de demostración, sin validación clínica. El marcador de radiación en
-        orina es indirecto: nunca indica una dosis.
+        PROV.: provisional demo range, not clinically validated. The urine radiation marker is
+        indirect: it never indicates a dose.
       </p>
 
       <section className="section" aria-labelledby="vitals-title">
-        <h2 id="vitals-title">Signos vitales, últimos 15 min</h2>
+        <h2 id="vitals-title">Vital signs, last 15 min</h2>
         <div className="charts charts--2">
           {VITAL_KINDS.map((k) => (
             <Trend key={k} kind={k} member={member} poll={vitals} start={now - VITALS_WINDOW} end={now} />
@@ -118,7 +118,7 @@ export function Astronauta({ crew, crewAt, offline, now, selectedId, onSelect }:
       </section>
 
       <section className="section" aria-labelledby="days-title">
-        <h2 id="days-title">Orina y músculo, últimos 14 días</h2>
+        <h2 id="days-title">Urine and muscle, last 14 days</h2>
         <div className="charts charts--3">
           {DAY_KINDS.map((k) => (
             <Trend key={k} kind={k} member={member} poll={days} start={now - DAYS_WINDOW} end={now} points />
@@ -144,14 +144,14 @@ function SensorRow({ s, offline, age }: { s: SensorStatus; offline: boolean; age
           <Flap text={c.text} tiles={!radiation && c.text.length <= 8} width={4} />
         </span>
       </td>
-      <td>{radiation ? <span className="muted">No es una dosis</span> : (s.latest?.unit ?? s.config.unit ?? "--")}</td>
-      <td>{radiation ? <span className="muted">Indicador indirecto</span> : <RangeLabel config={s.config} />}</td>
+      <td>{radiation ? <span className="muted">Not a dose</span> : (s.latest?.unit ?? s.config.unit ?? "--")}</td>
+      <td>{radiation ? <span className="muted">Indirect marker</span> : <RangeLabel config={s.config} />}</td>
       <td className={quality && quality !== "good" ? "quality quality--warn" : "quality"}>
         {quality ? QUALITY_LABELS[quality] : "--"}
       </td>
-      <td>{age === null ? <span className="muted">Sin dato</span> : formatAge(age)}</td>
+      <td>{age === null ? <span className="muted">No data</span> : formatAge(age)}</td>
       <td className={`cell cell--${c.tone}`}>
-        <Flap text={c.note || "En rango"} className="flap--text" />
+        <Flap text={c.note || "In range"} className="flap--text" />
       </td>
     </tr>
   );
@@ -177,18 +177,18 @@ function Trend({ kind, member, poll, start, end, points = false }: TrendProps) {
           {config?.unit ? <span className="board__unit"> {config.unit}</span> : null}
         </span>
         <span className="trend__range">
-          {range ? `Rango ${range}` : "Sin rango"}
+          {range ? `Range ${range}` : "No range"}
           {range && config?.provisional ? <span className="tag tag--prov">PROV.</span> : null}
         </span>
       </figcaption>
       {poll.data === null ? (
         poll.error ? (
           <p className="trend__state">
-            Tendencia no disponible:{" "}
-            {poll.error.kind === "network" ? "el servicio de tierra no responde" : poll.error.message}
+            Trend not available:{" "}
+            {poll.error.kind === "network" ? "the ground service is not answering" : poll.error.message}
           </p>
         ) : (
-          <div className="trend__skeleton" aria-label="Cargando tendencia" />
+          <div className="trend__skeleton" aria-label="Loading trend" />
         )
       ) : (
         <LineChart
@@ -201,7 +201,7 @@ function Trend({ kind, member, poll, start, end, points = false }: TrendProps) {
           cap={kind === "spo2" && config?.unit === "%" ? 100 : null}
           showPoints={points}
           label={SENSOR_LABELS[kind]}
-          emptyText="Sin lecturas en este periodo"
+          emptyText="No readings in this period"
         />
       )}
     </figure>

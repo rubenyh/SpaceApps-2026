@@ -69,14 +69,14 @@ const temp = sensor("urine_temperature", "alert", 39.2, 32, 38, "sample_validity
 const rad = sensor("urine_radiation_marker", "no_range", 1, null, null);
 
 // Cells: words for every state, no invented values, radiation never shows its value.
-eq(cellView(high, false), { text: "112", tone: "alert", note: "Alto" }, "cell high");
-eq(cellView(low, false).note, "Bajo", "cell low");
+eq(cellView(high, false), { text: "112", tone: "alert", note: "High" }, "cell high");
+eq(cellView(low, false).note, "Low", "cell low");
 eq(cellView(ok, false), { text: "6.2", tone: "plain", note: "" }, "cell ok");
-eq(cellView(old, false), { text: "24.3", tone: "stale", note: "Dato viejo" }, "cell stale");
-eq(cellView(none, false), { text: "--", tone: "muted", note: "Sin dato" }, "cell none");
-eq(cellView(sensor("urine_salinity", "no_range", 20, null, null), false).note, "Sin rango", "cell no range");
+eq(cellView(old, false), { text: "24.3", tone: "stale", note: "Old data" }, "cell stale");
+eq(cellView(none, false), { text: "--", tone: "muted", note: "No data" }, "cell none");
+eq(cellView(sensor("urine_salinity", "no_range", 20, null, null), false).note, "No range", "cell no range");
 eq(cellView(temp, false).tone, "stale", "sample validity is not a health alert");
-eq(cellView(rad, false).text, "Posible exposición", "radiation wording");
+eq(cellView(rad, false).text, "Possible exposure", "radiation wording");
 eq(cellView(high, true).tone, "stale", "offline shows stale");
 
 // Rows.
@@ -129,7 +129,7 @@ eq(f.length, 4, "frames = changed + 1");
 for (const s of f) eq(s.length, 3, "fixed width");
 eq(cascadeFrames("120", "125").every((s) => s.startsWith("12")), true, "unchanged chars stay");
 eq(cascadeFrames("A", "ABCDEFGHIJKLMNOP").length, 8, "capped frames");
-eq(cascadeFrames("ALERTA", "SIN ALERTAS").slice(-1)[0], "SIN ALERTAS", "text target");
+eq(cascadeFrames("ALERT", "NO ALERTS").slice(-1)[0], "NO ALERTS", "text target");
 
 // Chart scale: round ticks only, SpO2 axis never above 100.
 const round = (t: number[]) => t.every((v) => Number.isInteger(v * 2));

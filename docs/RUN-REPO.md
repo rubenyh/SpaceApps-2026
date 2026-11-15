@@ -106,6 +106,8 @@ Sit facing the camera, about 50 cm away, in good light. The process sends only d
 3. Ask the assistant a question. An SOS message gets its immediate reply even when `ollama` is stopped.
 4. base-app shows the same astronauts and alerts within a few seconds, and the link is up.
 
+Outage demo (urgent incident while the Earth link is down, about 30 s): see [demo-outage.md](demo-outage.md). Its controls (link pause/resume, incident reset) are off by default and answer 403. Start the stack with `$env:DEMO_CONTROLS_ENABLED="true"` in PowerShell (or `DEMO_CONTROLS_ENABLED=true docker compose up -d`) to turn them on. Reset with `python services/onboard-api/scripts/incident_demo.py reset`, then run it with `python services/onboard-api/scripts/incident_demo.py run --step`.
+
 ## Stop
 
 ```sh

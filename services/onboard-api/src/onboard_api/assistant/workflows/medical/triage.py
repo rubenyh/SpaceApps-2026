@@ -23,6 +23,7 @@ from onboard_api.assistant.workflows.medical.state import (
 )
 from onboard_api.schemas.assistant import (
     ActionStep,
+    EvidenceFlag,
     Finding,
     GuideSource,
     MatchedRule,
@@ -601,15 +602,30 @@ def _reading_findings(pids: list[str], readings: ReadingsContext) -> list[Findin
     if not kinds:
         return []
     if not readings.available:
-        return [Finding(kind="data_gap", detail="Readings unavailable: the repository could not be queried.", source="sqlite")]
+        return [Finding(kind="data_gap", detail="Readings unavailable: the repository could not be queried.",
+                        source="sqlite", evidence_flags=["missing"])]
     out = []
     for kind in kinds:
         r = readings.latest.get(kind)
         if r is not None:
-            out.append(Finding(kind="reading", detail=_reading_detail(r, pids), source=f"sqlite:{kind}"))
+            out.append(Finding(kind="reading", detail=_reading_detail(r, pids), source=f"sqlite:{kind}",
+                               evidence_flags=_reading_flags(r)))
         elif kind in REFERENCE:
-            out.append(Finding(kind="data_gap", detail=f"No {_KIND_LABELS[kind]} reading.", source=f"sqlite:{kind}"))
+            out.append(Finding(kind="data_gap", detail=f"No {_KIND_LABELS[kind]} reading.", source=f"sqlite:{kind}",
+                               evidence_flags=["missing"]))
     return out
+
+
+def _reading_flags(r: VitalReading) -> list[EvidenceFlag]:
+    """Labels for the console (contract section 4). `stale` already covers future-dated readings."""
+    flags: list[EvidenceFlag] = []
+    if is_simulated_source(r.source):
+        flags.append("simulated")
+    if r.stale:
+        flags.append("stale")
+    if r.quality != "good":
+        flags.append("poor_quality")
+    return flags
 
 
 def decide(hits: list[RuleHit], catalog: dict[str, Protocol], readings: ReadingsContext | None) -> Decision:
