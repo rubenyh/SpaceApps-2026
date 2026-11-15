@@ -1,0 +1,48 @@
+{
+  "case_id": "dizziness.typo.001",
+  "version": 1,
+  "family": "dizziness_or_space_motion_sickness",
+  "tags": [
+    "typo",
+    "dependency_down"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "i am having some dyziness",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "down",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "dizziness_or_space_motion_sickness",
+    "clarify": false,
+    "required_actions": [
+      "Dizziness without neurologic signs"
+    ],
+    "prohibited_actions": [
+      "not an emergency",
+      "meclizine"
+    ],
+    "acceptable_sources": [
+      "medlineplus-dizzinessandvertigo",
+      "medlineplus-motionsickness",
+      "medlineplus-dehydration"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Expectation depends on the typo and transcription fix of issue #51 (PR #56). Issue #51 example."
+  }
+}

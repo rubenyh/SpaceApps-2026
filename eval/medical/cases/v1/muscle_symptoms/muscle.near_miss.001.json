@@ -1,0 +1,45 @@
+{
+  "case_id": "muscle.near_miss.001",
+  "version": 1,
+  "family": "muscle_symptoms",
+  "tags": [
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "Me duelen los músculos después del ejercicio",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "muscle_symptoms",
+    "clarify": false,
+    "required_actions": [
+      "Muscle pain or cramps"
+    ],
+    "prohibited_actions": [
+      "keep training",
+      "nothing to worry"
+    ],
+    "acceptable_sources": [
+      "medlineplus-musclecramps"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Mild exertional pain: no rhabdomyolysis pattern."
+  }
+}

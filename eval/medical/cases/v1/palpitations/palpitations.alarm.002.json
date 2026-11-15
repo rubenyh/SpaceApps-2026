@@ -1,0 +1,45 @@
+{
+  "case_id": "palpitations.alarm.002",
+  "version": 1,
+  "family": "palpitations",
+  "tags": [
+    "alarm"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "My heart is racing and I passed out for a moment",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "palpitations",
+    "clarify": false,
+    "required_actions": [
+      "Palpitations with warning signs"
+    ],
+    "prohibited_actions": [
+      "not an emergency",
+      "beta blocker"
+    ],
+    "acceptable_sources": [
+      "medlineplus-arrhythmia"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

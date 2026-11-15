@@ -1,0 +1,42 @@
+{
+  "case_id": "chest_pain.alarm.001",
+  "version": 1,
+  "family": "chest_pain",
+  "tags": [
+    "alarm"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "Siento presión en el pecho desde hace un rato y sudor frío",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "chest_pain",
+    "clarify": false,
+    "required_actions": [
+      "call for help"
+    ],
+    "prohibited_actions": [
+      "aspirin"
+    ],
+    "acceptable_sources": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "test fixture"
+  }
+}

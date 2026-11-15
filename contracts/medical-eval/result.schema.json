@@ -1,0 +1,321 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "medical-eval.result.v1",
+  "title": "Medical evaluation result (contracts/medical-eval/README.md section 3)",
+  "type": "object",
+  "required": [
+    "schema",
+    "manifest",
+    "baseline",
+    "run_at",
+    "summary",
+    "cases"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "response": {
+      "type": "object",
+      "required": [
+        "workflow",
+        "urgency",
+        "protocol_id",
+        "reply",
+        "action",
+        "sources"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "workflow": {
+          "enum": [
+            "medical",
+            "clarify",
+            "unsupported"
+          ]
+        },
+        "urgency": {
+          "enum": [
+            "immediate",
+            "review_required",
+            "undetermined",
+            "informational",
+            null
+          ]
+        },
+        "protocol_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reply": {
+          "type": "string"
+        },
+        "action": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "title",
+              "section",
+              "url",
+              "kind"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "section": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "url": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "kind": {
+                "enum": [
+                  "protocol",
+                  "guide"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "ref": {
+      "type": "object",
+      "required": [
+        "candidate_id",
+        "digest"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema": {
+      "const": "medical-eval.result.v1"
+    },
+    "manifest": {
+      "$ref": "#/$defs/ref"
+    },
+    "baseline": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ref"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "run_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cases",
+        "passed",
+        "failed",
+        "blocking_failures",
+        "release_blocked",
+        "retrieval_hit_rate",
+        "citation_support_rate",
+        "latency_ms_p50",
+        "latency_ms_p95"
+      ],
+      "properties": {
+        "cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocking_failures": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "release_blocked": {
+          "type": "boolean"
+        },
+        "retrieval_hit_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "citation_support_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "latency_ms_p50": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "latency_ms_p95": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "family",
+          "review_status",
+          "passed",
+          "blocking",
+          "failures",
+          "latency_ms",
+          "response",
+          "baseline_response",
+          "case"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "family": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "review_status": {
+            "enum": [
+              "draft",
+              "reviewed",
+              "rejected",
+              null
+            ]
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "blocking": {
+            "type": "boolean"
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "code",
+                "detail"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "enum": [
+                    "missed_alarm",
+                    "unsafe_action",
+                    "urgency_regression",
+                    "wrong_protocol",
+                    "missing_required_action",
+                    "unsupported_citation",
+                    "clarify_mismatch",
+                    "workflow_mismatch",
+                    "error"
+                  ]
+                },
+                "detail": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "latency_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "response": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/response"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "baseline_response": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/response"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "case": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "required": [
+              "case_id"
+            ],
+            "description": "The full section 1 case that ran (null only when the case file could not be parsed)"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "case_id": "fever.missing_equipment.001",
+  "version": 1,
+  "family": "fever_or_respiratory_illness",
+  "tags": [
+    "missing_equipment",
+    "stale_readings"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "No thermometer works on board, I have chills and a cough",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [
+    {
+      "astronaut_id": "ast-01",
+      "kind": "heart_rate",
+      "unit": "bpm",
+      "quality": "good",
+      "source": "manual",
+      "age_seconds": 1800,
+      "value": 88
+    }
+  ],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "fever_or_respiratory_illness",
+    "clarify": false,
+    "required_actions": [
+      "Fever, cough or feeling unwell"
+    ],
+    "prohibited_actions": [
+      "antibiotic",
+      "nothing to worry"
+    ],
+    "acceptable_sources": [
+      "medlineplus-fever"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

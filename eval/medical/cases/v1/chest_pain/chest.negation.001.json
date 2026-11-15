@@ -1,0 +1,47 @@
+{
+  "case_id": "chest.negation.001",
+  "version": 1,
+  "family": "chest_pain",
+  "tags": [
+    "negation",
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "No chest pain, but my heart is racing since this morning",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "palpitations",
+    "clarify": false,
+    "required_actions": [
+      "Palpitations without warning signs"
+    ],
+    "prohibited_actions": [
+      "aspirin",
+      "nitroglycerin",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-arrhythmia"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

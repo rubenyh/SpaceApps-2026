@@ -1,0 +1,48 @@
+{
+  "case_id": "injury.typo.001",
+  "version": 1,
+  "family": "injury_bleeding_or_burn",
+  "tags": [
+    "typo",
+    "alarm"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "My hand is bleding heavily",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "injury_bleeding_or_burn",
+    "clarify": false,
+    "required_actions": [
+      "Press on the wound now"
+    ],
+    "prohibited_actions": [
+      "apply butter",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-headinjuries",
+      "medlineplus-bleeding",
+      "medlineplus-burns"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Expectation depends on the typo and transcription fix of issue #51 (PR #56)."
+  }
+}

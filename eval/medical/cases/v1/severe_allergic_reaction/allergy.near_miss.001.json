@@ -1,0 +1,45 @@
+{
+  "case_id": "allergy.near_miss.001",
+  "version": 1,
+  "family": "severe_allergic_reaction",
+  "tags": [
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "I have hives on my arm, breathing is fine",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "severe_allergic_reaction",
+    "clarify": false,
+    "required_actions": [
+      "Limited allergic symptoms"
+    ],
+    "prohibited_actions": [
+      "wait and see",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-anaphylaxis"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

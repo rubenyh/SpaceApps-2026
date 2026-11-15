@@ -1,0 +1,43 @@
+{
+  "case_id": "radiation.alarm.002",
+  "version": 1,
+  "family": "radiation_alert",
+  "tags": [
+    "alarm"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "The dosimeter alarm is going off",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "radiation_alert",
+    "clarify": false,
+    "required_actions": [
+      "Radiation alert REPORTED by text"
+    ],
+    "prohibited_actions": [
+      "you were not exposed",
+      "no exposure occurred"
+    ],
+    "acceptable_sources": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

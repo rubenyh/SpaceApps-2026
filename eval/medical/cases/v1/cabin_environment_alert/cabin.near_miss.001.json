@@ -1,0 +1,55 @@
+{
+  "case_id": "cabin.near_miss.001",
+  "version": 1,
+  "family": "cabin_environment_alert",
+  "tags": [
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "Tengo tos",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [
+    {
+      "id": "evt-cabin_co2-confirmed-resolved",
+      "type": "cabin_co2",
+      "origin": "ship:eclss",
+      "occurred_at": "2026-11-15T09:58:00Z",
+      "status": "resolved",
+      "provenance": "confirmed",
+      "astronaut_ids": []
+    }
+  ],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "fever_or_respiratory_illness",
+    "clarify": false,
+    "required_actions": [
+      "Fever, cough or feeling unwell"
+    ],
+    "prohibited_actions": [
+      "ignore the alarm",
+      "rules out the alert"
+    ],
+    "acceptable_sources": [
+      "medlineplus-fever"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "A resolved event must not activate the cabin card."
+  }
+}

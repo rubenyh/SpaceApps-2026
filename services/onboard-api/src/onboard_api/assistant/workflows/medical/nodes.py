@@ -21,6 +21,7 @@ from onboard_api.assistant.workflows.medical.state import (
 )
 from onboard_api.assistant.workflows.medical.triage import (
     GENERIC_CLARIFYING_QUESTION,
+    LABELS,
     PERTINENT_READINGS,
     decide,
     evaluate_alarms,
@@ -116,6 +117,8 @@ def interpret_report(state: MedicalState, events: EventSource) -> dict:
     case = understand.case_for(request)
     previous = [understand.to_observation(o) for o in case.observations] if case else []
     base = interpret(request)
+    # Shown with the answer so a misread word is visible to the crew and in the report.
+    notices = [f'Read "{typo}" as "{word}".' for typo, word in base.corrections]
     if case:  # "sí, un poco" or "empezó de repente" read against the pending question
         subject = understand.subject_of(request, previous)
         base = understand.answer_turn(base, request.message, case, previous, subject)
@@ -124,7 +127,7 @@ def interpret_report(state: MedicalState, events: EventSource) -> dict:
         "events": found,
         "clarification": case,
         "sos": is_sos(request.message),
-        "notices": [],
+        "notices": notices,
     }
 
 
@@ -256,7 +259,9 @@ def _pending(state: MedicalState, question_id: str, question: str) -> Clarificat
 def respond_clarify(state: MedicalState) -> dict:
     d = state.get("decision")
     if d is None:  # report with no concrete symptom yet: ask what the person feels
-        q = GENERIC_CLARIFYING_QUESTION
+        options = state["interpretation"].spelling_options
+        q = (f"Do you mean {' or '.join(LABELS[c].lower() for c in options)}?"
+             if options else GENERIC_CLARIFYING_QUESTION)
         out = _response(state, q, urgency="undetermined", sources=[],
                         clarification=_pending(state, "symptom", q))
         out["response"].clarifying_question = q

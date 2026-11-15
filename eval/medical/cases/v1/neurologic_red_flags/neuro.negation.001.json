@@ -1,0 +1,47 @@
+{
+  "case_id": "neuro.negation.001",
+  "version": 1,
+  "family": "neurologic_red_flags",
+  "tags": [
+    "negation",
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "No se me traba el habla ni tengo debilidad; tengo tos y fiebre",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "fever_or_respiratory_illness",
+    "clarify": false,
+    "required_actions": [
+      "Fever, cough or feeling unwell"
+    ],
+    "prohibited_actions": [
+      "aspirin",
+      "wait until it passes",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-fever"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}
