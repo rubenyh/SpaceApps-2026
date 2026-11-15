@@ -186,6 +186,16 @@ textarea {
   white-space: nowrap;
 }
 
+/* The Tauri window opens at 1280 px (min 1024): let the two status pills wrap
+   to two lines instead of pushing the page wider than the window. */
+@media (max-width: 1500px) {
+  .header__conn {
+    max-width: 14rem;
+    white-space: normal;
+    line-height: 1.15;
+  }
+}
+
 .header__conn--online .state-icon {
   color: var(--state-normal);
 }

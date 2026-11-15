@@ -14,9 +14,9 @@ interface Props {
 }
 
 const CONNECTION: Record<ConnectionState, { icon: VisualState; text: string }> = {
-  unknown: { icon: "no_data", text: "Connecting to the service…" },
-  online: { icon: "normal", text: "Connected to the onboard service" },
-  offline: { icon: "alert", text: "No connection to the service" },
+  unknown: { icon: "no_data", text: "Onboard service: connecting…" },
+  online: { icon: "normal", text: "Onboard service: connected" },
+  offline: { icon: "alert", text: "Onboard service: no connection" },
 };
 
 /** Ship-to-Earth telemetry link, worded like the ground console's link bar. */
