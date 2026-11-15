@@ -79,8 +79,8 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
 - Orientation: YuNet needs roughly upright faces, so the frame is tried at 0, 180, 90 and 270 degrees,
   starting with the last one that worked. `--rotate N` fixes it (demo: `--rotate 180`). One orientation per
   frame: an upright and an upside-down person are not seen at the same time.
-- IoU tracker (overlap 0.3, 15 frames of grace). MediaPipe Pose (up to 4 people) is linked to the face box
-  that holds the pose's nose; a pose narrower than the face is dropped as a misfire.
+- Tracker by face or body overlap (0.3, 15 frames of grace). MediaPipe Pose (up to 4 people) is paired with
+  the face box that holds the pose's nose; a pose narrower than the face is dropped as a misfire.
 - The daily log checks its face every 10 frames against the gallery. If it confirms the claimed astronaut,
   the payload says `identity.method: "face"` with the median score, and up to 3 frames scoring 0.5 or more
   are added to the gallery (at most 20 such templates, oldest dropped). Otherwise it stays `manual` and the
@@ -101,7 +101,10 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
   `torso_angle_dev` (degrees of the head against the shoulder line, from its median in the window). All
   relative to the body, so the numbers do not change with the camera or the astronaut upside down.
   Steps over 5 sw/s are tracking jumps and are skipped. PROVISIONAL.
-- Presence comes from detected faces: someone with their back to the camera is not counted.
+- Tracks follow the face or the body: each pose is paired with the face that holds its nose, and a pose
+  with visible shoulders and no face is still a person. Someone identified who turns away or loses the face
+  keeps the track, the name and the presence; identity votes only come from frames with the face. A track
+  that never showed its face stays `unknown-<track>`.
 - Preview: cameras stacked top to bottom, shown as delivered (no mirror, no rotation); boxes, skeletons,
   per-module occupants and pairs, transfers, FPS per camera and the window countdown.
 

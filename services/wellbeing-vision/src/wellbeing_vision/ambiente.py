@@ -20,7 +20,7 @@ from wellbeing_vision.identity import ORIENTATIONS
 from wellbeing_vision.motion import ModuleWindow
 from wellbeing_vision.overlay import AMBER, GREEN, MUTED, Row, render
 from wellbeing_vision.sink import Sink
-from wellbeing_vision.tracker import IoUTracker, link_poses, resolve
+from wellbeing_vision.tracker import IoUTracker, resolve
 
 MAX_DT_S = 0.5  # cap per-frame time so a slow frame does not inflate presence
 MIN_PARTIAL_S = 10.0  # a window cut short by quitting is still sent if it lasted this long
@@ -48,20 +48,21 @@ class _Module:
             print(f"Camera {self.index} ({self.module_id}) stopped delivering frames.")
             return False
         self.frame, self.i = frame, self.i + 1
-        self.seen = self.tracker.update(self.faceid.detect(frame, self.orientations), self.i)
+        faces = self.faceid.detect(frame, self.orientations)
+        self.last_ms = max(int(time.monotonic() * 1000), self.last_ms + 1)
+        # Faces and bodies: someone identified keeps their track while turned away from the camera.
+        self.seen = self.tracker.update(faces, self.i, detect_poses(self.pose, frame, self.faceid.deg, self.last_ms))
         for tr in self.seen:
             if gallery.people and tr.needs_template(self.i):
                 tr.vote(gallery.scores(self.faceid.template(frame, tr.face)), self.i)
         return True
 
     def measure(self, t: float) -> None:
-        """After identities are resolved across cameras: poses, then this frame into the window."""
+        """After identities are resolved across cameras: this frame into the window."""
         dt = min(t - self.last_t, MAX_DT_S) if self.last_t is not None else 0.0
         if self.last_t is not None and t > self.last_t:
             self.fps = 0.9 * self.fps + 0.1 / (t - self.last_t) if self.fps else 1 / (t - self.last_t)
         self.last_t = t
-        self.last_ms = max(int(t * 1000), self.last_ms + 1)
-        link_poses(self.seen, detect_poses(self.pose, self.frame, self.faceid.deg, self.last_ms))
         for tr in self.seen:
             self.labels[tr.id] = tr.label
         self.window.add(dt, {tr.id: tr.pose for tr in self.seen})
@@ -131,7 +132,7 @@ def run_ambiente(settings: Settings, sink: Sink, cameras: list[int], window_s: f
                 for tr in sorted(m.seen, key=lambda tr: tr.id):
                     name = settings.astronauts.get(tr.astronaut, tr.astronaut) if tr.astronaut else tr.label
                     color = GREEN if tr.astronaut else AMBER
-                    x0, y0, x1, y1 = tr.face.box
+                    x0, y0, x1, y1 = tr.box  # face, or the body while the face is not seen
                     boxes.append((x0 / w, (k + y0 / h) / n, x1 / w, (k + y1 / h) / n, name, color))
                     if tr.pose is not None:  # each camera takes 1/n of the stacked preview's height
                         lines += [((a[0], (k + a[1]) / n), (b[0], (k + b[1]) / n)) for a, b in skeleton(tr.pose, w, h)]

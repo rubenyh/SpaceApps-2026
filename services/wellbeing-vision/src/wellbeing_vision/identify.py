@@ -13,7 +13,7 @@ from wellbeing_vision.config import Settings
 from wellbeing_vision.download import model_path
 from wellbeing_vision.identity import MATCH, ORIENTATIONS, FaceID, Gallery, rotate, unrotate
 from wellbeing_vision.overlay import AMBER, GREEN, MUTED, Notice, Row, render
-from wellbeing_vision.tracker import IoUTracker, link_poses, resolve
+from wellbeing_vision.tracker import IoUTracker, resolve
 
 ENROLL_SAMPLES = 10
 ENROLL_GAP_S = 0.3  # spread the samples so small head turns end up in the gallery
@@ -139,19 +139,19 @@ def run_identify(settings: Settings, camera: int, seconds: float = 0.0, rotation
                 break
             i += 1
             h, w = frame.shape[:2]
-            seen = tracker.update(faceid.detect(frame, orientations), i)
+            faces = faceid.detect(frame, orientations)
+            last_ms = max(int((time.monotonic() - t0) * 1000), last_ms + 1)
+            seen = tracker.update(faces, i, detect_poses(pose, frame, faceid.deg, last_ms))
             for tr in seen:
                 if gallery.people and tr.needs_template(i):
                     tr.vote(gallery.scores(faceid.template(frame, tr.face)), i)
             resolve(seen)
-            last_ms = max(int((time.monotonic() - t0) * 1000), last_ms + 1)
-            link_poses(seen, detect_poses(pose, frame, faceid.deg, last_ms))
 
             boxes, lines, rows = [], [], []
             for tr in sorted(seen, key=lambda tr: tr.id):
                 name = settings.astronauts.get(tr.astronaut, tr.astronaut) if tr.astronaut else tr.label
                 color = GREEN if tr.astronaut else AMBER
-                x0, y0, x1, y1 = tr.face.box
+                x0, y0, x1, y1 = tr.box  # face, or the body while the face is not seen
                 boxes.append((x0 / w, y0 / h, x1 / w, y1 / h, name, color))
                 if tr.pose is not None:
                     lines += skeleton(tr.pose, w, h)

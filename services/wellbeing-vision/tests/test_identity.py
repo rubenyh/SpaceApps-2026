@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 from wellbeing_vision.identity import AUTO_MAX, Face, Gallery, best_match, rotate, unrotate, verify
-from wellbeing_vision.tracker import IoUTracker, Track, iou, link_poses, resolve
+from wellbeing_vision.tracker import IoUTracker, Track, iou, observations, resolve
 
 
 def _unit(seed: int) -> np.ndarray:
@@ -83,20 +83,47 @@ def test_resolve_gives_each_astronaut_to_one_track():
 
 
 def test_identity_needs_several_votes():
-    t = Track(1, _face(0, 0), 0)
+    t = Track(1, _face(0, 0), 1, face_seen=1)
     t.vote({"ast-01": 0.9}, 0)
     resolve([t])
-    assert t.astronaut is None and t.needs_template(1)
+    assert t.astronaut is None and t.needs_template(1)  # face seen in frame 1: wants more votes
 
 
-def test_poses_link_to_the_face_that_holds_the_nose():
-    a, b = Track(1, _face(100, 100), 0), Track(2, _face(600, 100), 0)
-    pose_b, stray, on_face = np.zeros((33, 3)), np.zeros((33, 3)), np.zeros((33, 3))
-    pose_b[0], pose_b[11], pose_b[12] = (640, 150, 1), (560, 260, 1), (760, 260, 1)
-    stray[0] = (1200, 700, 1)
-    on_face[0], on_face[11], on_face[12] = (150, 150, 1), (130, 170, 1), (170, 170, 1)  # shoulders inside the face
-    link_poses([a, b], [stray, pose_b, on_face])
-    assert a.pose is None and b.pose is pose_b
+def _pose(cx, top, sw=200.0, face_visible=True):
+    """A seated person: nose at (cx, top), shoulders below. Turned away: the nose is not visible."""
+    p = np.zeros((33, 3))
+    p[0] = (cx, top, 1.0 if face_visible else 0.1)
+    p[11], p[12] = (cx - sw / 2, top + 120, 1.0), (cx + sw / 2, top + 120, 1.0)
+    p[23], p[24] = (cx - sw / 3, top + 400, 1.0), (cx + sw / 3, top + 400, 1.0)
+    return p
+
+
+def test_observations_pair_faces_with_bodies():
+    a, b = _face(100, 100), _face(600, 100)  # faces 100 px wide
+    pose_b, back, on_face = _pose(650, 150), _pose(1000, 150, face_visible=False), _pose(150, 150, sw=40)
+    obs = observations([a, b], [on_face, pose_b, back])
+    assert obs[0] == (a, None)  # the narrow misfire on a's face is neither a's body nor a second person
+    assert obs[1][0] is b and obs[1][1] is pose_b
+    assert obs[2][0] is None and obs[2][1] is back  # someone with their back to the camera
+    assert len(obs) == 3
+
+
+def test_a_person_who_turns_away_keeps_the_track_and_the_name():
+    tr = IoUTracker()
+    face = lambda x: _face(x - 50, 100)  # noqa: E731
+    for i in range(5):  # looking at the camera: face and body, identified
+        (t,) = tr.update([face(300 + i)], i, [_pose(300 + i, 150)])
+        t.vote({"ast-01": 0.8}, i)
+    resolve([t])
+    assert t.label == "ast-01"
+    for i in range(5, 60):  # turned away for 55 frames: no face, body drifting
+        seen = tr.update([], i, [_pose(305 + i, 150, face_visible=False)])
+        assert [s.id for s in seen] == [t.id] and not t.needs_template(i)
+        resolve(seen)
+    assert t.label == "ast-01" and t.face_seen == 4 and (t.box == t.body).all()
+    (back,) = tr.update([face(365)], 60, [_pose(365, 150)])  # face again
+    assert back is t and t.needs_template(60) and (t.box == t.face.box).all()
+    assert len(tr.tracks) == 1
 
 
 def test_render_draws_boxes_without_touching_the_input():
