@@ -1,93 +1,93 @@
 {
   "id": "radiation_alert",
-  "version": "2.0.0",
-  "title": "Alerta de radiación",
+  "version": "2.1.0",
+  "title": "Radiation alert",
   "priority": 40,
-  "summary": "Evento de dosímetro o alerta de la nave, real o simulado y etiquetado. Se distingue entre evento confirmado por la nave, evento simulado y alerta reportada solo por texto. Sin evento ni dosimetría disponible no es posible estimar una exposición: se indica qué evidencia falta. Los síntomas aislados y el módulo de orina no aportan una estimación de exposición. Decisión de diseño: un evento simulado activo usa la misma urgencia inmediata que uno real para ejercitar el procedimiento, siempre etiquetado como SIMULADO. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
+  "summary": "Dosimeter event or ship alert, real or simulated and labeled. A distinction is made between an event confirmed by the ship, a simulated event and an alert reported only by text. Without an event or available dosimetry, exposure cannot be estimated: the missing evidence is stated. Isolated symptoms and the urine module do not provide an exposure estimate. Design decision: an active simulated event uses the same immediate urgency as a real one to exercise the procedure, always labeled as SIMULATED. Informational support only: not a diagnosis or a treatment decision. There are no clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "confirmed_event": {
       "urgency": "immediate",
-      "text": "Alerta de radiación CONFIRMADA por la nave: sigue el procedimiento de radiación de la misión.",
+      "text": "Radiation alert CONFIRMED by the ship: follow the mission radiation procedure.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Sigue el procedimiento de radiación; si se decide armar el refugio de protección, hazlo.",
+          "text": "Follow the radiation procedure; if the decision is made to build the protective shelter, do so.",
           "source_ids": [
             "nasa_artemis_ii_reference"
           ]
         },
         {
           "who": "equipment",
-          "text": "Lleva tu dosímetro personal y anota su lectura.",
+          "text": "Wear your personal dosimeter and record its reading.",
           "source_ids": [
             "nasa_artemis_ii_reference"
           ]
         },
         {
           "who": "self",
-          "text": "Los síntomas aislados no indican exposición ni dosis: no los uses para decidir.",
+          "text": "Isolated symptoms do not indicate exposure or dose: do not use them to decide.",
           "source_ids": [
             "cdc_ars"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento de radiación y refugio de la misión"
+      "mission_procedure": "Mission radiation and shelter procedure"
     },
     "simulated_event": {
       "urgency": "immediate",
-      "text": "Evento de radiación SIMULADO (ejercicio etiquetado): ejecuta el procedimiento de radiación como en el ejercicio. No es una exposición real confirmada.",
+      "text": "SIMULATED radiation event (labeled drill): carry out the radiation procedure as in the drill. This is not a confirmed real exposure.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Sigue el procedimiento de radiación como en el ejercicio.",
+          "text": "Follow the radiation procedure as in the drill.",
           "source_ids": [
             "nasa_artemis_ii_reference"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento de radiación y refugio de la misión"
+      "mission_procedure": "Mission radiation and shelter procedure"
     },
     "reported_alert": {
       "urgency": "immediate",
-      "text": "Alerta de radiación REPORTADA por texto, no confirmada: verifica el dosímetro y el panel de la nave y sigue el procedimiento de radiación.",
+      "text": "Radiation alert REPORTED by text, not confirmed: check the dosimeter and the ship panel and follow the radiation procedure.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "equipment",
-          "text": "Verifica tu dosímetro y los sensores de radiación de la nave.",
+          "text": "Check your dosimeter and the ship's radiation sensors.",
           "source_ids": [
             "nasa_artemis_ii_reference"
           ]
         },
         {
           "who": "self",
-          "text": "Sigue el procedimiento de radiación de la misión.",
+          "text": "Follow the mission radiation procedure.",
           "source_ids": [
             "nasa_artemis_ii_reference"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento de radiación y refugio de la misión"
+      "mission_procedure": "Mission radiation and shelter procedure"
     },
     "no_evidence": {
       "urgency": "informational",
-      "text": "No hay evento de dosímetro ni alerta de la nave disponibles: no es posible estimar una exposición. El módulo de orina no aporta esa estimación.",
+      "text": "No dosimeter event or ship alert is available: exposure cannot be estimated. The urine module does not provide that estimate.",
       "notify": [],
       "steps": [
         {
           "who": "equipment",
-          "text": "Si te preocupa, revisa tu dosímetro personal.",
+          "text": "If you are concerned, check your personal dosimeter.",
           "source_ids": [
             "nasa_artemis_ii_reference"
           ]
@@ -99,8 +99,8 @@
   "candidates": [
     {
       "id": "possible_exposure",
-      "label": "Posible exposición a radiación (requiere descarte)",
-      "minimum_evidence": "Evento de dosímetro o alerta de la nave confirmados.",
+      "label": "Possible radiation exposure (must be ruled out)",
+      "minimum_evidence": "Confirmed dosimeter event or ship alert.",
       "source_ids": [
         "nasa_artemis_ii_reference",
         "cdc_ars"
@@ -111,19 +111,19 @@
     {
       "id": "nasa_artemis_ii_reference",
       "title": "NASA: Artemis II Reference Guide",
-      "section": "Sensores y dosímetros",
+      "section": "Sensors and dosimeters",
       "url": "https://www.nasa.gov/wp-content/uploads/2026/01/a2-reference-guide-012825.pdf"
     },
     {
       "id": "cdc_ars",
       "title": "CDC: Acute Radiation Syndrome",
-      "section": "Signos y síntomas",
+      "section": "Signs and symptoms",
       "url": "https://www.cdc.gov/radiation-emergencies/signs-symptoms/acute-radiation-syndrome.html"
     },
     {
       "id": "cdc_urine_radionuclide",
       "title": "CDC: Urine Radionuclide Screening",
-      "section": "Alcance de la prueba",
+      "section": "Scope of the test",
       "url": "https://www.cdc.gov/radiation-emergencies/php/population-monitoring/urine-radionuclide-screening.html"
     }
   ],

@@ -1,5 +1,6 @@
 """Ground SQLite store. The only module that writes SQL."""
 
+import json
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
@@ -8,7 +9,12 @@ from typing import get_args
 from ground_api.schemas import (
     Alert,
     Astronaut,
+    BatchAccepted,
+    GroundAcknowledgment,
+    GroundIncident,
+    GroundIncidentUpdate,
     GroundReading,
+    IncidentUpdate,
     Link,
     SensorConfig,
     SensorKind,
@@ -69,6 +75,61 @@ CREATE TABLE IF NOT EXISTS alerts (
     side TEXT NOT NULL,
     PRIMARY KEY (ship_id, reading_id)
 );
+CREATE TABLE IF NOT EXISTS incidents (
+    ship_id TEXT NOT NULL,
+    id TEXT NOT NULL,
+    astronaut_id TEXT,
+    began_at TEXT,
+    urgency TEXT NOT NULL,
+    protocol_id TEXT,
+    protocol_version TEXT,
+    matched_rules_json TEXT NOT NULL,
+    action TEXT,
+    PRIMARY KEY (ship_id, id)
+);
+CREATE TABLE IF NOT EXISTS incident_updates (
+    ship_id TEXT NOT NULL,
+    id TEXT NOT NULL,
+    incident_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    occurred_at TEXT NOT NULL,
+    acknowledged_by TEXT,
+    received_at TEXT NOT NULL,
+    PRIMARY KEY (ship_id, id)
+);
+CREATE INDEX IF NOT EXISTS incident_updates_by_incident
+    ON incident_updates (ship_id, incident_id, occurred_at);
+-- contracts/medical-eval section 4. Manifest and result are stored verbatim.
+CREATE TABLE IF NOT EXISTS eval_candidates (
+    digest TEXT PRIMARY KEY,
+    candidate_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    received_at TEXT NOT NULL,
+    manifest_json TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    status TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS eval_decisions (
+    digest TEXT PRIMARY KEY REFERENCES eval_candidates (digest),
+    decision TEXT NOT NULL,
+    reviewer TEXT NOT NULL,
+    role TEXT NOT NULL,
+    notes TEXT NOT NULL,
+    decided_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS eval_findings (
+    id TEXT PRIMARY KEY,
+    digest TEXT NOT NULL REFERENCES eval_candidates (digest),
+    case_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    when_it_applies TEXT NOT NULL,
+    source TEXT NOT NULL,
+    expected_behavior TEXT NOT NULL,
+    reporter TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    status TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS eval_findings_by_digest ON eval_findings (digest, created_at);
 """
 
 _READING_COLUMNS = (
@@ -125,8 +186,8 @@ def list_sensors(conn: sqlite3.Connection) -> list[SensorConfig]:
     return sorted(configs, key=lambda c: KIND_ORDER[c.kind])
 
 
-def ingest(conn: sqlite3.Connection, batch: TelemetryBatch, now: datetime) -> tuple[int, int]:
-    """Store one batch atomically. Returns (new readings stored, duplicates)."""
+def ingest(conn: sqlite3.Connection, batch: TelemetryBatch, now: datetime) -> BatchAccepted:
+    """Store one batch atomically: readings by (ship_id, id), incident updates by (ship_id, id)."""
     conn.execute("BEGIN IMMEDIATE")
     try:
         inserted = conn.execute(
@@ -136,7 +197,11 @@ def ingest(conn: sqlite3.Connection, batch: TelemetryBatch, now: datetime) -> tu
         ).rowcount
         if not inserted:  # retried batch already stored
             conn.execute("ROLLBACK")
-            return 0, len(batch.readings)
+            return BatchAccepted(
+                accepted=0,
+                duplicates=len(batch.readings),
+                incident_updates_duplicates=len(batch.incident_updates),
+            )
         conn.executemany(
             "INSERT INTO astronauts (id, display_name) VALUES (?, ?)"
             " ON CONFLICT (id) DO UPDATE SET display_name = excluded.display_name",
@@ -171,11 +236,47 @@ def ingest(conn: sqlite3.Connection, batch: TelemetryBatch, now: datetime) -> tu
                     " VALUES (?, ?, ?, ?, ?)",
                     (batch.ship_id, r.id, config.normal_min, config.normal_max, side),
                 )
+        updates_accepted = sum(
+            _ingest_incident_update(conn, batch.ship_id, u, now) for u in batch.incident_updates
+        )
         conn.execute("COMMIT")
     except BaseException:
         conn.execute("ROLLBACK")
         raise
-    return accepted, len(batch.readings) - accepted
+    return BatchAccepted(
+        accepted=accepted,
+        duplicates=len(batch.readings) - accepted,
+        incident_updates_accepted=updates_accepted,
+        incident_updates_duplicates=len(batch.incident_updates) - updates_accepted,
+    )
+
+
+def _ingest_incident_update(
+    conn: sqlite3.Connection, ship_id: str, u: IncidentUpdate, now: datetime
+) -> bool:
+    """Store an update once per (ship_id, id) and upsert its incident. True if new."""
+    if not conn.execute(
+        "INSERT INTO incident_updates (ship_id, id, incident_id, type, occurred_at,"
+        " acknowledged_by, received_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING",
+        (ship_id, u.id, u.incident_id, u.type, to_db(u.occurred_at), u.acknowledged_by, to_db(now)),
+    ).rowcount:
+        return False
+    # began_at comes only from the created update; the summary takes the latest values.
+    conn.execute(
+        "INSERT INTO incidents (ship_id, id, astronaut_id, began_at, urgency, protocol_id,"
+        " protocol_version, matched_rules_json, action) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        " ON CONFLICT (ship_id, id) DO UPDATE SET astronaut_id = excluded.astronaut_id,"
+        " began_at = coalesce(incidents.began_at, excluded.began_at), urgency = excluded.urgency,"
+        " protocol_id = excluded.protocol_id, protocol_version = excluded.protocol_version,"
+        " matched_rules_json = excluded.matched_rules_json, action = excluded.action",
+        (
+            ship_id, u.incident_id, u.astronaut_id,
+            to_db(u.occurred_at) if u.type == "created" else None,
+            u.urgency, u.protocol_id, u.protocol_version,
+            json.dumps([r.model_dump() for r in u.matched_rules], ensure_ascii=False), u.action,
+        ),
+    )
+    return True
 
 
 def last_reading_id(conn: sqlite3.Connection, ship_id: str) -> int | None:
@@ -250,3 +351,163 @@ def list_alerts(conn: sqlite3.Connection, limit: int) -> list[Alert]:
         Alert(reading=_to_reading(row), normal_min=row["a_min"], normal_max=row["a_max"], side=row["side"])
         for row in rows
     ]
+
+
+def _to_incident(conn: sqlite3.Connection, row: sqlite3.Row) -> GroundIncident:
+    updates = [
+        GroundIncidentUpdate(
+            id=u["id"],
+            type=u["type"],
+            occurred_at=from_db(u["occurred_at"]),
+            received_at=from_db(u["received_at"]),
+            acknowledged_by=u["acknowledged_by"],
+        )
+        for u in conn.execute(
+            "SELECT * FROM incident_updates WHERE ship_id = ? AND incident_id = ?"
+            " ORDER BY occurred_at, rowid",
+            (row["ship_id"], row["id"]),
+        )
+    ]
+    return GroundIncident(
+        ship_id=row["ship_id"],
+        id=row["id"],
+        astronaut_id=row["astronaut_id"],
+        began_at=from_db(row["began_at"]) if row["began_at"] else None,
+        urgency=row["urgency"],
+        protocol_id=row["protocol_id"],
+        protocol_version=row["protocol_version"],
+        matched_rules=json.loads(row["matched_rules_json"]),
+        action=row["action"],
+        acknowledgments=[
+            GroundAcknowledgment(
+                acknowledged_by=u.acknowledged_by, acknowledged_at=u.occurred_at, received_at=u.received_at
+            )
+            for u in updates
+            if u.type == "acknowledged" and u.acknowledged_by
+        ],
+        updates=updates,
+    )
+
+
+def list_incidents(conn: sqlite3.Connection) -> list[GroundIncident]:
+    """Newest began_at first; incidents whose created update has not arrived last."""
+    rows = conn.execute(
+        "SELECT * FROM incidents ORDER BY began_at IS NULL, began_at DESC, rowid DESC"
+    ).fetchall()
+    return [_to_incident(conn, row) for row in rows]
+
+
+def get_incident(conn: sqlite3.Connection, incident_id: str) -> GroundIncident | None:
+    # One ship in the demo: if two ships share an id, the first stored wins.
+    row = conn.execute(
+        "SELECT * FROM incidents WHERE id = ? ORDER BY rowid LIMIT 1", (incident_id,)
+    ).fetchone()
+    return _to_incident(conn, row) if row else None
+
+
+# --- Medical evaluation review (contracts/medical-eval section 4) ---------------------------
+
+
+def _candidate(row: sqlite3.Row) -> dict:
+    return {
+        "candidate_id": row["candidate_id"],
+        "digest": row["digest"],
+        "status": row["status"],
+        "created_at": row["created_at"],
+        "manifest": json.loads(row["manifest_json"]),
+        "result": json.loads(row["result_json"]),
+    }
+
+
+def _decision(row: sqlite3.Row) -> dict:
+    return {**dict(row), "decided_at": from_db(row["decided_at"])}
+
+
+def _finding(row: sqlite3.Row) -> dict:
+    return {**dict(row), "created_at": from_db(row["created_at"])}
+
+
+def insert_candidate(conn: sqlite3.Connection, manifest: dict, result: dict, now: datetime) -> bool:
+    """False if this digest is already stored (a candidate is immutable once submitted)."""
+    return bool(conn.execute(
+        "INSERT INTO eval_candidates (digest, candidate_id, created_at, received_at, manifest_json,"
+        " result_json, status) VALUES (?, ?, ?, ?, ?, ?, 'pending_review') ON CONFLICT DO NOTHING",
+        (manifest["digest"], manifest["candidate_id"], manifest["created_at"], to_db(now),
+         json.dumps(manifest, ensure_ascii=False), json.dumps(result, ensure_ascii=False)),
+    ).rowcount)
+
+
+def list_candidates(conn: sqlite3.Connection) -> list[dict]:
+    rows = conn.execute("SELECT * FROM eval_candidates ORDER BY received_at DESC, rowid DESC")
+    return [_candidate(row) for row in rows]
+
+
+def get_candidate(conn: sqlite3.Connection, digest: str) -> dict | None:
+    row = conn.execute("SELECT * FROM eval_candidates WHERE digest = ?", (digest,)).fetchone()
+    return _candidate(row) if row else None
+
+
+def decide(
+    conn: sqlite3.Connection, digest: str, decision: str, reviewer: str, role: str, notes: str,
+    now: datetime,
+) -> dict | None:
+    """Record the one decision for a pending candidate. None if unknown or already decided."""
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        if not conn.execute(
+            "UPDATE eval_candidates SET status = ? WHERE digest = ? AND status = 'pending_review'",
+            (decision, digest),
+        ).rowcount:
+            conn.execute("ROLLBACK")
+            return None
+        conn.execute(
+            "INSERT INTO eval_decisions (digest, decision, reviewer, role, notes, decided_at)"
+            " VALUES (?, ?, ?, ?, ?, ?)",
+            (digest, decision, reviewer, role, notes, to_db(now)),
+        )
+        conn.execute("COMMIT")
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
+    return list_decisions(conn, digest)[0]
+
+
+def list_decisions(conn: sqlite3.Connection, digest: str) -> list[dict]:
+    rows = conn.execute("SELECT * FROM eval_decisions WHERE digest = ?", (digest,))
+    return [_decision(row) for row in rows]
+
+
+def latest_approved(conn: sqlite3.Connection, before: str | None = None) -> dict | None:
+    """Latest approved candidate. With `before`: the one approved before that digest
+    (or the latest one, if `before` is not approved)."""
+    rows = conn.execute(
+        "SELECT c.* FROM eval_candidates c JOIN eval_decisions d ON d.digest = c.digest"
+        " WHERE d.decision = 'approved' ORDER BY d.decided_at DESC, d.rowid DESC"
+    ).fetchall()
+    digests = [row["digest"] for row in rows]
+    if before in digests:
+        rows = rows[digests.index(before) + 1:]
+    return _candidate(rows[0]) if rows else None
+
+
+def insert_finding(conn: sqlite3.Connection, finding: dict, now: datetime) -> dict:
+    conn.execute(
+        "INSERT INTO eval_findings (id, digest, case_id, kind, when_it_applies, source,"
+        " expected_behavior, reporter, created_at, status)"
+        " VALUES (:id, :digest, :case_id, :kind, :when_it_applies, :source, :expected_behavior,"
+        " :reporter, :created_at, 'open')",
+        {**finding, "created_at": to_db(now)},
+    )
+    return get_finding(conn, finding["id"])
+
+
+def get_finding(conn: sqlite3.Connection, finding_id: str) -> dict | None:
+    row = conn.execute("SELECT * FROM eval_findings WHERE id = ?", (finding_id,)).fetchone()
+    return _finding(row) if row else None
+
+
+def list_findings(conn: sqlite3.Connection, digest: str) -> list[dict]:
+    rows = conn.execute(
+        "SELECT * FROM eval_findings WHERE digest = ? ORDER BY created_at, rowid", (digest,)
+    )
+    return [_finding(row) for row in rows]

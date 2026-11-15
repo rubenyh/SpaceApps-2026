@@ -5,7 +5,7 @@ description: Connect the onboard assistant to a local Ollama server for chat and
 
 # Ollama local LLM
 
-Status: Ollama is called with httpx 0.28.1 (`/api/chat`, `/api/embed`); langchain-ollama is not used. Default models: `qwen2.5:0.5b` (chat), `bge-m3` (embeddings).
+Status: Ollama is called with httpx 0.28.1 (`/api/chat`, `/api/embed`); langchain-ollama is not used. Default models: `qwen2.5:3b` (chat), `bge-m3` (embeddings).
 
 ## Where
 - Client: `services/onboard-api/src/onboard_api/assistant/integrations/ollama.py`.

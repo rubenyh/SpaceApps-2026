@@ -10,15 +10,19 @@ import { formatAge, formatDuration, utcSeconds } from "./lib/format";
 import { Alertas } from "./screens/Alertas";
 import { Astronauta } from "./screens/Astronauta";
 import { Enlace } from "./screens/Enlace";
+import { Incidents } from "./screens/Incidents";
+import { MedicalEval } from "./screens/MedicalEval";
 import { Tripulacion } from "./screens/Tripulacion";
 
-type Tab = "crew" | "astro" | "alerts" | "link";
+type Tab = "crew" | "astro" | "alerts" | "incidents" | "eval" | "link";
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: "crew", label: "Tripulación" },
-  { key: "astro", label: "Astronauta" },
-  { key: "alerts", label: "Alertas" },
-  { key: "link", label: "Enlace" },
+  { key: "crew", label: "Crew" },
+  { key: "astro", label: "Astronaut" },
+  { key: "alerts", label: "Alerts" },
+  { key: "incidents", label: "Incidents" },
+  { key: "eval", label: "Eval" },
+  { key: "link", label: "Link" },
 ];
 
 const LINK_POLL_MS = 2_000;
@@ -88,8 +92,8 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <span className="brand">Base · Salud de tripulación</span>
-        <div className="tabs" role="tablist" aria-label="Pantallas" onKeyDown={onTabKey}>
+        <span className="brand">Ground · Crew health</span>
+        <div className="tabs" role="tablist" aria-label="Screens" onKeyDown={onTabKey}>
           {TABS.map((t, i) => (
             <button
               key={t.key}
@@ -115,10 +119,10 @@ export default function App() {
             {LINK_HEADLINES[state]}
           </span>
           <span className="linkbar__facts">
-            Lote nº{" "}
+            Batch no.{" "}
             <Flap text={link.data?.batches_received ? String(link.data.batches_received) : "--"} className="flap--inline" />
             {" · "}
-            {since === null ? "sin lotes" : formatAge(since)}
+            {since === null ? "no batches" : formatAge(since)}
             <span className="linkbar__utc">
               {" · "}UTC <strong>{utcSeconds(now)}</strong>
             </span>
@@ -129,24 +133,24 @@ export default function App() {
       {offline ? (
         <div className="banner banner--alert" role="alert">
           <p>
-            Sin conexión con el servicio de tierra ({API_BASE_URL}).{" "}
+            No connection to the ground service ({API_BASE_URL}).{" "}
             {lastOk
-              ? `Se muestran los últimos datos recibidos ${formatAge((now - lastOk) / 1000)}, marcados como dato viejo.`
-              : "Todavía no se ha recibido ningún dato."}{" "}
-            Reintento automático cada {formatDuration(LINK_POLL_MS / 1000)}.
+              ? `Showing the last data received ${formatAge((now - lastOk) / 1000)}, marked as old data.`
+              : "No data has been received yet."}{" "}
+            Retrying automatically every {formatDuration(LINK_POLL_MS / 1000)}.
           </p>
           <button type="button" className="button" onClick={retry}>
-            Reintentar ahora
+            Retry now
           </button>
         </div>
       ) : httpError ? (
         <div className="banner banner--stale" role="alert">
           <p>
-            El servicio de tierra respondió con un error ({httpError.message}). Se mantienen los
-            últimos datos y se reintenta automáticamente.
+            The ground service answered with an error ({httpError.message}). The last data stays on
+            screen; retrying automatically.
           </p>
           <button type="button" className="button" onClick={retry}>
-            Reintentar ahora
+            Retry now
           </button>
         </div>
       ) : null}
@@ -173,6 +177,10 @@ export default function App() {
           />
         ) : tab === "alerts" ? (
           <Alertas alerts={alerts.data} limit={ALERTS_LIMIT} crew={crew.data} offline={offline} />
+        ) : tab === "incidents" ? (
+          <Incidents />
+        ) : tab === "eval" ? (
+          <MedicalEval />
         ) : (
           <Enlace link={link.data} since={since} state={state} crew={crew.data} ledger={ledger} offline={offline} />
         )}

@@ -1,0 +1,47 @@
+{
+  "case_id": "neuro.transcription.001",
+  "version": 1,
+  "family": "neurologic_red_flags",
+  "tags": [
+    "transcription"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "I have a head ache",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "undetermined",
+    "protocol_id": "neurologic_red_flags",
+    "clarify": true,
+    "required_actions": [
+      "Headache with unknown onset and severity"
+    ],
+    "prohibited_actions": [
+      "aspirin",
+      "wait until it passes",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-stroke",
+      "medlineplus-headache"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Expectation depends on the typo and transcription fix of issue #51 (PR #56). Unknown onset and severity: one red-flag question."
+  }
+}

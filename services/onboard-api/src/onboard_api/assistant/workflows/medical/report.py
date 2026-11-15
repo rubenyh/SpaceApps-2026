@@ -19,17 +19,17 @@ from onboard_api.assistant.workflows.medical.triage import (
 from onboard_api.schemas.assistant import AssistantRequest, CaseReport, OperationalEvent
 from onboard_api.schemas.readings import is_simulated_source
 
-_KIND = {"heart_rate": "Pulso", "spo2": "SpO₂"}
-_STATUS = {"present": "presente", "absent": "ausente (negado)", "unknown": "desconocido (no se sabe)"}
-_TEMPORALITY = {"current": "actual", "resolved": "ya cedió", "historical": "antecedente",
-                "hypothetical": "hipotético"}
-_ONSET = {"sudden": "súbito", "gradual": "gradual"}
-_SEVERITY = {"mild": "leve", "moderate": "moderada", "severe": "intensa"}
-_PERSISTENCE = {"ongoing": "persistente", "resolved": "resuelta", "recurrent": "recurrente"}
-UNKNOWN = "desconocido"
+_KIND = {"heart_rate": "Pulse", "spo2": "SpO₂"}
+_STATUS = {"present": "present", "absent": "absent (denied)", "unknown": "unknown (not known)"}
+_TEMPORALITY = {"current": "current", "resolved": "already eased", "historical": "past history",
+                "hypothetical": "hypothetical"}
+_ONSET = {"sudden": "sudden", "gradual": "gradual"}
+_SEVERITY = {"mild": "mild", "moderate": "moderate", "severe": "severe"}
+_PERSISTENCE = {"ongoing": "persistent", "resolved": "resolved", "recurrent": "recurrent"}
+UNKNOWN = "unknown"
 NOT_SENT = (
-    "Estado de envío: not_sent (pendiente). El asistente no transmite nada: cópialo y"
-    " envíalo por el canal de la misión cuando haya enlace."
+    "Send status: not_sent (pending). The assistant transmits nothing: copy it and send it"
+    " through the mission channel when the link is up."
 )
 
 
@@ -37,33 +37,33 @@ def _symptom_line(o: Observation) -> str:
     line = f"- {LABELS[o.symptom]}: {_STATUS[o.status]}"
     if o.status == "present":
         line += (
-            f" ({_TEMPORALITY[o.temporality]}); inicio: {_ONSET.get(o.onset, UNKNOWN)};"
-            f" intensidad: {_SEVERITY.get(o.severity, 'desconocida')};"
-            f" evolución: {_PERSISTENCE.get(o.persistence, 'desconocida')}"
+            f" ({_TEMPORALITY[o.temporality]}); onset: {_ONSET.get(o.onset, UNKNOWN)};"
+            f" intensity: {_SEVERITY.get(o.severity, UNKNOWN)};"
+            f" course: {_PERSISTENCE.get(o.persistence, UNKNOWN)}"
         )
         if o.subject == "other":
-            line += "; reportado por otra persona"
-    origin = f'texto "{o.evidence}"' if o.origin in ("text", "llm") else "entrada estructurada"
-    return f"{line}. Origen: {origin}."
+            line += "; reported by another person"
+    origin = f'text "{o.evidence}"' if o.origin in ("text", "llm") else "structured input"
+    return f"{line}. Origin: {origin}."
 
 
 def _reading_lines(kinds: list[str], readings: ReadingsContext | None) -> list[str]:
     if readings is None or not readings.available:
-        return ["- Lecturas no disponibles: no se pudo consultar el repositorio (estado desconocido)."]
+        return ["- Readings unavailable: the repository could not be queried (status unknown)."]
     out = []
     for kind in kinds:
         label = _KIND.get(kind, kind)
         r = readings.latest.get(kind)
         if r is None:
-            out.append(f"- {label}: sin lectura (valor desconocido).")
+            out.append(f"- {label}: no reading (value unknown).")
             continue
         value = f"{r.value:g}" if r.value is not None else (r.value_text or "")
-        parts = [f"- {label}: {value} {r.unit}", f"medida {_iso(r.recorded_at)} (hace {r.age_seconds} s)",
-                 f"calidad {r.quality}", f"fuente {r.source}"]
+        parts = [f"- {label}: {value} {r.unit}", f"measured {_iso(r.recorded_at)} ({r.age_seconds} s ago)",
+                 f"quality {r.quality}", f"source {r.source}"]
         if is_simulated_source(r.source):
-            parts.append("SIMULADA, no es una medición real")
+            parts.append("SIMULATED, not a real measurement")
         if r.stale:
-            parts.append("VIEJA, no refleja el estado actual")
+            parts.append("OLD, does not reflect the current state")
         out.append(" · ".join(parts) + ".")
     return out
 
@@ -82,42 +82,42 @@ def build_report(
     pids = [decision.protocol_id, *decision.additional_protocol_ids] if decision and decision.protocol_id else []
     kinds = list(dict.fromkeys(k for p in pids for k in PERTINENT_READINGS.get(p, ()))) or ["spo2", "heart_rate"]
     observations = [o for o in interp.observations if o.temporality != "hypothetical"]
-    reporter = request.reported_by or "la propia persona"
+    reporter = request.reported_by or "the person themselves"
 
     lines = [
-        "INFORME DE CASO MÉDICO (generado a bordo; soporte informativo, no es un diagnóstico)",
-        f"Generado: {_iso(now)}",
-        f"Astronauta: {request.astronaut_id or UNKNOWN} · Reporta: {reporter}",
+        "MEDICAL CASE REPORT (generated on board; informational support, not a diagnosis)",
+        f"Generated: {_iso(now)}",
+        f"Astronaut: {request.astronaut_id or UNKNOWN} · Reported by: {reporter}",
         NOT_SENT,
         "",
-        f"Urgencia (reglas): {urgency or UNKNOWN}",
-        f"Acción recomendada: {action or 'ninguna definida por las fichas'}",
+        f"Urgency (rules): {urgency or UNKNOWN}",
+        f"Recommended action: {action or 'none defined by the cards'}",
     ]
     for p in decision.mission_procedures if decision else []:
-        lines.append(f"Procedimiento de la misión: {p.title} ({'cargado' if p.loaded else 'NO cargado en el asistente'})")
+        lines.append(f"Mission procedure: {p.title} ({'loaded' if p.loaded else 'NOT loaded in the assistant'})")
 
-    lines += ["", "Síntomas reportados:"]
-    lines += [_symptom_line(o) for o in observations] or ["- Ninguno identificado en el mensaje."]
+    lines += ["", "Reported symptoms:"]
+    lines += [_symptom_line(o) for o in observations] or ["- None identified in the message."]
 
     relevant = _relevant_events(events, request.astronaut_id)
     if relevant:
-        lines += ["", "Eventos de la nave:"] + [f"- {event_finding(e).detail}" for e in relevant]
+        lines += ["", "Ship events:"] + [f"- {event_finding(e).detail}" for e in relevant]
 
-    lines += ["", "Lecturas pertinentes:"] + _reading_lines(kinds, readings)
+    lines += ["", "Relevant readings:"] + _reading_lines(kinds, readings)
 
     missing: list[str] = []
     for o in observations:
         if o.status == "present" and o.temporality in ("current", "resolved"):
             if o.onset is None:
-                missing.append(f"Inicio de {LABELS[o.symptom].lower()}: desconocido.")
+                missing.append(f"Onset of {LABELS[o.symptom].lower()}: unknown.")
             if o.severity is None:
-                missing.append(f"Intensidad de {LABELS[o.symptom].lower()}: desconocida.")
+                missing.append(f"Intensity of {LABELS[o.symptom].lower()}: unknown.")
     missing += notices
     if decision:
         missing += decision.missing_guidance
-    lines += ["", "Información que falta:"] + ([f"- {m}" for m in dict.fromkeys(missing)] or ["- Nada identificado."])
+    lines += ["", "Missing information:"] + ([f"- {m}" for m in dict.fromkeys(missing)] or ["- Nothing identified."])
 
     if decision and decision.matched_rules:
         rules = ", ".join(f"{r.rule_id} ({r.protocol_id}@{r.protocol_version})" for r in decision.matched_rules)
-        lines += ["", f"Reglas aplicadas: {rules}"]
+        lines += ["", f"Rules applied: {rules}"]
     return CaseReport(text="\n".join(lines))

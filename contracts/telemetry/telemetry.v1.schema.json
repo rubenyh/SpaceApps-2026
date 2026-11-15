@@ -60,11 +60,47 @@
           "source": { "type": "string", "minLength": 1, "maxLength": 64 }
         }
       }
+    },
+    "incident_updates": {
+      "description": "Optional, added inside v1 (absent means []). Incident status events, oldest first. Never chat text, report text, findings detail, camera frames or wellbeing data.",
+      "type": "array",
+      "maxItems": 500,
+      "items": { "$ref": "#/$defs/incidentUpdate" }
     }
   },
   "$defs": {
     "kind": {
       "enum": ["heart_rate", "spo2", "muscle_density", "urine_ph", "urine_salinity", "urine_color", "urine_temperature", "urine_radiation_marker"]
+    },
+    "incidentUpdate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "incident_id", "astronaut_id", "type", "occurred_at", "urgency", "protocol_id", "protocol_version", "matched_rules", "action", "acknowledged_by"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64, "description": "Onboard event id (UUID). Ground deduplicates by (ship_id, id)." },
+        "incident_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "astronaut_id": { "type": ["string", "null"] },
+        "type": { "enum": ["created", "acknowledged", "closed"] },
+        "occurred_at": { "type": "string", "format": "date-time", "description": "Original onboard event time." },
+        "urgency": { "enum": ["immediate", "review_required", "undetermined", "informational"] },
+        "protocol_id": { "type": ["string", "null"] },
+        "protocol_version": { "type": ["string", "null"], "description": "Version of the primary protocol (protocol_id)." },
+        "matched_rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["rule_id", "protocol_id", "protocol_version"],
+            "properties": {
+              "rule_id": { "type": "string" },
+              "protocol_id": { "type": "string" },
+              "protocol_version": { "type": "string" }
+            }
+          }
+        },
+        "action": { "type": ["string", "null"] },
+        "acknowledged_by": { "type": ["string", "null"], "description": "Set only for type acknowledged." }
+      }
     }
   }
 }

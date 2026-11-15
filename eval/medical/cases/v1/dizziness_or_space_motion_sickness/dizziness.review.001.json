@@ -1,0 +1,45 @@
+{
+  "case_id": "dizziness.review.001",
+  "version": 1,
+  "family": "dizziness_or_space_motion_sickness",
+  "tags": [],
+  "turns": [
+    {
+      "request": {
+        "message": "Estoy mareado desde que llegamos, en los primeros días de adaptación a la microgravedad",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "dizziness_or_space_motion_sickness",
+    "clarify": false,
+    "required_actions": [
+      "Dizziness without neurologic signs"
+    ],
+    "prohibited_actions": [
+      "not an emergency",
+      "meclizine"
+    ],
+    "acceptable_sources": [
+      "medlineplus-dizzinessandvertigo",
+      "medlineplus-motionsickness",
+      "medlineplus-dehydration"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

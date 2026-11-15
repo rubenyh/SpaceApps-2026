@@ -13,7 +13,7 @@ un.ps1` from the repo root starts the stack and opens both consoles. Full guide:
 |---|---|
 | `onboard-api` | FastAPI on `http://127.0.0.1:8000`. Applies the SQLite migrations at startup. Starts without Ollama, so alarm and SOS replies keep working when the models are down. |
 | `ollama` | Official `ollama/ollama` image. Reachable only inside Compose as `http://ollama:11434`. |
-| `demo-init` | One-shot. Waits for Ollama, pulls `qwen2.5:0.5b` and `bge-m3` if missing, and runs the guide ingest when the Chroma index is missing or outdated. Exits 0 when done. Safe to rerun. |
+| `demo-init` | One-shot. Waits for Ollama, pulls `qwen2.5:3b` and `bge-m3` if missing, loads both models into memory (the `ollama` service keeps them loaded, `OLLAMA_KEEP_ALIVE=-1`), and runs the guide ingest when the Chroma index is missing or outdated. Exits 0 when done. Safe to rerun. |
 | `ground-api` | FastAPI on `http://127.0.0.1:8001`. Receives telemetry from `onboard-api` and serves base-app. Volume `ground`. |
 | `simulator` | `firmware/simulator.py`. Starts after the API healthcheck passes, registers `ast-01` and `ast-02`, and posts readings every 5 s. |
 
@@ -30,7 +30,7 @@ docker compose up --build        # foreground, Ctrl+C stops
 docker compose up --build -d     # or in the background
 ```
 
-First run downloads about 5 GB: the Ollama image (about 3.2 GB), `bge-m3` (about 1.2 GB), `qwen2.5:0.5b` (about 400 MB), the Python image and dependencies, and the MedlinePlus Health Topics XML used by the ingest. The ingest then embeds the corpus on the CPU, which takes a few minutes. Later starts reuse the volumes and skip all of this.
+First run downloads about 7 GB: the Ollama image (about 3.2 GB), `bge-m3` (about 1.2 GB), `qwen2.5:3b` (about 1.9 GB), the Python image and dependencies, and the MedlinePlus Health Topics XML used by the ingest. The ingest then embeds the corpus on the CPU, which takes a few minutes. Later starts reuse the volumes and skip all of this.
 
 The API and the simulator are usable before `demo-init` finishes. Until then, educational questions answer without guides and say so in `data_notices`.
 

@@ -21,6 +21,7 @@ from onboard_api.assistant.workflows.medical.state import (
 )
 from onboard_api.assistant.workflows.medical.triage import (
     GENERIC_CLARIFYING_QUESTION,
+    LABELS,
     PERTINENT_READINGS,
     decide,
     evaluate_alarms,
@@ -45,7 +46,14 @@ _UNSAFE = re.compile(
     r"envi[aéó]|transmit|avis[eéó]|avisad|notific|inform[eéó]\b|contact[eéó]|se (le )?(comunic|llam)"
     r"|no es urgente|no hace falta|no (es|hace) necesario|no (es|parece) grave|no te preocupes"
     r"|m[eé]dico|doctor|cl[ií]nico|enfermer"
-    r"|descart|no (tienes|tiene|presentas|presenta|hay signos|hay se[nñ]ales)|ausencia de|sin signos",
+    r"|descart|no (tienes|tiene|presentas|presenta|hay signos|hay se[nñ]ales)|ausencia de|sin signos"
+    # English drafts (the prompt asks for English).
+    r"|\b(sent|transmitt\w*|notif\w*|informed|alerted|contacted|reported to)\b"
+    r"|not (urgent|serious|necessary|needed)|no need|don'?t worry|nothing to worry"
+    # "No clinical staff on board" echoes the card and passes; a referral to one does not.
+    r"|physician|nurse|clinician|medical officer"
+    r"|\b(ask|consult|see|call|contact|seek) (a |an |the |your )?(clinical|medical|health ?care)"
+    r"|rul(e|ed|ing) out|you (do not|don'?t) have|(is|are) absent|absence of|no (signs?|evidence) of",
     re.IGNORECASE,
 )
 
@@ -109,6 +117,8 @@ def interpret_report(state: MedicalState, events: EventSource) -> dict:
     case = understand.case_for(request)
     previous = [understand.to_observation(o) for o in case.observations] if case else []
     base = interpret(request)
+    # Shown with the answer so a misread word is visible to the crew and in the report.
+    notices = [f'Read "{typo}" as "{word}".' for typo, word in base.corrections]
     if case:  # "sí, un poco" or "empezó de repente" read against the pending question
         subject = understand.subject_of(request, previous)
         base = understand.answer_turn(base, request.message, case, previous, subject)
@@ -117,7 +127,7 @@ def interpret_report(state: MedicalState, events: EventSource) -> dict:
         "events": found,
         "clarification": case,
         "sos": is_sos(request.message),
-        "notices": [],
+        "notices": notices,
     }
 
 
@@ -249,7 +259,9 @@ def _pending(state: MedicalState, question_id: str, question: str) -> Clarificat
 def respond_clarify(state: MedicalState) -> dict:
     d = state.get("decision")
     if d is None:  # report with no concrete symptom yet: ask what the person feels
-        q = GENERIC_CLARIFYING_QUESTION
+        options = state["interpretation"].spelling_options
+        q = (f"Do you mean {' or '.join(LABELS[c].lower() for c in options)}?"
+             if options else GENERIC_CLARIFYING_QUESTION)
         out = _response(state, q, urgency="undetermined", sources=[],
                         clarification=_pending(state, "symptom", q))
         out["response"].clarifying_question = q
@@ -292,7 +304,9 @@ def retrieve_guides(state: MedicalState, retriever: Retriever) -> dict:
     notices = list(state.get("notices", []))
     guides, failure = [], None
     try:
-        guides = list(retriever.search(query, k=3, topics=topics, language="es"))
+        # English replies: Spanish fallbacks from the retriever are dropped.
+        guides = [g for g in retriever.search(query, k=3, topics=topics, language="en")
+                  if g.language == "en"]
     except EmbeddingUnavailable:
         failure = prompts.NOTICE_EMBEDDING_FAILED
     except Exception:

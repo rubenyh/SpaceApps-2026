@@ -6,7 +6,7 @@ How to run the full demo: the onboard stack, ground, both Tauri consoles and, if
 simulator ──readings──▶ onboard-api :8000 ◀── spaceship-app (Tauri, Vite 1420)
                           │  ├─ SQLite (onboard.db, wellbeing.db)
                           │  ├─ ChromaDB (guides)  ◀── demo-init (ingest)
-                          │  └─ ollama (qwen2.5:0.5b, bge-m3)
+                          │  └─ ollama (qwen2.5:3b, bge-m3)
                           └──telemetry──▶ ground-api :8001 ◀── base-app (Tauri, Vite 1421)
 wellbeing-vision (camera) ──metrics──▶ onboard-api /wellbeing/vision-sessions
 ```
@@ -53,7 +53,7 @@ On macOS or Linux, run `docker compose up --build -d`, then `npm run tauri dev` 
 docker compose up --build
 ```
 
-- The first run downloads about 5 GB: the Ollama image, the `bge-m3` and `qwen2.5:0.5b` models, and the MedlinePlus XML. Embedding the guides then takes a few minutes. Later starts reuse the volumes and skip this.
+- The first run downloads about 7 GB: the Ollama image, the `bge-m3` and `qwen2.5:3b` models, and the MedlinePlus XML. Embedding the guides then takes a few minutes. Later starts reuse the volumes and skip this.
 - The APIs and the simulator work before `demo-init` finishes. Until it finishes, educational questions are answered without guides, and `data_notices` says so.
 - `ground-api` is part of the stack. onboard-api sends telemetry to `http://ground-api:8001`. To keep the ship offline, start with `ONBOARD_TELEMETRY_ENABLED=false`.
 
@@ -105,6 +105,8 @@ Sit facing the camera, about 50 cm away, in good light. The process sends only d
 2. spaceship-app shows live vitals for `ast-01`.
 3. Ask the assistant a question. An SOS message gets its immediate reply even when `ollama` is stopped.
 4. base-app shows the same astronauts and alerts within a few seconds, and the link is up.
+
+Outage demo (urgent incident while the Earth link is down, about 30 s): see [demo-outage.md](demo-outage.md). Its controls (link pause/resume, incident reset) are off by default and answer 403. Start the stack with `$env:DEMO_CONTROLS_ENABLED="true"` in PowerShell (or `DEMO_CONTROLS_ENABLED=true docker compose up -d`) to turn them on. Reset with `python services/onboard-api/scripts/incident_demo.py reset`, then run it with `python services/onboard-api/scripts/incident_demo.py run --step`.
 
 ## Stop
 

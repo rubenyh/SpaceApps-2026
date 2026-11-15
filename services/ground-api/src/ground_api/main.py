@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ground_api import storage, telemetry
+from ground_api import medical_eval, storage, telemetry
 from ground_api.config import Settings
 
 
@@ -31,6 +31,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(telemetry.router)
+    app.include_router(medical_eval.router)
     return app
 
 

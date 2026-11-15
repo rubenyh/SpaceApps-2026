@@ -90,21 +90,22 @@ _P = [
 # English phrases: the console UI is English, so a typed English report must reach the
 # same rules (and the alarms) without Ollama. ponytail: common phrasings only, like the
 # Spanish list; negation, onset and severity words below accept both languages.
-_CANT = r"(can'?t|cannot|unable to|could ?n'?t)"
+_CANT = r"(can'?t|can ?not|unable to|could ?n'?t)"
 _P += [
     ("shortness_of_breath", r"short(ness)? of breath|out of breath|breathless\w*|hard to breathe|(trouble|difficulty|problems?) breathing|struggling to breathe|can'?t catch my breath", {}),
-    ("shortness_of_breath", rf"\b{_CANT} breathe|\bchoking\b|suffocat\w*", {"severity": "severe"}),
+    # "breath" for "breathe": a common typo and voice-transcription result.
+    ("shortness_of_breath", rf"\b{_CANT} breathe?\b|\bchoking\b|suffocat\w*", {"severity": "severe"}),
     ("abnormal_breathing", r"\bnot breathing|\bgasping|breathing (strangely|abnormally|irregularly|weird\w*)", {}),
     ("chest_pain", r"chest (pain|discomfort|ache|hurts)|pain in (my|the|his|her|their) chest|(my|his|her) chest hurts", {}),
     ("chest_pain", r"chest (pressure|tightness)|pressure (in|on) (my|the) chest|tight(ness in the)? chest", {"context": "pressure"}),
     ("cold_sweat", r"cold sweat", {}),
-    ("palpitations", r"heart (is )?(racing|pounding|fluttering|skipping)|racing heart|irregular heart ?beat", {}),
+    ("palpitations", r"\bpalpitations?\b|heart (is )?(racing|pounding|fluttering|skipping)|racing heart|irregular heart ?beat", {}),
     ("speech_change", rf"slurred speech|slurring|{_CANT} (speak|talk)|trouble (speaking|talking)", {}),
     ("facial_droop", r"facial droop|face (is )?droop\w*|drooping (face|mouth)", {}),
     ("one_sided_weakness", rf"weak(ness)? (on|in) one side|one[- ]sided weakness|{_CANT} move my (arm|leg|hand)|(arm|leg) (went|is) (numb|weak)", {}),
     ("vision_loss", rf"lost (my )?(vision|sight)|vision loss|{_CANT} see\b", {}),
     ("sudden_severe_headache", r"worst headache of my life|thunderclap headache", {"onset": "sudden", "severity": "severe"}),
-    ("headache", r"headache|my head hurts", {}),
+    ("headache", r"head ?ache|my head hurts", {}),
     ("unresponsive", r"\bunresponsive|not responding|won'?t wake up|\bunconscious", {}),
     ("fainting", r"\bfaint(ed|ing)?\b|passed out|blacked out|lost consciousness", {}),
     ("seizure", r"\bseizure|\bfitting\b", {}),
@@ -141,7 +142,7 @@ _P += [
 ]
 _PATTERNS = [(code, re.compile(rx), extra) for code, rx, extra in _P]
 
-_NEGATOR = re.compile(r"\b(no|sin|ni|nunca|tampoco|jamas|niego|nada de|not|without|never|don'?t|dont|deny|denies)\b")
+_NEGATOR = re.compile(r"\b(no|sin|ni|nunca|tampoco|jamas|niego|nada de|not|without|never|don'?t|dont|didn'?t|doesn'?t|haven'?t|hasn'?t|isn'?t|wasn'?t|deny|denies)\b")
 # "no" that does not negate the symptom that follows.
 _NEUTRAL_NO = re.compile(
     r"\bno (se|sabe|sabemos) (que|por que|como|cuando|donde|cual)\b"
@@ -159,7 +160,9 @@ _EDUCATIONAL = re.compile(
 _HYPOTHETICAL = re.compile(
     r"\b(que pasa si|que pasaria si|que hago si|que hacer si|que (debo|debe|deberia) hacer si|que hago en caso"
     r"|si alguien|si alguna vez|si alguno|si un tripulante|si tuviera|si tuviese|si llegara|en caso de"
-    r"|supongamos|hipotetic\w*)\b"
+    r"|supongamos|hipotetic\w*"
+    r"|what if|what (should|do|would|can) (i|we|you) do if|if (someone|anyone|a crew ?member) (gets|has)"
+    r"|in case of|suppose|hypothetical\w*)\b"
 )
 # "hace <duración>" is historical, except "hace <duración> que" + non-past verb, which is
 # ongoing persistence ("Hace tiempo que me falta el aire"; "hace tiempo que tuve..." stays historical).
@@ -197,7 +200,7 @@ _SUDDEN = re.compile(r"\b(de repente|repentin\w*|subit\w*|de golpe|de pronto|sin
 _GRADUAL = re.compile(r"\b(poco a poco|de a poco|gradual\w*|progresiv\w*|lentamente|slowly)\b")
 _SEVERE = re.compile(
     r"\b((?<!poco )intens\w*|much[oa]s?|muchisim\w*|grave|muy fuerte|insoportable|sever[oa]|terrible|horrible"
-    r"|el peor|la peor|severe|very bad|unbearable|extreme\w*|worst)\b"
+    r"|el peor|la peor|severe|very bad|unbearable|extreme\w*|worst|a lot|very much)\b"
 )
 _MODERATE = re.compile(r"\b((?<!poco )fuerte|moderad[oa]|bastante|moderate)\b")
 _MILD = re.compile(r"\b(leve|un poco|poquito|liger[oa]|algo de|suave|es poco(?! a poco)|poco (intens\w*|fuerte|dolor\w*)"
@@ -216,7 +219,9 @@ _ADAPTATION = re.compile(
 )
 _UNWELL = re.compile(
     r"\b(no me siento bien|me siento mal|me encuentro mal|no me encuentro bien|me siento rar[oa]"
-    r"|algo no (anda|va) bien|no estoy bien|me siento fatal)\b"
+    r"|algo no (anda|va) bien|no estoy bien|me siento fatal"
+    r"|i (don'?t|do not) feel (well|good|right)|not feeling (well|good|right)"
+    r"|i feel (bad|weird|strange|off|awful|terrible|funny)|something (is|feels) (off|wrong))\b"
 )
 # A concrete complaint outside the closed vocabulary ("me duele el oído"). Not negated.
 _COMPLAINT = re.compile(
@@ -227,7 +232,9 @@ _COMPLAINT = re.compile(
 # Words that say something is wrong without naming a symptom ("malestar físico").
 VAGUE = re.compile(
     r"\b(malestar|molestia|me siento (mal|rar[oa]|fatal)|no me siento bien|sintomas?|fisic[oa]"
-    r"|algo (raro|anda mal|no va bien)|incomod\w*|mal\b)"
+    r"|algo (raro|anda mal|no va bien)|incomod\w*|mal\b"
+    r"|discomfort|feel(ing)? (bad|weird|strange|off|awful|terrible|funny)|don'?t feel (well|good|right)"
+    r"|something (is|feels) (off|wrong)|physical|uncomfortable)"
 )
 # Explicit call for help. "SOS" in capitals (lowercase "sos" is also a Spanish verb form).
 _SOS_UPPER = re.compile(r"\bSOS\b")
@@ -235,30 +242,33 @@ _SOS = re.compile(r"\b(mayday|auxilio|socorro)\b")
 _HEALTH = re.compile(
     r"\b(medic\w*|salud|sintoma\w*|enferm\w*|dolor\w*|duele|duelen|malestar|doctor\w*|sangre|orina\w*"
     r"|muestra|pulso|oxigeno|lesion|herida|cuerpo|radiacion|dosimetro"
-    r"|symptoms?|pain|hurts?|sick|medical|health|doctor|blood|breath\w*|injur\w*)\b"
+    r"|symptoms?|pain|hurts?|sick|medical|health|doctor|blood|breath\w*|injur\w*|body|unwell)\b"
 )
 _READINGS = [
     (re.compile(r"oximetr\w*"), ("spo2", "heart_rate")),
     (re.compile(r"saturacion|\bspo2\b|oxigenacion|oxigeno en (la )?sangre"), ("spo2",)),
     (re.compile(r"\bpulso\b|frecuencia cardiaca|\bfrecuencia\b|\blpm\b|\bbpm\b"), ("heart_rate",)),
+    (re.compile(r"oximeter"), ("spo2", "heart_rate")),
+    (re.compile(r"\bsaturation|oxygen level|blood oxygen"), ("spo2",)),
+    (re.compile(r"\bpulse\b|heart rate"), ("heart_rate",)),
 ]
 _TOPICS = [
-    ("loss_of_consciousness_or_seizure", r"desmay|sincope|convuls|epileps|inconscien|perdida de (la )?conciencia"),
-    ("cabin_environment_alert", r"\bco2\b|dioxido de carbono|monoxido|calidad del aire|presion de (la )?cabina|despresuriz|humo|eclss"),
-    ("radiation_alert", r"radiacion|dosimetr|\bdosis\b|rayos cosmicos|particulas solares|tormenta solar|radionucl"),
-    ("breathing_difficulty", r"respir|oximetr|saturacion|\bspo2\b|disnea|falta de aire"),
-    ("severe_allergic_reaction", r"anafilax|alergi|alergic|urticaria|epinefrina|adrenalina"),
-    ("neurologic_red_flags", r"ictus|derrame cerebral|embolia|accidente cerebrovascular|\bacv\b|\bait\b|dolor de cabeza|cefalea|migran"),
-    ("chest_pain", r"infarto|dolor (de|en el) pecho|toracic|angina|coronari"),
-    ("heat_illness", r"golpe de calor|insolacion|\bcalor\b|hipertermi"),
-    ("injury_bleeding_or_burn", r"herida|quemadura|golpe|conmocion|contusion|sangrado|hemorragia|fractura|torcedura"),
-    ("abdominal_pain_or_gi_bleeding", r"abdom|estomag|barriga|vientre|apendic|heces negras|gastritis"),
-    ("urinary_symptoms", r"orina|urinari|rinon|renal|calculo|vejiga|cistitis|pielonefritis"),
-    ("muscle_symptoms", r"muscul|calambre|rabdomiolisis"),
-    ("fever_or_respiratory_illness", r"fiebre|\btos\b|gripe|resfriad|catarro|virus|infeccion respiratoria"),
-    ("vomiting_diarrhea_or_dehydration", r"deshidrat|vomit|diarrea|nausea|hidrata"),
-    ("palpitations", r"arritmi|palpitac|\bpulso\b|frecuencia cardiaca|ritmo cardiaco|taquicardi|corazon"),
-    ("dizziness_or_space_motion_sickness", r"\bmareo|vertigo|cinetosis|adaptacion espacial|sindrome de adaptacion"),
+    ("loss_of_consciousness_or_seizure", r"desmay|sincope|convuls|epileps|inconscien|perdida de (la )?conciencia|faint|passing out|seizure|epilep|unconscious|loss of consciousness"),
+    ("cabin_environment_alert", r"\bco2\b|dioxido de carbono|monoxido|calidad del aire|presion de (la )?cabina|despresuriz|humo|eclss|carbon dioxide|carbon monoxide|air quality|cabin pressure|depressuri|smoke"),
+    ("radiation_alert", r"radiacion|dosimetr|\bdosis\b|rayos cosmicos|particulas solares|tormenta solar|radionucl|radiation|dosimet|\bdose\b|cosmic ray|solar particle|solar storm"),
+    ("breathing_difficulty", r"respir|oximetr|saturacion|\bspo2\b|disnea|falta de aire|breath|oximet|saturation|oxygen"),
+    ("severe_allergic_reaction", r"anafilax|alergi|alergic|urticaria|epinefrina|adrenalina|anaphyla|allerg|hives|epinephrine|adrenaline"),
+    ("neurologic_red_flags", r"ictus|derrame cerebral|embolia|accidente cerebrovascular|\bacv\b|\bait\b|dolor de cabeza|cefalea|migran|stroke|\btia\b|headache|migraine"),
+    ("chest_pain", r"infarto|dolor (de|en el) pecho|toracic|angina|coronari|heart attack|chest pain|angina|coronary"),
+    ("heat_illness", r"golpe de calor|insolacion|\bcalor\b|hipertermi|heat stroke|heat exhaustion|\bheat\b|hypertherm|overheat"),
+    ("injury_bleeding_or_burn", r"herida|quemadura|golpe|conmocion|contusion|sangrado|hemorragia|fractura|torcedura|wound|\bburns?\b|concussion|bruise|bleeding|hemorrhage|fracture|sprain|injur"),
+    ("abdominal_pain_or_gi_bleeding", r"abdom|estomag|barriga|vientre|apendic|heces negras|gastritis|abdominal|stomach|belly|appendic|black stool|gastritis"),
+    ("urinary_symptoms", r"orina|urinari|rinon|renal|calculo|vejiga|cistitis|pielonefritis|urine|urinary|kidney|bladder|cystitis"),
+    ("muscle_symptoms", r"muscul|calambre|rabdomiolisis|muscle|cramp|rhabdo"),
+    ("fever_or_respiratory_illness", r"fiebre|\btos\b|gripe|resfriad|catarro|virus|infeccion respiratoria|fever|cough|\bflu\b|\bcold\b|respiratory infection"),
+    ("vomiting_diarrhea_or_dehydration", r"deshidrat|vomit|diarrea|nausea|hidrata|dehydrat|vomit|diarrh|nause|hydrat"),
+    ("palpitations", r"arritmi|palpitac|\bpulso\b|frecuencia cardiaca|ritmo cardiaco|taquicardi|corazon|arrhythm|palpitation|heart rate|heart rhythm|tachycard|\bheart\b"),
+    ("dizziness_or_space_motion_sickness", r"\bmareo|vertigo|cinetosis|adaptacion espacial|sindrome de adaptacion|dizz|vertigo|motion sickness|space adaptation"),
 ]
 _TOPICS_RX = [(re.compile(rx), card) for card, rx in _TOPICS]
 
@@ -417,6 +427,110 @@ def _text_observations(message: str, other_message: bool) -> list[Observation]:
     return found
 
 
+# --- Bounded spelling correction (typed typos and voice-transcription errors) ---
+# Symptom words the rules above match, with the code each one leads to. A message word
+# that is not one of them but sounds and reads like exactly one is replaced by it, and
+# the rules run again on the corrected text: negation, timing and severity still come
+# from the person's own words. Phrase words ("chest", "breathing") only change a result
+# when the corrected text forms a whole rule phrase.
+_SYMPTOM_WORDS = {
+    "shortness_of_breath": "breathe breathing breathless shortness respirar",
+    "chest_pain": "chest",
+    "palpitations": "palpitations palpitaciones taquicardia",
+    "speech_change": "slurred slurring",
+    "headache": "headache headaches cefalea jaqueca migrana",
+    "unresponsive": "unconscious unresponsive inconsciente",
+    "fainting": "fainted fainting desmayo desmayado desmayada",
+    "seizure": "seizure seizures convulsion convulsiones convulsionando",
+    "hives": "urticaria ronchas",
+    "fever": "fever feverish fiebre",
+    "chills": "chills shivering escalofrios",
+    "cough": "cough coughing tosiendo",
+    "confusion": "confused disoriented confundido confundida desorientado desorientada",
+    "dizziness": "dizzy dizziness lightheaded mareo mareos mareado mareada vertigo",
+    "nausea": "nausea nauseous nauseated nauseas",
+    "vomiting": "vomit vomiting vomito vomitando",
+    "diarrhea": "diarrhea diarrhoea diarrea",
+    "abdominal_pain": "stomach stomachache",
+    "muscle_cramps": "cramps cramping calambres",
+    "bleeding": "bleeding sangrando hemorragia",
+    "burn": "quemadura",
+}
+_WORD_CODE = {w: code for code, words in _SYMPTOM_WORDS.items() for w in words.split()}
+_REPORT_FRAME = re.compile(
+    r"\b(i (have|had|am|feel|felt|got)|i'?m|i'?ve|having|feeling|(he|she|they) (has|have|is|are)"
+    r"|tengo|siento|estoy|me (da|dio)|tiene)\b"
+)
+_PHRASE_WORDS = frozenset("breathe breathing shortness respirar chest slurred stomach".split())
+# Real words one edit away from a symptom word. ponytail: hand-written list, not a
+# dictionary; add a lookalike here when a test shows it being read as a symptom.
+_LOOKALIKES = frozenset(
+    "bleeping blending blessing breeding breather breathes chilly confuse confuses cramming fainter"
+    " conversion crampons crashing dismiss distress failing fasting forever marcado marcada sleeping visiting"
+    " stomachs vomits".split()
+)
+_SOUNDS = [(re.compile(rx), to) for rx, to in
+           (("ph", "f"), ("ch", "k"), ("c", "k"), ("q", "k"), ("z", "s"), ("y", "i"), (r"(.)\1+", r"\1"))]
+
+
+def _sound(word: str) -> str:
+    for rx, to in _SOUNDS:
+        word = rx.sub(to, word)
+    return word
+
+
+def _distance(a: str, b: str, limit: int = 1) -> int:
+    """Edit distance with adjacent swaps (optimal string alignment), capped at limit + 1."""
+    if abs(len(a) - len(b)) > limit:
+        return limit + 1
+    prev2, prev = None, list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            d = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb))
+            if prev2 is not None and i > 1 and j > 1 and ca == b[j - 2] and a[i - 2] == cb:
+                d = min(d, prev2[j - 2] + 1)
+            cur.append(d)
+        prev2, prev = prev, cur
+    return min(prev[-1], limit + 1)
+
+
+_SOUND_WORDS = [(_sound(w), w) for w in _WORD_CODE]
+
+
+def _candidates(token: str) -> tuple[int, list[str]]:
+    """(edits, closest symptom words) for a token that may be a misspelling. Bounded:
+    6+ letters, same first letter, at most two edits after sound folding (z/s, y/i,
+    c/k, doubled letters). One edit to one symptom is confident; anything else asks."""
+    if len(token) < 6 or token in _WORD_CODE or token in _LOOKALIKES:
+        return 3, []
+    key = _sound(token)
+    hits = [(_distance(key, s, 2), w) for s, w in _SOUND_WORDS if w[0] == token[0]]
+    best = min((d for d, _ in hits), default=3)
+    if best == 2 and len(token) < 7:
+        return 3, []  # two edits in a short word reach too many real words
+    return best, [w for d, w in hits if d == best <= 2]
+
+
+def correct_spelling(text: str) -> tuple[str, tuple[tuple[str, str], ...], tuple[str, ...]]:
+    """Normalized text -> (corrected text, corrections, codes of an unclear word)."""
+    corrections: list[tuple[str, str]] = []
+    ambiguous: list[str] = []
+
+    def fix(m: re.Match) -> str:
+        edits, words = _candidates(m.group(0))
+        codes = list(dict.fromkeys(_WORD_CODE[w] for w in words))
+        if edits <= 1 and len(codes) == 1:
+            corrections.append((m.group(0), words[0]))
+            return words[0]
+        # Only words that name a symptom alone are worth a question ("chest" is not).
+        unclear = {_WORD_CODE[w] for w in words if w not in _PHRASE_WORDS}
+        ambiguous.extend(c for c in codes if c in unclear and c not in ambiguous)
+        return m.group(0)
+
+    return re.sub(r"[a-z]+", fix, text), tuple(corrections), tuple(ambiguous)
+
+
 def is_sos(message: str) -> bool:
     text = normalize(message)
     return bool(
@@ -433,6 +547,16 @@ def interpret(request: AssistantRequest) -> Interpretation:
         or _NAMED_OTHER.search(request.message)
     )
     observations = _text_observations(request.message, other_message)
+    # Exact rules first; the corrected text only counts when it finds another symptom.
+    fixed, corrections, ambiguous = correct_spelling(text)
+    if corrections:
+        retry = _text_observations(fixed, other_message)
+        if {o.symptom for o in retry} - {o.symptom for o in observations}:
+            observations = retry
+            corrections = tuple(c for c in corrections if any(c[1] in o.evidence for o in retry))
+            text = fixed
+        else:
+            corrections = ()
 
     # sudden + severe headache is the neurologic red flag.
     for o in list(observations):
@@ -487,7 +611,12 @@ def interpret(request: AssistantRequest) -> Interpretation:
     topic = _first(_TOPICS_RX, text) or next(
         (CODE_CARD[o.symptom] for o in final if o.status == "present"), None
     )
-    medical = bool(final or topic or readings or kind == "unclear" or _HEALTH.search(text))
+    # An unclear word only asks inside a report ("I have been coffing"), so "I keep
+    # failing the test" does not turn into "Do you mean fainting?".
+    options = () if final or not _REPORT_FRAME.search(text) else ambiguous
+    if options and kind == "report":
+        kind = "unclear"  # "dizzy or diarrhea?": ask which one
+    medical = bool(final or options or topic or readings or kind == "unclear" or _HEALTH.search(text))
     complaint = None if reported_now or kind != "report" else _COMPLAINT.search(text)
     return Interpretation(
         observations=final,
@@ -496,4 +625,6 @@ def interpret(request: AssistantRequest) -> Interpretation:
         mentions_readings=tuple(readings),
         topic_hint=topic,
         uncovered=complaint.group(0).strip()[:120] if complaint else None,
+        corrections=corrections,
+        spelling_options=options,
     )

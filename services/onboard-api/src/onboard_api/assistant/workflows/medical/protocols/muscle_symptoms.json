@@ -1,67 +1,67 @@
 {
   "id": "muscle_symptoms",
-  "version": "2.0.0",
-  "title": "Síntomas musculares",
+  "version": "2.1.0",
+  "title": "Muscle symptoms",
   "priority": 120,
-  "summary": "Dolor muscular, calambres o debilidad. El sobreesfuerzo se considera si el contexto acompaña. Dolor muscular intenso, debilidad u orina color té o cola reportada después de esfuerzo o calor obliga a descartar rabdomiólisis. Una medición muscular con método pendiente o un valor RGB aislado nunca activa esa hipótesis. Debilidad focal súbita se maneja por la ruta neurológica. Decisión de diseño: la sospecha de rabdomiólisis usa urgencia review_required con la acción 'valoración médica inmediata', porque la fuente pide valoración y no un aviso de emergencia a bordo. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
+  "summary": "Muscle pain, cramps or weakness. Overexertion is considered if the context supports it. Severe muscle pain, weakness, or tea- or cola-colored urine reported after exertion or heat requires ruling out rhabdomyolysis. A muscle measurement with a pending method or an isolated RGB value never triggers that hypothesis. Sudden focal weakness is handled by the neurological route. Design decision: suspected rhabdomyolysis uses review_required urgency with the action 'immediate medical assessment', because the source calls for assessment rather than an onboard emergency alert. Informational support only: not a diagnosis or a treatment decision. There are no clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "suspected_rhabdo": {
       "urgency": "review_required",
-      "text": "El patrón obliga a descartar rabdomiólisis: suspende el esfuerzo y no ignores las señales.",
+      "text": "The pattern requires ruling out rhabdomyolysis: stop exertion and do not ignore the signs.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Suspende el ejercicio.",
+          "text": "Stop exercising.",
           "source_ids": [
             "niosh_rhabdomyolysis"
           ]
         },
         {
           "who": "self",
-          "text": "Anota el color de la orina y cuándo empezaron los síntomas; pueden aparecer horas o días después del esfuerzo.",
+          "text": "Note the urine color and when the symptoms started; they can appear hours or days after exertion.",
           "source_ids": [
             "niosh_rhabdomyolysis"
           ]
         }
       ],
       "missing_guidance": [
-        "Confirmarla requiere un análisis de creatina quinasa (CK) en sangre, que el asistente no tiene; el tratamiento depende del procedimiento de la misión (no cargado)."
+        "Confirming it requires a blood creatine kinase (CK) test, which the assistant does not have; treatment depends on the mission procedure (not loaded)."
       ]
     },
     "review": {
       "urgency": "review_required",
-      "text": "Dolor muscular o calambres: cuidados locales y vigilancia. Si aparece orina oscura o debilidad, el caso cambia.",
+      "text": "Muscle pain or cramps: local care and monitoring. If dark urine or weakness appears, the situation changes.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Estira o masajea suavemente el músculo.",
+          "text": "Gently stretch or massage the muscle.",
           "source_ids": [
             "medlineplus_muscle_cramps"
           ]
         },
         {
           "who": "self",
-          "text": "Aplica calor si el músculo está tenso y frío si está dolorido.",
+          "text": "Apply heat if the muscle is tight and cold if it is sore.",
           "source_ids": [
             "medlineplus_muscle_cramps"
           ]
         },
         {
           "who": "self",
-          "text": "Bebe más líquidos si puedes estar deshidratado/a.",
+          "text": "Drink more fluids if you may be dehydrated.",
           "source_ids": [
             "medlineplus_muscle_cramps"
           ]
         },
         {
           "who": "self",
-          "text": "Si aparecen orina color té o cola o debilidad, repórtalo: obliga a descartar rabdomiólisis.",
+          "text": "If tea- or cola-colored urine or weakness appears, report it: it requires ruling out rhabdomyolysis.",
           "source_ids": [
             "niosh_rhabdomyolysis"
           ]
@@ -73,16 +73,16 @@
   "candidates": [
     {
       "id": "overexertion",
-      "label": "Sobreesfuerzo",
-      "minimum_evidence": "Dolor muscular o calambres tras esfuerzo reportado.",
+      "label": "Overexertion",
+      "minimum_evidence": "Muscle pain or cramps after reported exertion.",
       "source_ids": [
         "medlineplus_muscle_cramps"
       ]
     },
     {
       "id": "rhabdomyolysis",
-      "label": "Rabdomiólisis (requiere descarte)",
-      "minimum_evidence": "Tras esfuerzo o calor: dolor muscular intenso, debilidad u orina color té o cola reportada.",
+      "label": "Rhabdomyolysis (must be ruled out)",
+      "minimum_evidence": "After exertion or heat: reported severe muscle pain, weakness, or tea- or cola-colored urine.",
       "source_ids": [
         "niosh_rhabdomyolysis"
       ]
@@ -92,13 +92,13 @@
     {
       "id": "niosh_rhabdomyolysis",
       "title": "CDC/NIOSH: Rhabdomyolysis Signs and Symptoms",
-      "section": "Señales y síntomas",
+      "section": "Signs and symptoms",
       "url": "https://www.cdc.gov/niosh/rhabdo/signs-symptoms/"
     },
     {
       "id": "medlineplus_muscle_cramps",
       "title": "MedlinePlus: Muscle Cramps",
-      "section": "Resumen",
+      "section": "Summary",
       "url": "https://medlineplus.gov/musclecramps.html"
     }
   ],

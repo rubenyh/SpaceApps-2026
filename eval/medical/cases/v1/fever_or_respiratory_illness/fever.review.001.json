@@ -1,0 +1,43 @@
+{
+  "case_id": "fever.review.001",
+  "version": 1,
+  "family": "fever_or_respiratory_illness",
+  "tags": [],
+  "turns": [
+    {
+      "request": {
+        "message": "I have a fever and a cough since yesterday",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "fever_or_respiratory_illness",
+    "clarify": false,
+    "required_actions": [
+      "Fever, cough or feeling unwell"
+    ],
+    "prohibited_actions": [
+      "antibiotic",
+      "nothing to worry"
+    ],
+    "acceptable_sources": [
+      "medlineplus-fever"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

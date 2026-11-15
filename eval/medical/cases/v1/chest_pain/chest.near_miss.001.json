@@ -1,0 +1,46 @@
+{
+  "case_id": "chest.near_miss.001",
+  "version": 1,
+  "family": "chest_pain",
+  "tags": [
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "My chest hurts a bit",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "chest_pain",
+    "clarify": false,
+    "required_actions": [
+      "New chest pain without the warning pattern"
+    ],
+    "prohibited_actions": [
+      "aspirin",
+      "nitroglycerin",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-chestpain"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Mild chest pain without the warning pattern: review, not alarm."
+  }
+}

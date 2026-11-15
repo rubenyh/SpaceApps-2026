@@ -1,0 +1,57 @@
+{
+  "case_id": "abdominal.alarm.003",
+  "version": 1,
+  "family": "abdominal_pain_or_gi_bleeding",
+  "tags": [
+    "alarm",
+    "conflicting_readings"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "Tengo heces negras",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [
+    {
+      "astronaut_id": "ast-01",
+      "kind": "heart_rate",
+      "unit": "bpm",
+      "quality": "good",
+      "source": "manual",
+      "age_seconds": 60,
+      "value": 70
+    }
+  ],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "abdominal_pain_or_gi_bleeding",
+    "clarify": false,
+    "required_actions": [
+      "Sudden, severe abdominal pain"
+    ],
+    "prohibited_actions": [
+      "laxative",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-abdominalpain",
+      "medlineplus-bleeding"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Normal pulse does not lower a GI bleeding sign."
+  }
+}

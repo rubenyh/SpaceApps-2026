@@ -1,112 +1,112 @@
 {
   "id": "loss_of_consciousness_or_seizure",
-  "version": "2.0.0",
-  "title": "Pérdida de conciencia o convulsión",
+  "version": "2.1.0",
+  "title": "Loss of consciousness or seizure",
   "priority": 10,
-  "summary": "Tripulante que no responde, pérdida de conciencia, desmayo o convulsión observada. Diferenciar pérdida de conciencia actual, episodio resuelto y evento convulsivo. Son criterios de aviso inmediato: no responde, primera convulsión, convulsión de más de cinco minutos, convulsiones repetidas sin recuperación o dificultad para respirar o despertar. Tras un desmayo con recuperación se comprueba si coinciden señales cardíacas, neurológicas o un golpe. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
+  "summary": "Unresponsive crew member, loss of consciousness, fainting or an observed seizure. Distinguish current loss of consciousness, a resolved episode and a seizure event. Criteria for immediate alert: unresponsive, first seizure, seizure lasting more than five minutes, repeated seizures without recovery, or difficulty breathing or waking up. After a faint with recovery, check whether cardiac signs, neurological signs or a blow to the head occurred at the same time. Informational support only: not a diagnosis or a treatment decision. There are no clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "unresponsive": {
       "urgency": "immediate",
-      "text": "Tripulante que no responde: emergencia.",
+      "text": "Unresponsive crew member: emergency.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "crew",
-          "text": "Da la alarma de emergencia de la nave.",
+          "text": "Sound the ship's emergency alarm.",
           "source_ids": [
             "medlineplus_unconsciousness"
           ]
         },
         {
           "who": "crew",
-          "text": "Comprueba vía aérea, respiración y pulso con frecuencia; inicia RCP si hace falta.",
+          "text": "Check airway, breathing and pulse frequently; start CPR if needed.",
           "source_ids": [
             "medlineplus_unconsciousness"
           ]
         },
         {
           "who": "crew",
-          "text": "Si respira y no sospechas lesión de columna, colócala de lado (posición de recuperación).",
+          "text": "If the person is breathing and you do not suspect a spinal injury, place them on their side (recovery position).",
           "source_ids": [
             "medlineplus_unconsciousness"
           ]
         },
         {
           "who": "crew",
-          "text": "No la dejes sola, no le des comida ni bebida y no le pongas una almohada bajo la cabeza.",
+          "text": "Do not leave the person alone, do not give them food or drink, and do not put a pillow under their head.",
           "source_ids": [
             "medlineplus_unconsciousness"
           ]
         },
         {
           "who": "crew",
-          "text": "Mantenla abrigada.",
+          "text": "Keep the person warm.",
           "source_ids": [
             "medlineplus_unconsciousness"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento de emergencia médica de la misión"
+      "mission_procedure": "Mission medical emergency procedure"
     },
     "seizure": {
       "urgency": "immediate",
-      "text": "Convulsión observada: emergencia.",
+      "text": "Observed seizure: emergency.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "crew",
-          "text": "Quédate con la persona, aparta objetos con los que pueda golpearse; no la sujetes ni le pongas nada en la boca.",
+          "text": "Stay with the person and move away objects they could hit; do not hold them down or put anything in their mouth.",
           "source_ids": [
             "cdc_seizure_first_aid"
           ]
         },
         {
           "who": "crew",
-          "text": "Mide la duración: más de 5 minutos, otra convulsión seguida, dificultad para respirar o despertar, o una lesión requieren ayuda de emergencia.",
+          "text": "Time the seizure: more than 5 minutes, another seizure right after, difficulty breathing or waking up, or an injury require emergency help.",
           "source_ids": [
             "cdc_seizure_first_aid"
           ]
         },
         {
           "who": "crew",
-          "text": "Al terminar, colócala de lado en un lugar seguro; no le des agua ni comida hasta que esté completamente alerta.",
+          "text": "When it ends, place the person on their side in a safe place; do not give water or food until they are fully alert.",
           "source_ids": [
             "cdc_seizure_first_aid"
           ]
         },
         {
           "who": "self",
-          "text": "Si fuiste tú y estás solo/a: no comas ni bebas hasta estar completamente alerta y pide ayuda.",
+          "text": "If it happened to you and you are alone: do not eat or drink until you are fully alert, and call for help.",
           "source_ids": [
             "cdc_seizure_first_aid"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento de convulsiones de la misión"
+      "mission_procedure": "Mission seizure procedure"
     },
     "fainted_recovered": {
       "urgency": "review_required",
-      "text": "Desmayo con recuperación: túmbate y comprueba si hubo palpitaciones, dolor torácico, signos neurológicos o un golpe; si los hubo, trátalo como emergencia.",
+      "text": "Faint with recovery: lie down and check whether there were palpitations, chest pain, neurological signs or a blow to the head; if there were, treat it as an emergency.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Túmbate y, si puedes, eleva los pies unos 30 cm para evitar otra caída.",
+          "text": "Lie down and, if you can, raise your feet about 30 cm to avoid another fall.",
           "source_ids": [
             "medlineplus_unconsciousness"
           ]
         },
         {
           "who": "crew",
-          "text": "Otro tripulante: no dejes sola a la persona.",
+          "text": "Another crew member: do not leave the person alone.",
           "source_ids": [
             "medlineplus_unconsciousness"
           ]
@@ -115,14 +115,14 @@
     },
     "recovery_check": {
       "urgency": "undetermined",
-      "text": "Desmayo reportado sin saber si ya hay recuperación: confirma el estado de conciencia. Si no responde, es una emergencia.",
+      "text": "Faint reported without knowing whether the person has recovered: confirm their level of consciousness. If they do not respond, it is an emergency.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "crew",
-          "text": "Comprueba si responde; un cambio súbito e inexplicado del estado mental es una emergencia.",
+          "text": "Check whether the person responds; a sudden, unexplained change in mental status is an emergency.",
           "source_ids": [
             "medlineplus_unconsciousness"
           ]
@@ -131,20 +131,20 @@
     }
   },
   "questions": {
-    "recovered": "¿La persona ya recuperó la conciencia y responde con normalidad?"
+    "recovered": "Has the person regained consciousness and are they responding normally?"
   },
   "candidates": [],
   "sources": [
     {
       "id": "medlineplus_unconsciousness",
       "title": "MedlinePlus: Unconsciousness - first aid",
-      "section": "Primeros auxilios",
+      "section": "First aid",
       "url": "https://medlineplus.gov/ency/article/000022.htm"
     },
     {
       "id": "cdc_seizure_first_aid",
       "title": "CDC: First Aid for Seizures",
-      "section": "Cuándo pedir ayuda de emergencia",
+      "section": "When to call for emergency help",
       "url": "https://www.cdc.gov/epilepsy/first-aid-for-seizures/"
     }
   ],

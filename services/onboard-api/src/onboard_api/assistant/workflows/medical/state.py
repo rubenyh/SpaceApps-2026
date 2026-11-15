@@ -58,6 +58,10 @@ class Interpretation:
     topic_hint: str | None = None
     # Concrete complaint outside the closed vocabulary ("me duele el oído"): out of coverage.
     uncovered: str | None = None
+    # Misspelled words read as symptom words, e.g. (("dyziness", "dizziness"),).
+    corrections: tuple[tuple[str, str], ...] = ()
+    # A misspelled word close to several symptoms: their codes, to ask which one.
+    spelling_options: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -78,7 +82,7 @@ class ReadingsContext:
     # False when the repository could not be read (missing DB, error, no astronaut_id).
     available: bool
     latest: dict[str, VitalReading] = field(default_factory=dict)  # by sensor kind
-    warnings: list[str] = field(default_factory=list)  # Spanish, for data_notices
+    warnings: list[str] = field(default_factory=list)  # English, for data_notices
     # Which of `warnings` belong to one sensor kind; the rest are general.
     kind_warnings: dict[str, list[str]] = field(default_factory=dict)
 

@@ -13,6 +13,7 @@ from ground_api.schemas import (
     BatchAccepted,
     CrewMember,
     Cursor,
+    GroundIncident,
     GroundReading,
     Link,
     SensorKind,
@@ -43,8 +44,7 @@ router = APIRouter()
 
 @router.post("/telemetry/v1/batches", status_code=202)
 def receive_batch(batch: TelemetryBatch, conn: Connection, clock: ClockDep) -> BatchAccepted:
-    accepted, duplicates = storage.ingest(conn, batch, clock())
-    return BatchAccepted(accepted=accepted, duplicates=duplicates)
+    return storage.ingest(conn, batch, clock())
 
 
 @router.get("/telemetry/v1/cursor")
@@ -92,3 +92,36 @@ def astronaut_readings(
 @router.get("/alerts")
 def alerts(conn: Connection, limit: Annotated[int, Query(ge=1, le=500)] = 50) -> list[Alert]:
     return storage.list_alerts(conn, limit)
+
+
+@router.get("/incidents")
+def incidents(conn: Connection) -> list[GroundIncident]:
+    return storage.list_incidents(conn)
+
+
+@router.get("/incidents/{incident_id}")
+def incident(incident_id: str, conn: Connection) -> GroundIncident:
+    found = storage.get_incident(conn, incident_id)
+    if found is None:
+        raise HTTPException(404, f"incident {incident_id} not found")
+    return found
+
+
+@router.delete("/demo/incidents")
+def reset_incidents(astronaut_id: str, request: Request, conn: Connection) -> dict[str, int]:
+    """Demo reset: delete one astronaut's incidents and their updates (idempotent)."""
+    if not request.app.state.settings.demo_controls_enabled:
+        raise HTTPException(403, "demo controls are off (set GROUND_DEMO_CONTROLS_ENABLED=true)")
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        conn.execute(
+            "DELETE FROM incident_updates WHERE (ship_id, incident_id) IN"
+            " (SELECT ship_id, id FROM incidents WHERE astronaut_id = ?)",
+            (astronaut_id,),
+        )
+        deleted = conn.execute("DELETE FROM incidents WHERE astronaut_id = ?", (astronaut_id,)).rowcount
+        conn.execute("COMMIT")
+    except Exception:
+        conn.execute("ROLLBACK")
+        raise
+    return {"deleted": deleted}

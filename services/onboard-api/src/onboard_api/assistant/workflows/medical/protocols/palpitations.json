@@ -1,59 +1,59 @@
 {
   "id": "palpitations",
-  "version": "2.0.0",
-  "title": "Palpitaciones o pulso llamativo",
+  "version": "2.1.0",
+  "title": "Palpitations or unusual pulse",
   "priority": 150,
-  "summary": "Palpitaciones o un pulso llamativo pueden corresponder a respuesta al esfuerzo si coinciden con actividad, a un artefacto si la señal es deficiente, o a una arritmia que requiere descarte si hay síntomas compatibles. El pulso del sensor no sustituye un ECG. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
+  "summary": "Palpitations or an unusual pulse may be a response to exertion if they coincide with activity, an artifact if the signal is poor, or an arrhythmia that must be ruled out if compatible symptoms are present. The sensor pulse does not replace an ECG. Informational support only: not a diagnosis or a treatment decision. There are no clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Palpitaciones con señales de alarma: emergencia.",
+      "text": "Palpitations with warning signs: emergency.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "text": "Call for emergency help now using the mission's means (ship alarm, crew, mission control if the link is up). Do not wait to see if it improves.",
           "source_ids": [
             "medlineplus_palpitations"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento de emergencia médica de la misión"
+      "mission_procedure": "Mission medical emergency procedure"
     },
     "review": {
       "urgency": "review_required",
-      "text": "Palpitaciones sin señales de alarma: reposa y vigila.",
+      "text": "Palpitations without warning signs: rest and monitor.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Evita la cafeína y otros estimulantes.",
+          "text": "Avoid caffeine and other stimulants.",
           "source_ids": [
             "medlineplus_palpitations"
           ]
         },
         {
           "who": "self",
-          "text": "Prueba ejercicios de respiración o relajación profunda.",
+          "text": "Try breathing exercises or deep relaxation.",
           "source_ids": [
             "medlineplus_palpitations"
           ]
         },
         {
           "who": "equipment",
-          "text": "Repite la medición de pulso en reposo con el sensor bien colocado.",
+          "text": "Repeat the pulse measurement at rest with the sensor properly placed.",
           "source_ids": [
             "fda_pulse_oximeters"
           ]
         },
         {
           "who": "self",
-          "text": "Si aparecen pérdida de conciencia, dolor torácico, falta de aire, sudor inusual o mareo, trátalo como emergencia.",
+          "text": "If loss of consciousness, chest pain, shortness of breath, unusual sweating or dizziness appears, treat it as an emergency.",
           "source_ids": [
             "medlineplus_palpitations"
           ]
@@ -62,21 +62,21 @@
     },
     "reading_check": {
       "urgency": "undetermined",
-      "text": "Lectura de pulso aislada sin síntomas conocidos: confirma síntomas y repite la medición antes de interpretarla.",
+      "text": "Isolated pulse reading with no known symptoms: confirm symptoms and repeat the measurement before interpreting it.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "equipment",
-          "text": "Repite la medición en reposo con el sensor bien colocado.",
+          "text": "Repeat the measurement at rest with the sensor properly placed.",
           "source_ids": [
             "fda_pulse_oximeters"
           ]
         },
         {
           "who": "self",
-          "text": "Fíjate en cómo te sientes: la cifra sola no confirma ni descarta nada.",
+          "text": "Pay attention to how you feel: the number alone neither confirms nor rules out anything.",
           "source_ids": [
             "fda_pulse_oximeters"
           ]
@@ -85,12 +85,12 @@
     },
     "reading_reference": {
       "urgency": "informational",
-      "text": "La lectura de pulso está dentro de la referencia visual. Si aparecen síntomas, descríbelos aquí.",
+      "text": "The pulse reading is within the visual reference range. If symptoms appear, describe them here.",
       "notify": [],
       "steps": [
         {
           "who": "self",
-          "text": "Vigila tus síntomas además de la cifra.",
+          "text": "Watch your symptoms as well as the number.",
           "source_ids": [
             "fda_pulse_oximeters"
           ]
@@ -99,29 +99,29 @@
     }
   },
   "questions": {
-    "symptoms_and_repeat": "¿Nota palpitaciones, mareo, dolor torácico o falta de aire ahora, y estaba haciendo ejercicio? Repita la medición en reposo con el sensor bien colocado."
+    "symptoms_and_repeat": "Do you notice palpitations, dizziness, chest pain or shortness of breath now, and were you exercising? Repeat the measurement at rest with the sensor properly placed."
   },
   "candidates": [
     {
       "id": "exertional_response",
-      "label": "Respuesta al esfuerzo",
-      "minimum_evidence": "Palpitaciones o pulso alto que coinciden con actividad física reportada.",
+      "label": "Response to exertion",
+      "minimum_evidence": "Palpitations or a high pulse that coincide with reported physical activity.",
       "source_ids": [
         "medlineplus_palpitations"
       ]
     },
     {
       "id": "artifact",
-      "label": "Artefacto de medición",
-      "minimum_evidence": "Lectura de pulso con calidad sospechosa o mala.",
+      "label": "Measurement artifact",
+      "minimum_evidence": "Pulse reading with suspect or poor quality.",
       "source_ids": [
         "medlineplus_palpitations"
       ]
     },
     {
       "id": "arrhythmia",
-      "label": "Arritmia (requiere descarte)",
-      "minimum_evidence": "Palpitaciones reportadas sin explicación por esfuerzo, persistentes o repetidas, o con mareo.",
+      "label": "Arrhythmia (must be ruled out)",
+      "minimum_evidence": "Reported palpitations not explained by exertion, persistent or repeated, or with dizziness.",
       "source_ids": [
         "medlineplus_arrhythmia",
         "medlineplus_palpitations"
@@ -132,19 +132,19 @@
     {
       "id": "medlineplus_palpitations",
       "title": "MedlinePlus: Heart palpitations",
-      "section": "Cuándo contactar al médico",
+      "section": "When to contact a medical professional",
       "url": "https://medlineplus.gov/ency/article/003081.htm"
     },
     {
       "id": "medlineplus_arrhythmia",
       "title": "MedlinePlus: Arrhythmia",
-      "section": "Resumen",
+      "section": "Summary",
       "url": "https://medlineplus.gov/arrhythmia.html"
     },
     {
       "id": "fda_pulse_oximeters",
       "title": "FDA: Pulse Oximeters",
-      "section": "Limitaciones y precisión",
+      "section": "Limitations and accuracy",
       "url": "https://www.fda.gov/medical-devices/products-and-medical-procedures/pulse-oximeters"
     }
   ],
