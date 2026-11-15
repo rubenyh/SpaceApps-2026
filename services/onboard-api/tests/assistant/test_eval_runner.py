@@ -173,3 +173,12 @@ def test_retrieval_check_is_reusable() -> None:
     rows = check_retrieval(retriever)
     assert len(rows) == len(CASES) and rows[0][:4] == (family, kind, query, expected)
     assert 0 < hit_rate(rows) < 1
+
+
+def test_schema_file_next_to_cases_is_not_a_case(tmp_path: Path) -> None:
+    from onboard_api.assistant.eval.runner import load_cases
+
+    (tmp_path / "case.schema.json").write_text('{"type": "object"}', encoding="utf-8")
+    (tmp_path / "fam").mkdir()
+    (tmp_path / "fam" / "a.json").write_text('{"case_id": "a"}', encoding="utf-8")
+    assert [c["case_id"] for c in load_cases(tmp_path)] == ["a"]

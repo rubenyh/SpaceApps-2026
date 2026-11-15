@@ -96,6 +96,8 @@ def live_up(settings: Settings) -> Up:
 def load_cases(cases_dir: Path) -> list[dict]:
     cases = []
     for path in sorted(cases_dir.rglob("*.json")):
+        if path.name.endswith(".schema.json"):
+            continue  # eval/medical/cases/v1/case.schema.json sits next to the cases
         try:
             case = json.loads(path.read_text(encoding="utf-8"))
         except ValueError as exc:
