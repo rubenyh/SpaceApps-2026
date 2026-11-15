@@ -40,6 +40,6 @@
     "status": "draft",
     "reviewer": null,
     "reviewed_at": null,
-    "notes": "Known gap: the English rules have no pattern for several crew members with symptoms."
+    "notes": "Gap fixed in issue #73: the English rules have no pattern for several crew members with symptoms."
   }
 }

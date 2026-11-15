@@ -66,9 +66,9 @@ const ok = sensor("urine_ph", "normal", 6.2, 4.6, 8);
 const old = sensor("urine_salinity", "stale", 24.3, null, null);
 const none = sensor("muscle_density", "no_data", null, null, null);
 const temp = sensor("urine_temperature", "alert", 39.2, 32, 38, "sample_validity");
-const rad = sensor("urine_radiation_marker", "no_range", 1, null, null);
+const rad = sensor("urine_radiation_marker", "alert", 6.2, 3, 5.5);
 
-// Cells: words for every state, no invented values, radiation never shows its value.
+// Cells: words for every state, no invented values.
 eq(cellView(high, false), { text: "112", tone: "alert", note: "High" }, "cell high");
 eq(cellView(low, false).note, "Low", "cell low");
 eq(cellView(ok, false), { text: "6.2", tone: "plain", note: "" }, "cell ok");
@@ -76,7 +76,7 @@ eq(cellView(old, false), { text: "24.3", tone: "stale", note: "Old data" }, "cel
 eq(cellView(none, false), { text: "--", tone: "muted", note: "No data" }, "cell none");
 eq(cellView(sensor("urine_salinity", "no_range", 20, null, null), false).note, "No range", "cell no range");
 eq(cellView(temp, false).tone, "stale", "sample validity is not a health alert");
-eq(cellView(rad, false).text, "Possible exposure", "radiation wording");
+eq(cellView(rad, false), { text: "6.2", tone: "alert", note: "High" }, "radiation shows its 8-OHdG value");
 eq(cellView(high, true).tone, "stale", "offline shows stale");
 
 // Rows.

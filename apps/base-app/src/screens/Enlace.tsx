@@ -89,11 +89,7 @@ export function Enlace({ link, since, state, crew, ledger, offline }: Props) {
                       {c.stale_after_seconds === null ? "Never" : formatDuration(c.stale_after_seconds)}
                     </td>
                     <td>
-                      {c.kind === "urine_radiation_marker" ? (
-                        <span className="muted">Indirect marker</span>
-                      ) : (
-                        <RangeLabel config={c} />
-                      )}
+                      <RangeLabel config={c} />
                     </td>
                     <td>{c.range_source ?? <span className="muted">No source</span>}</td>
                   </tr>

@@ -26,11 +26,23 @@ from collections import deque
 from datetime import UTC, datetime, timedelta
 
 DEVICE_ID = "biomon-sim-01"
-# Per astronaut: display name, resting HR, SpO2 and starting muscle density.
-# ast-02 rests above the 60-100 bpm range so the console shows an alert.
+# Per astronaut: display name, resting HR, SpO2, starting muscle density and urinary 8-OHdG.
+# ast-02 rests above the 60-100 bpm range so the console shows an alert, and its 8-OHdG
+# sits at the top of the range so some samples come out high.
 CREW = {
-    "ast-01": {"name": "Demo Uno", "hr": 72, "spo2": 98.0, "muscle": 42.0},
-    "ast-02": {"name": "Demo Dos", "hr": 108, "spo2": 96.0, "muscle": 40.5},
+    "ast-01": {"name": "Demo Uno", "hr": 72, "spo2": 98.0, "muscle": 42.0, "ohdg": 4.0},
+    "ast-02": {"name": "Demo Dos", "hr": 108, "spo2": 96.0, "muscle": 40.5, "ohdg": 5.4},
+}
+# Urine radiation marker: 8-OHdG (oxidative DNA damage, raised by ionizing radiation).
+# Indirect marker, not a dose. Range: healthy-adult IQR, chemical methods (Graille et al. 2020).
+RADIATION_CONFIG = {
+    "unit": "ng/mg creatinine",
+    "stale_after_seconds": 86400,
+    "normal_min": 3.0,
+    "normal_max": 5.5,
+    "range_role": "health",
+    "provisional": True,
+    "range_source": "Graille et al. 2020 (8-OHdG meta-analysis)",
 }
 MUSCLE_LOSS_PER_DAY = 0.09  # u.a./day, microgravity atrophy trend
 
@@ -84,7 +96,8 @@ class Astronaut:
             reading(self.id, "urine_salinity", "mS/cm", when, value=salinity, source=source),
             reading(self.id, "urine_color", "rgb_hex", when, value_text=urine_color(dry), source=source),
             reading(self.id, "urine_temperature", "°C", when, value=temperature, quality=temp_quality, source=source),
-            # urine_radiation_marker: no marker defined yet, the analyser does not report it.
+            reading(self.id, "urine_radiation_marker", RADIATION_CONFIG["unit"], when,
+                    value=max(0.5, round(self.profile["ohdg"] + rng.gauss(0, 0.5), 2)), source=source),
         ]
 
     def muscle(self, when: datetime, boot: datetime) -> list[dict]:
@@ -140,6 +153,24 @@ class Uplink:
         except (urllib.error.URLError, OSError) as error:
             log(f"crew registration failed ({error}), retrying")
             return False
+
+    def configure_radiation(self) -> None:
+        """Set unit and range of the 8-OHdG marker, unless an operator already set a unit."""
+        try:
+            with urllib.request.urlopen(self.base_url + "/sensors", timeout=5) as response:
+                configs = {c["kind"]: c for c in json.load(response)}
+            if configs.get("urine_radiation_marker", {}).get("unit") is None:
+                request = urllib.request.Request(
+                    self.base_url + "/sensors/urine_radiation_marker",
+                    data=json.dumps(RADIATION_CONFIG).encode(),
+                    headers={"Content-Type": "application/json"},
+                    method="PUT",
+                )
+                urllib.request.urlopen(request, timeout=5).close()
+                log("radiation marker configured (8-OHdG, ng/mg creatinine)")
+        except (urllib.error.URLError, OSError, ValueError) as error:
+            # Unit NULL accepts any unit, so readings still go through without a range.
+            log(f"radiation marker config failed ({error}), sending without a range")
 
     def flush(self, readings: list[dict]) -> int:
         self.buffer.extend(readings)
@@ -200,6 +231,7 @@ def main() -> None:
     log(f"boot, crew {', '.join(CREW)}, uplink {args.url}")
     while not uplink.register_crew():
         time.sleep(5)
+    uplink.configure_radiation()
     pending = [] if args.no_history else flash_log(crew, now, boot)
     log(f"uploading flash log ({len(pending)} readings)")
     log(f"sent {uplink.flush(pending)}")

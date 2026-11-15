@@ -20,7 +20,7 @@ const MIN = 60_000;
 const VITALS_WINDOW = 15 * MIN;
 const DAYS_WINDOW = 14 * 24 * 60 * MIN;
 const VITAL_KINDS: SensorKind[] = ["heart_rate", "spo2"];
-const DAY_KINDS: SensorKind[] = ["urine_ph", "urine_salinity", "muscle_density"];
+const DAY_KINDS: SensorKind[] = ["urine_ph", "urine_salinity", "urine_radiation_marker", "muscle_density"];
 
 type Series = Partial<Record<SensorKind, GroundReading[]>>;
 
@@ -104,8 +104,8 @@ export function Astronauta({ crew, crewAt, offline, now, selectedId, onSelect }:
         </tbody>
       </table>
       <p className="hint">
-        PROV.: provisional demo range, not clinically validated. The urine radiation marker is
-        indirect: it never indicates a dose.
+        PROV.: provisional demo range, not clinically validated. Radiation marker: urinary 8-OHdG,
+        an indirect marker of oxidative DNA damage, never a dose (ISS crew dose: 0.2–0.5 mSv/day).
       </p>
 
       <section className="section" aria-labelledby="vitals-title">
@@ -118,7 +118,7 @@ export function Astronauta({ crew, crewAt, offline, now, selectedId, onSelect }:
       </section>
 
       <section className="section" aria-labelledby="days-title">
-        <h2 id="days-title">Urine and muscle, last 14 days</h2>
+        <h2 id="days-title">Urine, radiation marker and muscle, last 14 days</h2>
         <div className="charts charts--3">
           {DAY_KINDS.map((k) => (
             <Trend key={k} kind={k} member={member} poll={days} start={now - DAYS_WINDOW} end={now} points />
@@ -131,7 +131,6 @@ export function Astronauta({ crew, crewAt, offline, now, selectedId, onSelect }:
 
 function SensorRow({ s, offline, age }: { s: SensorStatus; offline: boolean; age: number | null }) {
   const c = cellView(s, offline);
-  const radiation = s.kind === "urine_radiation_marker";
   const quality = s.latest?.quality;
   return (
     <tr>
@@ -141,11 +140,11 @@ function SensorRow({ s, offline, age }: { s: SensorStatus; offline: boolean; age
       <td className={`cell cell--${c.tone}`}>
         <span className="value">
           {s.kind === "urine_color" ? <Swatch value={s.latest?.value_text} /> : null}
-          <Flap text={c.text} tiles={!radiation && c.text.length <= 8} width={4} />
+          <Flap text={c.text} tiles={c.text.length <= 8} width={4} />
         </span>
       </td>
-      <td>{radiation ? <span className="muted">Not a dose</span> : (s.latest?.unit ?? s.config.unit ?? "--")}</td>
-      <td>{radiation ? <span className="muted">Indirect marker</span> : <RangeLabel config={s.config} />}</td>
+      <td>{s.latest?.unit ?? s.config.unit ?? "--"}</td>
+      <td><RangeLabel config={s.config} /></td>
       <td className={quality && quality !== "good" ? "quality quality--warn" : "quality"}>
         {quality ? QUALITY_LABELS[quality] : "--"}
       </td>
