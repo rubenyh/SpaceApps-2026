@@ -482,7 +482,7 @@ Response `201`:
 }
 ```
 
-`status`: `"queued"` (en cola a bordo; el envío asíncrono llega con la telemetría), `"withdrawn"` (consentimiento retirado) o `"sent"` (futuro).
+`status`: `"queued"` (en cola a bordo, por diseño: la telemetría de la nave nunca transporta datos de bienestar), `"withdrawn"` (consentimiento retirado) o `"sent"` (reservado para el canal dedicado con consentimiento, que es el siguiente paso; hoy ningún paquete llega a ese estado).
 
 - `GET /wellbeing/ground-packages?astronaut_id=ast-02` → `GroundPackage[]`, del más reciente al más antiguo.
 - `GET /wellbeing/ground-packages/{id}/content` → `{ "package": GroundPackage, "assessment": WellbeingAssessment | null, "timeline": WellbeingTimeline | null, "checkins": Checkin[] | null }`. Muestra lo que se enviaría. Sin `"comments"` en `include`, los `comment` salen como `null`. `404` si el paquete no existe; `409` si se retiró el consentimiento.

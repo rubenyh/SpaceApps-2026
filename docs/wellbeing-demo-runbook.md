@@ -150,9 +150,10 @@ $k = Invoke-RestMethod "$B/wellbeing/ground-packages/$($p.id)/content"; "Nivel {
 try { Invoke-RestMethod "$B/wellbeing/ground-packages/$($p.id)/content" } catch { "Tras retirar -> HTTP " + [int]$_.Exception.Response.StatusCode }
 ```
 
-Mensaje: nada sale de la nave sin acción explícita y consentimiento. Lo puede iniciar el propio astronauta, el capitán o un psicólogo al final de la misión, siempre con consentimiento. El envío es asíncrono, por el retraso de comunicación.
+Mensaje: **privacidad por diseño.** La telemetría de la nave nunca transporta datos de bienestar. Un paquete sólo sale con el consentimiento explícito del astronauta y por un canal dedicado, distinto de la telemetría, que es el siguiente paso del proyecto. Por eso el paquete se queda en cola a bordo (`queued`). Lo puede iniciar el propio astronauta, el capitán o un psicólogo al final de la misión, siempre con consentimiento, y el astronauta puede retirarlo.
 
-**Dilo así:** el paquete queda en cola a bordo (`queued`). La transmisión a Tierra todavía no está conectada: el contrato de telemetría hoy excluye los datos de bienestar, así que mandar estos paquetes con consentimiento requiere un cambio acordado con telemetría (Rubén) y un receptor en `ground-api`. No digas que llegó a Tierra.
+**Frase para la demo:** "Los datos de bienestar nunca viajan en la telemetría de la nave: sólo salen con el consentimiento del astronauta, por un canal dedicado."
+(En inglés: "Wellbeing data never rides on ship telemetry: it only leaves with the astronaut's consent, through a dedicated channel.")
 
 ## 3. Plan B
 
