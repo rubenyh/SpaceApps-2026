@@ -19,8 +19,8 @@ From `apps/base-app`:
 | Command | What |
 |---|---|
 | `npm install` | Install dependencies (once) |
-| `npm run tauri dev` | Desktop window with hot reload. Vite on port 1421 (`strictPort`), so it can run next to spaceship-app (1420). |
-| `npm run dev` | Vite only, in a browser at <http://localhost:1421> |
+| `npm run tauri dev` | Desktop window with hot reload. Vite on port 1422 (`strictPort`), so it can run next to spaceship-app (1420). |
+| `npm run dev` | Vite only, in a browser at <http://localhost:1422> |
 | `npm run build` | Type check (`tsc`) and production bundle |
 | `node src/lib/<name>.check.ts` | Self-checks for `board`, `incidents` and `medicalEval` |
 | `cargo check` in `src-tauri/` | Check the Rust shell |

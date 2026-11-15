@@ -7,7 +7,7 @@ simulator ──readings──▶ onboard-api :8000 ◀── spaceship-app (Tau
                           │  ├─ SQLite (onboard.db, wellbeing.db)
                           │  ├─ ChromaDB (guides)  ◀── demo-init (ingest)
                           │  └─ ollama (qwen2.5:3b, bge-m3)
-                          └──telemetry──▶ ground-api :8001 ◀── base-app (Tauri, Vite 1421)
+                          └──telemetry──▶ ground-api :8001 ◀── base-app (Tauri, Vite 1422)
 wellbeing-vision (camera) ──metrics──▶ onboard-api /wellbeing/vision-sessions
 ```
 
@@ -16,7 +16,7 @@ wellbeing-vision (camera) ──metrics──▶ onboard-api /wellbeing/vision-s
 - Docker Desktop, running.
 - Node.js and the Rust toolchain (for the Tauri consoles).
 - `uv` with Python 3.12 (only for the native options and for wellbeing-vision), and Ollama for the native option with LLM answers.
-- Free ports: 8000, 8001, 1420, 1421. Stop any native `uv run fastapi dev` on 8000 or 8001 first.
+- Free ports: 8000, 8001, 1420, 1422. Stop any native `uv run fastapi dev` on 8000 or 8001 first.
 
 ## Compose services
 

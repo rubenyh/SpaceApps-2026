@@ -20,7 +20,7 @@ If rustup is not installed, install it from <https://rustup.rs> and follow the T
 
 **The first `npm run tauri dev` takes minutes.** Cargo compiles the Tauri crate once. Later starts reuse `src-tauri/target`.
 
-**"Port 1420 is already in use" (or 1421).** Both Vite configs use `strictPort`. Another console or Vite process holds the port. Close it. spaceship-app uses 1420 and base-app uses 1421, so the two consoles can run at the same time.
+**"Port 1420 is already in use" (or 1422).** Both Vite configs use `strictPort`. Another console or Vite process holds the port, often a Vite left over from an earlier run or another worktree. `.\run.ps1` checks both ports first, prints the PID and command line, and skips that console. Find it yourself with `Get-NetTCPConnection -LocalPort 1420 -State Listen` and stop it with `Stop-Process -Id <pid>`. spaceship-app uses 1420 and base-app uses 1422, so the two consoles can run at the same time.
 
 **The console shows "ONBOARD SERVICE UNAVAILABLE" (or base-app shows "No connection to the ground service").** The API is not running, or the console points at another URL. Check `curl http://127.0.0.1:8000/` (or `:8001`). If you moved the port, start the console with `VITE_ONBOARD_API_URL` or `VITE_GROUND_API_URL`. If you serve the console from another origin, add it to `ONBOARD_CORS_ORIGINS` or `GROUND_CORS_ORIGINS`.
 
