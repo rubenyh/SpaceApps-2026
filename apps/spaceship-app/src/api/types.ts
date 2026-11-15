@@ -274,7 +274,7 @@ export interface AssistantResponse {
   disclaimer: string | null;
   urgency: Urgency | null;
   action: string | null;
-  /** Who to notify, e.g. "responsable médico a bordo". Nothing is transmitted. */
+  /** Who to notify, e.g. "crew medical officer". Nothing is transmitted. */
   notify: string[];
   protocol_id: string | null;
   additional_protocol_ids: string[];

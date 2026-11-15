@@ -81,11 +81,11 @@ eq(shownStatus(high, true), "stale", "offline shows stale");
 eq(shownStatus(none, true), "no_data", "offline keeps no data");
 eq(shownStatus(null, false), "no_data", "missing sensor");
 
-eq(explain(high, false), "Por encima de lo normal", "explain high");
-eq(explain(low, false), "Por debajo de lo normal", "explain low");
-eq(explain(ok, false), "Dentro de lo normal", "explain normal");
-eq(explain(none, true), "Todavía no hay lecturas", "explain no data");
-eq(explain(high, true), "Último valor recibido: estaba alto", "explain offline");
+eq(explain(high, false), "Above normal", "explain high");
+eq(explain(low, false), "Below normal", "explain low");
+eq(explain(ok, false), "Within normal", "explain normal");
+eq(explain(none, true), "No readings yet", "explain no data");
+eq(explain(high, true), "Last value received: it was high", "explain offline");
 
 // Tabs flag problems only; a doubtful sample (temperature) is not a health alert.
 eq(tabFlags(status), { vitales: "alert", musculo: null, orina: null }, "tab flags");

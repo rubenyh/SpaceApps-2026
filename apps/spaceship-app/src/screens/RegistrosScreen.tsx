@@ -32,7 +32,7 @@ export function RegistrosScreen({ astronautId }: Props) {
           <label className="field">
             <span>Sensor</span>
             <select value={kind} onChange={(e) => setKind(e.target.value as SensorKind | "")}>
-              <option value="">Todos los sensores</option>
+              <option value="">All sensors</option>
               {SENSOR_KINDS.map((k) => (
                 <option key={k} value={k}>
                   {SENSOR_LABELS[k]}
@@ -41,16 +41,16 @@ export function RegistrosScreen({ astronautId }: Props) {
             </select>
           </label>
           <span className="caption">
-            Las <strong>{LIMIT}</strong> lecturas más recientes, sin procesar
+            The <strong>{LIMIT}</strong> most recent readings, unprocessed
           </span>
         </div>
         <div className="toolbar__group">
-          <span className="caption">Calidad:</span>
+          <span className="caption">Quality:</span>
           <QualityMark quality="good" />
           <QualityMark quality="suspect" />
           <QualityMark quality="bad" />
           <button type="button" className="btn btn--ghost" onClick={refresh} disabled={loading}>
-            {loading ? "Actualizando…" : "Actualizar"}
+            {loading ? "Refreshing…" : "Refresh"}
           </button>
         </div>
       </div>
@@ -58,13 +58,13 @@ export function RegistrosScreen({ astronautId }: Props) {
       {loaded && data.length === 0 ? (
         <div className="banner banner--empty" role="status">
           <StateIcon state="no_data" size={22} />
-          <span>Aún no hay lecturas de este tripulante.</span>
+          <span>No readings for this crew member yet.</span>
         </div>
       ) : null}
       {loaded && data.length > 0 ? <ReadingsTable readings={data} /> : null}
       {!loaded && !error ? (
         <div className="banner" role="status">
-          Cargando lecturas…
+          Loading readings…
         </div>
       ) : null}
     </div>

@@ -14,14 +14,14 @@ export function ReadingsTable({ readings }: Props) {
       <table className="readings">
         <thead>
           <tr>
-            <th scope="col">Captura (UTC)</th>
+            <th scope="col">Captured (UTC)</th>
             <th scope="col">Sensor</th>
             <th scope="col" className="num">
-              Valor
+              Value
             </th>
-            <th scope="col">Unidad</th>
-            <th scope="col">Calidad</th>
-            <th scope="col">Origen</th>
+            <th scope="col">Unit</th>
+            <th scope="col">Quality</th>
+            <th scope="col">Source</th>
           </tr>
         </thead>
         <tbody>

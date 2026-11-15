@@ -12,10 +12,10 @@ interface Props {
 const HEART = "M150,160 C150,154 142,152 140,158 C138,152 130,154 130,160 C130,168 140,174 140,180 C140,174 150,168 150,160 Z";
 
 const LABELS: { text: string; x: number; y: number; w: number }[] = [
-  { text: "Pulmones", x: 6, y: 109, w: 87 },
-  { text: "Corazón", x: 383, y: 109, w: 79 },
-  { text: "Extremidades", x: 6, y: 375, w: 121 },
-  { text: "Riñones", x: 383, y: 375, w: 79 },
+  { text: "Lungs", x: 6, y: 109, w: 87 },
+  { text: "Heart", x: 383, y: 109, w: 79 },
+  { text: "Limbs", x: 6, y: 375, w: 121 },
+  { text: "Kidneys", x: 383, y: 375, w: 79 },
 ];
 
 const organClass = (status: ReadingStatus | null) =>
@@ -23,10 +23,10 @@ const organClass = (status: ReadingStatus | null) =>
 
 /** Front silhouette with four organs, each drawn in the style of its reading status. */
 export function BodyMap({ lungs, heart, kidneys, limbs }: Props) {
-  const word = (s: ReadingStatus | null) => (s ? STATE_LABELS[s].toLowerCase() : "cargando");
+  const word = (s: ReadingStatus | null) => (s ? STATE_LABELS[s].toLowerCase() : "loading");
   const summary =
-    `Mapa del cuerpo. Pulmones: ${word(lungs)}. Corazón: ${word(heart)}. ` +
-    `Riñones: ${word(kidneys)}. Extremidades: ${word(limbs)}.`;
+    `Body map. Lungs: ${word(lungs)}. Heart: ${word(heart)}. ` +
+    `Kidneys: ${word(kidneys)}. Limbs: ${word(limbs)}.`;
   return (
     <svg className="bodymap" viewBox="0 0 468 460" role="img" aria-label={summary}>
       <g transform="translate(117,-10) scale(0.9)">

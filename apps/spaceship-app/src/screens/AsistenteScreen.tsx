@@ -45,15 +45,15 @@ type Entry =
 type WithoutMeta<T> = T extends unknown ? Omit<T, "id" | "at"> : never;
 type NewEntry = WithoutMeta<Entry>;
 
-const DISCLAIMER = "Información de apoyo, no es un diagnóstico.";
-const SUGGESTIONS = ["Resume mi estado de hoy", "¿Qué datos me faltan por medir?"];
+const DISCLAIMER = "Supporting information, not a diagnosis.";
+const SUGGESTIONS = ["Summarize my status today", "Which readings am I missing?"];
 const FINDING_LABELS: Record<Finding["kind"], string> = {
-  symptom: "Síntoma",
-  reading: "Lectura",
-  event: "Evento",
-  data_gap: "Dato ausente",
+  symptom: "Symptom",
+  reading: "Reading",
+  event: "Event",
+  data_gap: "Missing data",
 };
-const SORTED_CODES = [...SYMPTOM_CODES].sort((a, b) => SYMPTOM_LABELS[a].localeCompare(SYMPTOM_LABELS[b], "es"));
+const SORTED_CODES = [...SYMPTOM_CODES].sort((a, b) => SYMPTOM_LABELS[a].localeCompare(SYMPTOM_LABELS[b], "en"));
 
 function openExternal(e: MouseEvent<HTMLAnchorElement>, url: string) {
   e.preventDefault();
@@ -72,7 +72,7 @@ function AssistantReply({ response, at }: { response: AssistantResponse; at: num
   return (
     <article className={clarification ? "msg msg--clarification" : "msg msg--answer"}>
       <span className="msg__who">
-        {clarification ? "Pregunta de aclaración" : "Asistente"} · {formatUtcTime(at)} UTC
+        {clarification ? "Clarifying question" : "Assistant"} · {formatUtcTime(at)} UTC
       </span>
       {urgency ? (
         <div className={`triage triage--${urgency}`} role={urgency === "immediate" ? "alert" : undefined}>
@@ -83,7 +83,7 @@ function AssistantReply({ response, at }: { response: AssistantResponse; at: num
           {response.action ? <p className="triage__action">{response.action}</p> : null}
           {response.notify.length > 0 ? (
             <p className="triage__notify">
-              <strong>Avisar a:</strong> {response.notify.join(", ")}
+              <strong>Notify:</strong> {response.notify.join(", ")}
             </p>
           ) : null}
         </div>
@@ -94,15 +94,15 @@ function AssistantReply({ response, at }: { response: AssistantResponse; at: num
       ) : null}
       {response.protocol_id ? (
         <p className="msg__meta">
-          <strong>Ficha:</strong> {response.protocol_id}
+          <strong>Protocol:</strong> {response.protocol_id}
           {response.additional_protocol_ids.length > 0
-            ? ` · Fichas adicionales: ${response.additional_protocol_ids.join(", ")}`
+            ? ` · Additional protocols: ${response.additional_protocol_ids.join(", ")}`
             : null}
         </p>
       ) : null}
       {response.findings.length > 0 ? (
         <section className="msg__section">
-          <h4>Evidencia usada</h4>
+          <h4>Evidence used</h4>
           <ul>
             {response.findings.map((f, i) => (
               <li key={i}>
@@ -115,20 +115,20 @@ function AssistantReply({ response, at }: { response: AssistantResponse; at: num
       ) : null}
       {response.possible_causes.length > 0 ? (
         <section className="msg__section">
-          <h4>Causas a considerar (sin orden de probabilidad)</h4>
+          <h4>Causes to consider (not ranked by likelihood)</h4>
           <ul>
             {response.possible_causes.map((c) => (
               <li key={c.id}>
                 {c.label} <span className="msg__tag">{CAUSE_STATUS_LABELS[c.status]}</span>
-                {c.evidence_for.length > 0 ? <div>A favor: {c.evidence_for.join(", ")}</div> : null}
-                {c.missing_data.length > 0 ? <div>Falta: {c.missing_data.join(", ")}</div> : null}
+                {c.evidence_for.length > 0 ? <div>Supporting: {c.evidence_for.join(", ")}</div> : null}
+                {c.missing_data.length > 0 ? <div>Missing: {c.missing_data.join(", ")}</div> : null}
               </li>
             ))}
           </ul>
         </section>
       ) : null}
       {response.data_notices.length > 0 ? (
-        <ul className="msg__notices" aria-label="Avisos de datos">
+        <ul className="msg__notices" aria-label="Data notices">
           {response.data_notices.map((n, i) => (
             <li key={i}>
               <StateIcon state="stale" size={15} />
@@ -139,11 +139,11 @@ function AssistantReply({ response, at }: { response: AssistantResponse; at: num
       ) : null}
       {response.sources.length > 0 ? (
         <section className="msg__sources">
-          <strong>Fuentes:</strong>
+          <strong>Sources:</strong>
           <ul>
             {response.sources.map((s) => (
               <li key={s.id}>
-                <span className="msg__tag">{s.kind === "protocol" ? "Ficha revisada" : "Guía"}</span>{" "}
+                <span className="msg__tag">{s.kind === "protocol" ? "Reviewed protocol" : "Guide"}</span>{" "}
                 {s.url ? (
                   <a href={s.url} onClick={(e) => openExternal(e, s.url as string)}>
                     {s.title}
@@ -159,7 +159,7 @@ function AssistantReply({ response, at }: { response: AssistantResponse; at: num
       ) : null}
       {response.matched_rules.length > 0 ? (
         <details className="msg__rules">
-          <summary>Trazabilidad técnica</summary>
+          <summary>Technical traceability</summary>
           <ul>
             {response.matched_rules.map((r) => (
               <li key={r.rule_id}>
@@ -188,16 +188,16 @@ function VisibleData({ status, updatedAt }: { status: AstronautStatus | null; up
   };
   const radiation = findSensor(status, "urine_radiation_marker");
   const rows: { label: string; state: VisualState; age: number | null }[] = [
-    { label: "Pulso", ...one("heart_rate") },
-    { label: "Oxígeno (SpO₂)", ...one("spo2") },
+    { label: "Heart rate", ...one("heart_rate") },
+    { label: "Oxygen (SpO₂)", ...one("spo2") },
     {
-      label: "Orina",
+      label: "Urine",
       state: aggregateUrine(urine),
       age: urineAges.length > 0 ? Math.min(...urineAges) : null,
     },
-    { label: "Músculo", ...one("muscle_density") },
+    { label: "Muscle", ...one("muscle_density") },
     {
-      label: "Radiación",
+      label: "Radiation",
       state: radiation?.latest ? "doubtful" : "no_data",
       age: liveAge(radiation, updatedAt, now),
     },
@@ -211,7 +211,7 @@ function VisibleData({ status, updatedAt }: { status: AstronautStatus | null; up
             {r.label}
           </span>
           <span className={r.state === "stale" ? "visible__age visible__age--stale" : "visible__age"}>
-            {status === null ? "…" : r.age === null ? "nunca medido" : formatAge(r.age)}
+            {status === null ? "…" : r.age === null ? "never measured" : formatAge(r.age)}
           </span>
         </li>
       ))}
@@ -271,7 +271,7 @@ export function AsistenteScreen({ astronautId, astronauts, status, statusUpdated
         apiError instanceof HttpError
           ? `Error ${apiError.status}: ${apiError.detail}`
           : apiError instanceof NetworkError
-            ? "SERVICIO ONBOARD NO DISPONIBLE: el mensaje no se ha enviado."
+            ? "ONBOARD SERVICE UNAVAILABLE: the message was not sent."
             : String(apiError);
       push({ role: "error", text: errorText });
     } finally {
@@ -294,7 +294,7 @@ export function AsistenteScreen({ astronautId, astronauts, status, statusUpdated
         <div className="chat__log" ref={logRef} aria-live="polite">
           {entries.length === 0 ? (
             <p className="chat__hint">
-              Escribe una pregunta sobre tus lecturas. El historial se borra al salir de esta pestaña.
+              Ask a question about your readings. The history is cleared when you leave this tab.
             </p>
           ) : null}
           {entries.map((entry) =>
@@ -306,7 +306,7 @@ export function AsistenteScreen({ astronautId, astronauts, status, statusUpdated
                     <span className="msg__bubble-symptoms">{entry.symptoms.map(symptomText).join(" · ")}</span>
                   ) : null}
                 </div>
-                <span className="msg__when">Tú · {formatUtcTime(entry.at)} UTC</span>
+                <span className="msg__when">You · {formatUtcTime(entry.at)} UTC</span>
               </div>
             ) : entry.role === "assistant" ? (
               <AssistantReply key={entry.id} response={entry.response} at={entry.at} />
@@ -317,21 +317,21 @@ export function AsistenteScreen({ astronautId, astronauts, status, statusUpdated
               </div>
             ),
           )}
-          {sending ? <div className="chat__hint">Enviando…</div> : null}
+          {sending ? <div className="chat__hint">Sending…</div> : null}
         </div>
         <div className="chat__report">
           {pending ? (
             <p className="chat__pending">
-              Respondiendo a la pregunta de aclaración: se reenvía el reporte original.{" "}
+              Answering the clarifying question: the original report is resent.{" "}
               <button type="button" className="btn btn--ghost" onClick={() => setPending(null)}>
-                Nuevo reporte
+                New report
               </button>
             </p>
           ) : (
             <label>
-              Informa
+              Reported by
               <select value={reportedBy} onChange={(e) => setReportedBy(e.target.value)}>
-                <option value="">La persona evaluada</option>
+                <option value="">The person being assessed</option>
                 {astronauts
                   .filter((a) => a.id !== astronautId)
                   .map((a) => (
@@ -343,7 +343,7 @@ export function AsistenteScreen({ astronautId, astronauts, status, statusUpdated
             </label>
           )}
           <label>
-            Síntoma
+            Symptom
             <select value={code} onChange={(e) => setCode(e.target.value as SymptomCode)}>
               {SORTED_CODES.map((c) => (
                 <option key={c} value={c}>
@@ -353,7 +353,7 @@ export function AsistenteScreen({ astronautId, astronauts, status, statusUpdated
             </select>
           </label>
           <select
-            aria-label="¿Presente?"
+            aria-label="Present?"
             value={codeStatus}
             onChange={(e) => setCodeStatus(e.target.value as SymptomStatus)}
           >
@@ -368,16 +368,16 @@ export function AsistenteScreen({ astronautId, astronauts, status, statusUpdated
             className="btn btn--ghost"
             onClick={() => setSymptoms((prev) => mergeSymptoms(prev, [{ symptom: code, status: codeStatus }]))}
           >
-            Añadir
+            Add
           </button>
           {symptoms.length > 0 ? (
-            <ul className="chat__chips" aria-label="Síntomas que se enviarán">
+            <ul className="chat__chips" aria-label="Symptoms to send">
               {symptoms.map((s) => (
                 <li key={s.symptom}>
                   {symptomText(s)}
                   <button
                     type="button"
-                    aria-label={`Quitar ${SYMPTOM_LABELS[s.symptom]}`}
+                    aria-label={`Remove ${SYMPTOM_LABELS[s.symptom]}`}
                     onClick={() => setSymptoms((prev) => prev.filter((p) => p.symptom !== s.symptom))}
                   >
                     ×
@@ -393,23 +393,23 @@ export function AsistenteScreen({ astronautId, astronauts, status, statusUpdated
             type="text"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Escribe tu pregunta…"
-            aria-label="Escribe tu pregunta"
+            placeholder="Type your question…"
+            aria-label="Type your question"
             autoComplete="off"
           />
           <button type="submit" className="btn" disabled={sending || draft.trim() === ""}>
-            {sending ? "Enviando…" : "Enviar"}
+            {sending ? "Sending…" : "Send"}
           </button>
         </form>
       </section>
-      <Panel title="Lo que el asistente puede ver">
+      <Panel title="What the assistant can see">
         <VisibleData status={status} updatedAt={statusUpdatedAt} />
         <p className="caption">
-          El asistente solo usa las lecturas de esta consola. Avisa cuando un dato falta o es viejo y
-          nunca diagnostica.
+          The assistant only uses the readings in this console. It says when data is missing or old
+          and never diagnoses.
         </p>
         <div className="suggestions">
-          <span className="caption">Prueba a preguntar</span>
+          <span className="caption">Try asking</span>
           {SUGGESTIONS.map((s) => (
             <button key={s} type="button" className="btn btn--ghost" disabled={sending} onClick={() => void send(s, true)}>
               {s}
