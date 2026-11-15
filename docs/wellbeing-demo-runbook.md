@@ -152,7 +152,7 @@ try { Invoke-RestMethod "$B/wellbeing/ground-packages/$($p.id)/content" } catch 
 
 Mensaje: nada sale de la nave sin acción explícita y consentimiento. Lo puede iniciar el propio astronauta, el capitán o un psicólogo al final de la misión, siempre con consentimiento. El envío es asíncrono, por el retraso de comunicación.
 
-**Dilo así:** el paquete queda en cola a bordo (`queued`). La transmisión a Tierra todavía no está conectada: falta el receptor en `ground-api`, que se está coordinando con telemetría. No digas que llegó a Tierra.
+**Dilo así:** el paquete queda en cola a bordo (`queued`). La transmisión a Tierra todavía no está conectada: el contrato de telemetría hoy excluye los datos de bienestar, así que mandar estos paquetes con consentimiento requiere un cambio acordado con telemetría (Rubén) y un receptor en `ground-api`. No digas que llegó a Tierra.
 
 ## 3. Plan B
 
