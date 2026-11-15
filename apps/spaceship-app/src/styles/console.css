@@ -1508,12 +1508,30 @@ select option {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin: 0;
   font-size: var(--text-lg);
 }
 
+.triage--review_required .triage__label,
+.triage--undetermined .triage__label {
+  color: var(--state-stale);
+}
+
+.triage__reported,
 .triage__action,
 .triage__notify {
   margin: 0;
+  line-height: 1.45;
+}
+
+.triage__action {
+  font-weight: var(--weight-bold);
+}
+
+.triage__escalation {
+  margin: 0;
+  padding-left: var(--space-5);
+  font-size: var(--text-sm);
   line-height: 1.45;
 }
 
@@ -1554,7 +1572,7 @@ select option {
   opacity: 0.8;
 }
 
-/* Copyable report: second after the action. */
+/* Report review on the card; own surface so it stays readable on the immediate fill. */
 .report {
   display: flex;
   flex-direction: column;
@@ -1562,6 +1580,8 @@ select option {
   padding: var(--space-3) var(--space-4);
   border: var(--border-normal);
   border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .report__head {
@@ -1571,7 +1591,23 @@ select option {
   gap: var(--space-2);
 }
 
-.report__status {
+.report__status--queued {
+  color: var(--state-stale);
+  border-color: var(--state-stale);
+}
+
+.report__status--received {
+  color: var(--state-normal);
+  border-color: var(--state-normal);
+}
+
+.report__status--failed {
+  background: var(--state-alert-fill);
+  border-color: var(--state-alert-fill);
+  color: #ffffff;
+}
+
+.report__error {
   color: var(--state-stale);
 }
 
@@ -1598,6 +1634,22 @@ select option {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--color-text-muted);
+}
+
+h3.msg__who {
+  margin: 0;
+}
+
+.msg__rules summary {
+  min-height: var(--target-min);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.msg__rules > * + * {
+  margin-top: var(--space-3);
 }
 
 .msg__section h4 {
@@ -1634,6 +1686,11 @@ select option {
   margin-top: var(--space-1);
   font-size: var(--text-xs);
   color: var(--color-text-muted);
+}
+
+.chat__jump {
+  align-self: center;
+  margin: var(--space-2) 0;
 }
 
 .chat__report {
@@ -1685,57 +1742,6 @@ select option {
   color: inherit;
   font-size: var(--text-md);
   cursor: pointer;
-}
-
-.visible {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.visible li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--color-rule);
-}
-
-.visible__name {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.visible__name--alert .state-icon {
-  color: var(--state-alert);
-}
-
-.visible__name--normal .state-icon {
-  color: var(--state-normal);
-}
-
-.visible__name--stale .state-icon {
-  color: var(--state-stale);
-}
-
-.visible__name--no_range .state-icon {
-  color: var(--state-norange);
-}
-
-.visible__name--no_data .state-icon {
-  color: var(--state-nodata);
-}
-
-.visible__age {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
-
-.visible__age--stale {
-  color: var(--state-stale);
 }
 
 .suggestions {
@@ -3424,4 +3430,133 @@ select option {
 .evidence-flag {
   margin-left: var(--space-1);
   color: var(--state-stale);
+}
+
+/* Assessment readings (live + snapshot) */
+/* "future" (captured ahead of the onboard clock) reads like stale: amber, never current evidence. */
+.pill--future {
+  border-color: var(--state-stale);
+  background: var(--state-stale);
+  color: var(--color-surface);
+}
+
+.card--future .card__value {
+  color: var(--color-text-muted);
+}
+
+.card--future .card__age,
+.card--future .card__explain {
+  color: var(--state-stale);
+}
+
+.linechart__end--future {
+  fill: var(--color-surface);
+  stroke: var(--state-stale);
+}
+
+.track__marker--future {
+  background: var(--state-stale);
+}
+
+.bodymap__organ--future {
+  stroke: var(--state-stale);
+  stroke-dasharray: 2 3;
+  stroke-linecap: butt;
+}
+
+.areadings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.areadings__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.areadings__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.areadings__name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--weight-bold);
+}
+
+.areadings__noicon {
+  width: 16px;
+  flex: none;
+}
+
+.areadings__value {
+  font-variant-numeric: var(--numeric);
+  text-align: right;
+}
+
+.areadings__unit {
+  color: var(--color-text-muted);
+}
+
+.areadings__meta {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding-left: calc(16px + var(--space-2));
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.areadings__mark,
+.areadings__sim {
+  padding: 0 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.areadings__sim {
+  border-color: var(--color-control);
+  color: var(--color-text);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.areadings__row--alert .state-icon {
+  color: var(--state-alert);
+}
+
+.areadings__row--alert .areadings__mark {
+  border-color: var(--state-alert-fill);
+  background: var(--state-alert-fill);
+  color: #ffffff;
+}
+
+.areadings__row--stale .state-icon,
+.areadings__row--future .state-icon,
+.areadings__row--stale .areadings__mark,
+.areadings__row--future .areadings__mark,
+.areadings__row--stale .areadings__age,
+.areadings__row--future .areadings__age {
+  color: var(--state-stale);
+}
+
+.areadings__row--stale .areadings__mark,
+.areadings__row--future .areadings__mark {
+  border-color: var(--state-stale);
+}
+
+.areadings__row--no_data .state-icon,
+.areadings__row--no_range .state-icon {
+  color: var(--state-nodata);
 }

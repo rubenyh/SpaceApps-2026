@@ -76,6 +76,7 @@ function SummaryBanner({ sensors }: { sensors: (SensorStatus | null)[] }) {
   const count = (st: string) => sensors.filter((s) => (s?.status ?? "no_data") === st).length;
   const notes = [
     count("stale") > 0 ? `${count("stale")} with old data` : "",
+    count("future") > 0 ? `${count("future")} captured ahead of the onboard clock` : "",
     count("no_data") > 0 ? `${count("no_data")} with no data` : "",
     count("no_range") > 0 ? `${count("no_range")} with no range` : "",
   ].filter(Boolean);

@@ -55,10 +55,10 @@ export function formatDuration(seconds: number): string {
   return `${days} ${days === 1 ? "day" : "days"}`;
 }
 
-/** Relative age: "12 s ago", "26 h ago", "3 days ago". Empty when unknown. */
+/** Relative age: "12 s ago", "26 h ago", "3 days ago"; "5 min ahead" for a capture ahead of the clock. Empty when unknown. */
 export function formatAge(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) return "";
-  if (seconds < 0) return "future date";
+  if (seconds < 0) return `${formatDuration(-seconds)} ahead`;
   return `${formatDuration(seconds)} ago`;
 }
 
