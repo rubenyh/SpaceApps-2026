@@ -6,6 +6,7 @@ import type {
   IndicatorStatus,
   SupportLevel,
   Trend,
+  WellbeingAssessment,
   WellbeingSource,
 } from "../api/types";
 
@@ -110,6 +111,31 @@ export function formatClock(iso: string, timeZone = "UTC"): string {
 }
 
 export const firstName = (displayName: string) => displayName.trim().split(/\s+/)[0] ?? displayName;
+
+const TENSION_COMPONENTS = ["vision.brow_lower_delta", "vision.brow_lower_peak_1s"];
+
+/**
+ * Today's video log: highest z of the LIVE vision components recorded today, per group.
+ * Fatigue = vision.* of `fatigue`; Tension = brow lowering of `stress`.
+ * null when no live vision component has today's data; a group z is null when none of its values is.
+ */
+export function videoLogZ(
+  assessment: WellbeingAssessment,
+  today: string,
+): { fatigue: number | null; tension: number | null } | null {
+  const live = (kind: IndicatorKind, keep: (c: string) => boolean) =>
+    (assessment.indicators.find((i) => i.kind === kind)?.components ?? []).filter(
+      (c) => keep(c.component) && c.latest_origin === "live" && c.latest_day === today,
+    );
+  const fatigue = live("fatigue", (c) => c.startsWith("vision."));
+  const tension = live("stress", (c) => TENSION_COMPONENTS.includes(c));
+  if (fatigue.length === 0 && tension.length === 0) return null;
+  const max = (list: typeof fatigue) => {
+    const zs = list.flatMap((c) => (c.z === null ? [] : [c.z]));
+    return zs.length > 0 ? Math.max(...zs) : null;
+  };
+  return { fatigue: max(fatigue), tension: max(tension) };
+}
 
 /** One concrete, non-judgemental gesture per crew member who may need support. */
 export function supportSuggestion(member: CrewMemberSummary): { title: string; gesture: string } | null {
