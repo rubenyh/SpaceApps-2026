@@ -751,6 +751,10 @@ select option {
   animation: settle 1.4s ease-in-out infinite alternate;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .flap--skeleton .flap__tile { animation: none; }
+}
+
 @keyframes settle {
   from {
     opacity: 0.45;
