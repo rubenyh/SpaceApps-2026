@@ -21,6 +21,7 @@ The repo lives in OneDrive: if `.venv` files get locked during `uv sync`, pause 
 | `uv run wellbeing-vision bitacora --astronaut ast-01 [--camera 0] [--seconds 60] [--no-mirror] [--trace t.csv] [--dry-run]` | Daily video log: 3 s neutral, then fatigue and tension with a live preview. Sends one summary. Keys: `f` fullscreen, `q`/Esc end. |
 | `uv run wellbeing-vision enroll --astronaut ast-01 [--camera 0] [--samples 10]` | Enroll a face: 10 templates while turning the head a little. Replaces the previous enrollment. Not mirrored: only the daily log mirrors (self-view, `--no-mirror` to turn it off). |
 | `uv run wellbeing-vision identify [--camera 0] [--rotate 180] [--seconds 0]` | Multi-person preview: one box per tracked face with its name or `unknown-<n>`, and the linked pose. Sends nothing. |
+| `uv run wellbeing-vision ambiente [--cameras 0 1] [--window 60] [--rotate 180] [--seconds 0] [--dry-run]` | Ambient mode: each camera is a module; every window sends co-presence and one motion session per person. Preview with both cameras stacked. |
 | `uv run pytest` | Unit tests (no camera needed). |
 
 `--dry-run` prints the JSON instead of posting it (add `--out file.jsonl` to also save it).
@@ -76,6 +77,25 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
   the payload says `identity.method: "face"` with the median score, and up to 3 frames scoring 0.5 or more
   are added to the gallery (at most 20 such templates, oldest dropped). Otherwise it stays `manual` and the
   reason is printed.
+
+## Ambient mode
+
+- One process, one camera per module (`WELLBEING_VISION_CAMERAS`, default cam 0 = `modulo-a`, cam 1 =
+  `modulo-b`), processed in parallel threads. Each camera has its own tracker, orientation and pose model.
+- Identity is resolved across cameras: one astronaut is one face at a time. Seeing them in the other module
+  is a transfer (preview and console). Unidentified people are `unknown-<track>`, unique across cameras.
+- Every window (60 s) and module: `POST /wellbeing/co-presence` with occupants (1 s or more), pairs
+  (seconds together, mean distance in shoulder widths, facing ratio) and quality (camera coverage). Empty
+  windows are not sent. A window cut short by quitting is sent if it lasted 10 s or more.
+- Per person with 10 s or more of pose: `POST /wellbeing/vision-sessions` with `session_type: "ambiente"`,
+  `neutral_ok: false` (no facial neutral) and `motion`: torso `speed` (shoulder widths/s),
+  `stationary_ratio` (under 0.1 sw/s), `fidget_index` (wrist speed relative to the torso, sw/s) and
+  `torso_angle_dev` (degrees of the head against the shoulder line, from its median in the window). All
+  relative to the body, so the numbers do not change with the camera or the astronaut upside down.
+  Steps over 5 sw/s are tracking jumps and are skipped. PROVISIONAL.
+- Presence comes from detected faces: someone with their back to the camera is not counted.
+- Preview: cameras stacked top to bottom, shown as delivered (no mirror, no rotation); boxes, skeletons,
+  per-module occupants and pairs, transfers, FPS per camera and the window countdown.
 
 ## Settings (env vars)
 
