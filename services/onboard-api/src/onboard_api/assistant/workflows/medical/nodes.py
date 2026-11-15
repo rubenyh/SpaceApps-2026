@@ -8,7 +8,8 @@ import re
 
 from onboard_api.assistant.integrations import LLM, GuideChunk, Retriever
 from onboard_api.assistant.workflows.medical import prompts
-from onboard_api.assistant.workflows.medical.interpret import interpret
+from onboard_api.assistant.workflows.medical import understand
+from onboard_api.assistant.workflows.medical.interpret import interpret, is_sos
 from onboard_api.assistant.workflows.medical.protocols import load_catalog
 from onboard_api.assistant.workflows.medical.state import (
     Decision,
@@ -19,12 +20,19 @@ from onboard_api.assistant.workflows.medical.state import (
 )
 from onboard_api.assistant.workflows.medical.triage import (
     GENERIC_CLARIFYING_QUESTION,
+    PERTINENT_READINGS,
     decide,
     evaluate_alarms,
     evaluate_case,
     select_route,
 )
-from onboard_api.schemas.assistant import AssistantResponse, GuideSource, Urgency
+from onboard_api.schemas.assistant import (
+    AssistantResponse,
+    Clarification,
+    Finding,
+    GuideSource,
+    Urgency,
+)
 
 _CITATION = re.compile(r"\[(\d+)\]")
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
@@ -44,6 +52,7 @@ def _response(
     urgency: Urgency | None = None,
     action: str | None = None,
     notify: list[str] | None = None,
+    clarification: Clarification | None = None,
 ) -> dict:
     d = decision
     return {
@@ -63,6 +72,7 @@ def _response(
             findings=d.findings if d else [],
             possible_causes=d.possible_causes if d else [],
             clarifying_question=d.clarifying_question if d else None,
+            clarification=clarification,
         )
     }
 
@@ -71,8 +81,22 @@ def _response(
 
 
 def interpret_report(state: MedicalState, events: EventSource) -> dict:
+    """Rules on the new message, merged with the open case echoed by the console."""
+    request = state["request"]
     found = state["events"] if "events" in state else events.active_events(state["now"])
-    return {"interpretation": interpret(state["request"]), "events": found, "notices": []}
+    case = understand.case_for(request)
+    previous = [understand.to_observation(o) for o in case.observations] if case else []
+    base = interpret(request)
+    if case:  # "sí, un poco" or "empezó de repente" read against the pending question
+        subject = understand.subject_of(request, previous)
+        base = understand.answer_turn(base, request.message, case, previous, subject)
+    return {
+        "interpretation": understand.merge_case(base, previous),
+        "events": found,
+        "clarification": case,
+        "sos": is_sos(request.message),
+        "notices": [],
+    }
 
 
 def check_alarms(state: MedicalState) -> dict:
@@ -83,13 +107,53 @@ def check_alarms(state: MedicalState) -> dict:
 
 
 def route_after_alarms(state: MedicalState) -> str:
+    return "respond_alarm" if state["alarm_hits"] or state.get("sos") else "understand"
+
+
+def route_after_recheck(state: MedicalState) -> str:
     return "respond_alarm" if state["alarm_hits"] else "load_context"
 
 
+def _with_sos(decision: Decision | None) -> Decision:
+    """SOS leads the action; card alarms found in the same turn are kept."""
+    officer, crew = prompts.MEDICAL_OFFICER, "tripulación"
+    finding = Finding(kind="event", detail=prompts.SOS_FINDING, source="report")
+    if decision is None:
+        return Decision("immediate", None, [], prompts.SOS_ACTION, [officer, crew], [], [finding],
+                        [], None, [], prompts.SOS_ACTION)
+    decision.action = f"{prompts.SOS_ACTION} {decision.action}"
+    decision.summary = f"{prompts.SOS_ACTION}\n{decision.summary}"
+    decision.notify = list(dict.fromkeys([officer, crew, *decision.notify]))
+    decision.findings = [finding, *decision.findings]
+    return decision
+
+
 def respond_alarm(state: MedicalState) -> dict:
-    decision = decide(state["alarm_hits"], load_catalog(), None)
+    hits = state["alarm_hits"]
+    decision = decide(hits, load_catalog(), None) if hits else None
+    if state.get("sos"):
+        decision = _with_sos(decision)
     state = {**state, "notices": [*state.get("notices", []), prompts.ALARM_NOTICE]}
     return {"route": "alarm", "decision": decision, **_response(state, decision.summary, decision)}
+
+
+# --- Local interpreter (Qwen), only once no alarm is pending. ---
+
+
+def understand_turn(state: MedicalState, llm: LLM) -> dict:
+    interp, case, request = state["interpretation"], state.get("clarification"), state["request"]
+    if interp.request_kind == "educational":
+        return {}  # general question: nothing to extract, and no symptom to invent
+    reading = understand.read_turn(
+        llm, request.message, case.question if case else None, interp.observations
+    )
+    if reading is None:  # Ollama down, slow or invalid output: the rules alone decide
+        return {}
+    subject = understand.subject_of(request, interp.observations)
+    extra, uncovered = understand.accept(
+        reading, request, case.question_id if case else None, subject
+    )
+    return {"interpretation": understand.add_llm(interp, extra, uncovered)}
 
 
 # --- Non-alarm branch. ---
@@ -100,16 +164,35 @@ def load_context(state: MedicalState, readings: ReadingsProvider) -> dict:
         ctx = readings.load(state["request"].astronaut_id, state["now"])
     except Exception:  # providers should not raise; never let one break the reply
         ctx = ReadingsContext(available=False, warnings=[prompts.NOTICE_READINGS_FAILED])
-    return {"readings": ctx, "notices": [*state.get("notices", []), *ctx.warnings]}
+    return {"readings": ctx}
+
+
+def _reading_notices(readings: ReadingsContext, decision: Decision | None) -> list[str]:
+    """Reading warnings that matter for the decision's cards; none without a decision."""
+    pids = [decision.protocol_id, *decision.additional_protocol_ids] if decision else []
+    kinds = {k for p in pids for k in PERTINENT_READINGS.get(p, ())}
+    if not kinds:
+        return []
+    owned = {w for ws in readings.kind_warnings.values() for w in ws}
+    pertinent = {w for k in kinds for w in readings.kind_warnings.get(k, [])}
+    return [w for w in readings.warnings if w not in owned or w in pertinent]
 
 
 def assess_case(state: MedicalState) -> dict:
     interp, readings = state["interpretation"], state["readings"]
     hits = evaluate_case(interp, state["events"], readings)
     route = select_route(interp, state["alarm_hits"], hits)
-    out: dict = {"case_hits": hits, "route": route}
-    if hits:
-        out["decision"] = decide(hits, load_catalog(), readings)
+    case = state.get("clarification")
+    if route == "clarify" and not hits and case and case.question_id == "symptom":
+        route = "out_of_coverage"  # asked what the person feels and still no symptom we cover
+    decision = decide(hits, load_catalog(), readings) if hits else None
+    out: dict = {
+        "case_hits": hits,
+        "route": route,
+        "notices": [*state.get("notices", []), *_reading_notices(readings, decision)],
+    }
+    if decision:
+        out["decision"] = decision
     return out
 
 
@@ -121,15 +204,28 @@ def route_after_case(state: MedicalState) -> str:
     }.get(state["route"], "respond_out_of_coverage")
 
 
+def _pending(state: MedicalState, question_id: str, question: str) -> Clarification:
+    """Open case returned to the console, which sends it back with the answer."""
+    return Clarification(
+        question_id=question_id,
+        question=question,
+        astronaut_id=state["request"].astronaut_id,
+        observations=[understand.to_case(o) for o in state["interpretation"].observations],
+    )
+
+
 def respond_clarify(state: MedicalState) -> dict:
     d = state.get("decision")
-    if d is None:  # unclear report with no rule hit: ask the generic question
-        out = _response(state, GENERIC_CLARIFYING_QUESTION, urgency="undetermined", sources=[])
-        out["response"].clarifying_question = GENERIC_CLARIFYING_QUESTION
+    if d is None:  # report with no concrete symptom yet: ask what the person feels
+        q = GENERIC_CLARIFYING_QUESTION
+        out = _response(state, q, urgency="undetermined", sources=[],
+                        clarification=_pending(state, "symptom", q))
+        out["response"].clarifying_question = q
         return out
     question = d.clarifying_question
     reply = d.summary if not question or question in d.summary else f"{d.summary}\n\n{question}"
-    return _response(state, reply.strip(), d)
+    pending = _pending(state, d.question_id, question) if question and d.question_id else None
+    return _response(state, reply.strip(), d, clarification=pending)
 
 
 def respond_out_of_coverage(state: MedicalState) -> dict:

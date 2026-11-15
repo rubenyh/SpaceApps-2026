@@ -11,6 +11,7 @@ from onboard_api.schemas.assistant import (
     AssistantRequest,
     AssistantResponse,
     CandidateStatus,
+    Clarification,
     Finding,
     GuideSource,
     MatchedRule,
@@ -31,8 +32,8 @@ Route = Literal["alarm", "clarify", "assessment", "educational", "out_of_coverag
 class Observation:
     symptom: SymptomCode
     status: SymptomStatus
-    origin: Literal["structured", "text"]
-    evidence: str  # matched text span, or "structured"
+    origin: Literal["structured", "text", "llm"]
+    evidence: str  # matched text span (rules or local interpreter), or "structured"
     temporality: Temporality = "current"
     subject: Literal["self", "other"] = "self"
     onset: Literal["sudden", "gradual"] | None = None
@@ -53,6 +54,8 @@ class Interpretation:
     mentions_readings: tuple[str, ...] = ()
     # Protocol id the text is about, used to filter retrieval topics.
     topic_hint: str | None = None
+    # Concrete complaint outside the closed vocabulary ("me duele el oído"): out of coverage.
+    uncovered: str | None = None
 
 
 @dataclass(frozen=True)
@@ -74,6 +77,8 @@ class ReadingsContext:
     available: bool
     latest: dict[str, VitalReading] = field(default_factory=dict)  # by sensor kind
     warnings: list[str] = field(default_factory=list)  # Spanish, for data_notices
+    # Which of `warnings` belong to one sensor kind; the rest are general.
+    kind_warnings: dict[str, list[str]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -151,6 +156,8 @@ class Decision:
     protocol_sources: list[GuideSource]
     # Deterministic reply text built from the cards (action first).
     summary: str
+    # "<protocol_id>.<question_key>" of clarifying_question.
+    question_id: str | None = None
 
 
 # --- Injected dependencies ---
@@ -172,6 +179,9 @@ class MedicalState(TypedDict, total=False):
     request: AssistantRequest
     now: datetime
     events: list[OperationalEvent]
+    # Open case echoed by the console (None when absent or for another astronaut).
+    clarification: Clarification | None
+    sos: bool
     interpretation: Interpretation
     alarm_hits: list[RuleHit]
     readings: ReadingsContext

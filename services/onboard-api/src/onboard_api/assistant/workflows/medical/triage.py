@@ -47,8 +47,8 @@ INJ = "injury_bleeding_or_burn"
 CABIN = "cabin_environment_alert"
 RAD = "radiation_alert"
 
-# Asked when the report is health related but names no recognised symptom ("me siento mal").
-GENERIC_CLARIFYING_QUESTION = "¿Qué síntoma principal notas ahora y desde cuándo?"
+# Asked when a report names no concrete symptom ("me siento mal", "malestar físico").
+GENERIC_CLARIFYING_QUESTION = "¿Qué sientes ahora: dolor, falta de aire, mareo, náuseas u otra cosa?"
 
 URGENCY_RANK: dict[str, int] = {"immediate": 0, "review_required": 1, "undetermined": 2, "informational": 3}
 
@@ -565,7 +565,10 @@ def select_route(interp: Interpretation, alarm_hits: list[RuleHit], case_hits: l
         return "clarify"  # no decision: the reply asks GENERIC_CLARIFYING_QUESTION
     if interp.request_kind == "educational":
         return "educational"
-    return "out_of_coverage"
+    # Out of coverage only for a concrete symptom or event the catalog does not cover.
+    if interp.uncovered or _reports_symptoms(interp):
+        return "out_of_coverage"
+    return "clarify"  # a report with no concrete symptom yet: ask what the person feels
 
 
 def _reading_detail(r: VitalReading, pids: list[str]) -> str:
@@ -648,11 +651,12 @@ def decide(hits: list[RuleHit], catalog: dict[str, Protocol], readings: Readings
                     source_ids=list(card_c.source_ids),
                 )
 
-    question = None
+    question = question_id = None
     if urgency == "undetermined":
-        question = next(
-            (catalog[h.protocol_id].questions.get(h.question_key) for h in lead if h.question_key), None
-        )
+        asked = next((h for h in lead if h.question_key in catalog[h.protocol_id].questions), None)
+        if asked:
+            question = catalog[asked.protocol_id].questions[asked.question_key]
+            question_id = f"{asked.protocol_id}.{asked.question_key}"
 
     sources = [
         GuideSource(id=f"{pid}@{catalog[pid].version}#{s.id}", title=s.title, section=s.section,
@@ -677,4 +681,5 @@ def decide(hits: list[RuleHit], catalog: dict[str, Protocol], readings: Readings
         clarifying_question=question,
         protocol_sources=sources,
         summary=summary,
+        question_id=question_id,
     )

@@ -70,3 +70,18 @@ def test_model_digest() -> None:
     assert client(handler).model_digest("embed-model") == "abc"
     with pytest.raises(DependencyUnavailable):
         client(handler).model_digest("missing")
+
+
+def test_chat_json_sends_schema_and_uses_the_short_timeout() -> None:
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["body"] = json.loads(request.content)
+        seen["timeout"] = request.extensions["timeout"]["read"]
+        return httpx.Response(200, json={"message": {"content": '{"observations": []}'}})
+
+    llm = OllamaClient("http://ollama.test", "chat-model", "embed-model", 20.0,
+                       transport=httpx.MockTransport(handler), json_timeout_seconds=3.0)
+    schema = {"type": "object"}
+    assert llm.chat_json("s", "u", schema) == '{"observations": []}'
+    assert seen["body"]["format"] == schema and seen["timeout"] == 3.0

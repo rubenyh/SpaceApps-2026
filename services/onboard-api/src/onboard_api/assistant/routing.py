@@ -8,9 +8,10 @@ import re
 import unicodedata
 
 from onboard_api.assistant.state import AssistantState
-from onboard_api.assistant.workflows.medical.interpret import interpret
+from onboard_api.assistant.workflows.medical.interpret import interpret, is_sos
+from onboard_api.assistant.workflows.medical.understand import case_for
 from onboard_api.assistant.workflows.medical.state import EventSource
-from onboard_api.schemas.assistant import AssistantResponse
+from onboard_api.schemas.assistant import AssistantResponse, Clarification
 
 CLARIFY_QUESTION = (
     "¿Tu consulta es sobre un síntoma o malestar que tienes ahora (tú u otro"
@@ -58,10 +59,13 @@ def select_intent(state: AssistantState, events: EventSource) -> dict:
     out = {"events": active, "distress": distress}
 
     interp = interpret(request)
-    if _relevant(active, request.astronaut_id) or interp.observations:
+    # SOS, ship events and recognised symptoms go first to the medical alarm rules.
+    if is_sos(request.message) or _relevant(active, request.astronaut_id) or interp.observations:
         return {**out, "intent": "medical"}
     if any(w in text for w in _PSYCH):
         return {**out, "intent": "unsupported"}
+    if case_for(request):  # answer to a pending question: the same case continues
+        return {**out, "intent": "medical"}
     if interp.medical_signal:
         return {**out, "intent": "medical"}
     if not distress and (len(tokens) <= 2 or any(t in _VAGUE for t in tokens)):
@@ -80,6 +84,11 @@ def respond_clarify(state: AssistantState) -> dict:
             workflow="clarify",
             needs_clarification=True,
             clarifying_question=CLARIFY_QUESTION,
+            clarification=Clarification(
+                question_id="routing",
+                question=CLARIFY_QUESTION,
+                astronaut_id=state["request"].astronaut_id,
+            ),
         )
     }
 

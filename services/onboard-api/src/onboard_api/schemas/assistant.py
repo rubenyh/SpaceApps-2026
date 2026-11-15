@@ -94,15 +94,48 @@ class ReportedSymptom(BaseModel):
     context: str | None = Field(default=None, max_length=200)
 
 
+class CaseObservation(BaseModel):
+    """One observation of an open case, returned by the server and echoed back unchanged."""
+
+    symptom: SymptomCode
+    status: SymptomStatus
+    # "text": rules on the message, "llm": local interpreter, "structured": reported_symptoms.
+    origin: Literal["structured", "text", "llm"]
+    # The user's words that support it ("structured" for structured input).
+    evidence: str = Field(max_length=300)
+    temporality: Literal["current", "resolved", "historical", "hypothetical"] = "current"
+    subject: Literal["self", "other"] = "self"
+    onset: Literal["sudden", "gradual"] | None = None
+    severity: Literal["mild", "moderate", "severe"] | None = None
+    persistence: Literal["ongoing", "resolved", "recurrent"] | None = None
+    context: str | None = Field(default=None, max_length=200)
+
+
+class Clarification(BaseModel):
+    """Open case with a pending question. The endpoint keeps no conversation: the
+    console sends this object back, unchanged, with the answer in `message`."""
+
+    # "routing" (report or general info?), "symptom" (what do you feel?),
+    # or "<protocol_id>.<question_key>" for a card question.
+    question_id: str = Field(max_length=100)
+    question: str = Field(max_length=500)
+    # The case belongs to this person; another astronaut_id starts a new case.
+    astronaut_id: str | None = None
+    observations: list[CaseObservation] = Field(default_factory=list, max_length=60)
+
+
 class AssistantRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     # Person being assessed.
     astronaut_id: str | None = None
     # Crewmate who sends the report, when it is not the assessed person.
     reported_by: str | None = None
-    # To answer a clarifying question, resend the original message plus the
-    # new structured data (the endpoint is stateless).
+    # To answer a clarifying question, send back `clarification` (below). Older
+    # clients resend the original message plus the new structured data.
     reported_symptoms: list[ReportedSymptom] = Field(default_factory=list, max_length=40)
+    # `clarification` from the previous response, to answer its question. Then
+    # `message` holds only the answer (resending the original text also works).
+    clarification: Clarification | None = None
 
 
 class GuideSource(BaseModel):
@@ -159,6 +192,8 @@ class AssistantResponse(BaseModel):
     findings: list[Finding] = []
     possible_causes: list[PossibleCause] = []
     clarifying_question: str | None = None
+    # Set with needs_clarification on medical/clarify replies: send it back unchanged.
+    clarification: Clarification | None = None
 
 
 class OperationalEvent(BaseModel):

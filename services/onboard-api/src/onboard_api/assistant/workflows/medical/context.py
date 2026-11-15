@@ -83,12 +83,17 @@ class SqliteReadingsProvider:
         readings = ReadingRepository(conn)
         configs = SensorConfigRepository(conn)
         ctx = ReadingsContext(available=True)
+
+        def warn(kind: str, text: str) -> None:
+            ctx.warnings.append(text)
+            ctx.kind_warnings.setdefault(kind, []).append(text)
+
         for kind in _EXPECTED + _OPTIONAL:
             label = LABELS[kind]
             row = readings.latest(astronaut_id, kind)
             if row is None:
                 if kind in _EXPECTED:
-                    ctx.warnings.append(f"Sin lectura de {label}.")
+                    warn(kind, f"Sin lectura de {label}.")
                 continue
             config = configs.get(kind)
             limit = config.stale_after_seconds if config else DEFAULT_STALE_AFTER_SECONDS
@@ -108,22 +113,26 @@ class SqliteReadingsProvider:
                 stale=stale,
             )
             if future:
-                ctx.warnings.append(
+                warn(
+                    kind,
                     f"La lectura de {label} tiene hora de captura en el futuro"
                     f" ({-raw_age} s por delante del reloj): no se usa como lectura actual."
                 )
             elif stale:
-                ctx.warnings.append(
+                warn(
+                    kind,
                     f"La lectura de {label} tiene {format_age(age)} de antigüedad"
                     f" (vigencia {limit} s): no refleja el estado actual."
                 )
             if row.quality in _QUALITY:
-                ctx.warnings.append(
+                warn(
+                    kind,
                     f"La lectura de {label} tiene calidad {_QUALITY[row.quality]}"
                     f" ({row.quality})."
                 )
             if kind == "muscle_density":
-                ctx.warnings.append(
+                warn(
+                    kind,
                     "Sensor muscular: método y unidad pendientes; el valor no se interpreta."
                 )
         return ctx

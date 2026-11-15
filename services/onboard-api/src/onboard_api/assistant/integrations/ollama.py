@@ -13,16 +13,19 @@ class OllamaClient:
         embed_model: str,
         timeout_seconds: float,
         transport: httpx.BaseTransport | None = None,  # tests pass httpx.MockTransport
+        json_timeout_seconds: float | None = None,  # chat_json (interpreter) wait
     ) -> None:
         self.chat_model = chat_model
         self.embed_model = embed_model
+        self.json_timeout_seconds = json_timeout_seconds or timeout_seconds
         self._http = httpx.Client(
             base_url=base_url, timeout=timeout_seconds, transport=transport
         )
 
-    def _post(self, path: str, payload: dict) -> dict:
+    def _post(self, path: str, payload: dict, timeout: float | None = None) -> dict:
         try:
-            response = self._http.post(path, json=payload)
+            kwargs = {"timeout": timeout} if timeout else {}
+            response = self._http.post(path, json=payload, **kwargs)
             response.raise_for_status()
             return response.json()
         except (httpx.HTTPError, ValueError) as exc:
@@ -40,6 +43,26 @@ class OllamaClient:
                 "stream": False,
                 "options": {"temperature": 0.1},
             },
+        )
+        try:
+            return data["message"]["content"]
+        except (KeyError, TypeError) as exc:
+            raise DependencyUnavailable(f"Unexpected Ollama chat reply: {data!r}") from exc
+
+    def chat_json(self, system: str, user: str, schema: dict) -> str:
+        data = self._post(
+            "/api/chat",
+            {
+                "model": self.chat_model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                "stream": False,
+                "format": schema,  # Ollama structured output
+                "options": {"temperature": 0, "num_predict": 256},  # cap a runaway JSON
+            },
+            timeout=self.json_timeout_seconds,
         )
         try:
             return data["message"]["content"]

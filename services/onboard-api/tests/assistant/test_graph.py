@@ -213,7 +213,7 @@ def test_assessment_without_guides_skips_llm(triage: Triage) -> None:
     assert r.reply == triage.decision.summary
     assert prompts.NOTICE_GUIDES_FAILED in r.data_notices
     assert prompts.NOTICE_READINGS_FAILED in r.data_notices
-    assert llm.calls == []
+    assert "chat" not in llm.calls  # no draft; the interpreter (chat_json) may run
 
 
 @pytest.mark.parametrize("retriever", [FakeRetriever([]), FailingRetriever()], ids=["empty", "down"])
@@ -227,7 +227,7 @@ def test_educational_without_chunks_abstains(triage: Triage, retriever) -> None:
     assert r.urgency == "informational"
     assert r.sources == [] and r.protocol_id is None
     assert {prompts.NOTICE_NO_GUIDES, prompts.NOTICE_GUIDES_FAILED} & set(r.data_notices)
-    assert llm.calls == []
+    assert llm.calls == []  # educational turn: no interpreter, no draft
 
 
 def test_educational_llm_down_returns_excerpt(triage: Triage) -> None:

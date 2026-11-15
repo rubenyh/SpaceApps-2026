@@ -26,7 +26,7 @@ def normalize(text: str) -> str:
 
 # (code, pattern, defaults). Patterns are written lowercase without accents.
 _P = [
-    ("shortness_of_breath", r"\b(me |le |te )?falt(a|aba|o) (mucho |muchisimo |bastante |un poco )?(el |de )?aire|\b(me|le) cuesta respirar|dificultad (para|al) respirar|respir\w+ con dificultad|disnea|sin aliento|no me entra (el )?aire|me quedo sin aire", {}),
+    ("shortness_of_breath", r"\b(me |le |te )?falt(a|aba|o) (mucho |muchisimo |bastante |un poco )?(el |de )?aire|\b(me|le) cuesta (un poco |mucho |bastante )?respirar|dificultad (para|al) respirar|respir\w+ con dificultad|disnea|sin aliento|no me entra (el )?aire|me quedo sin aire", {}),
     ("shortness_of_breath", r"\bno (puedo|puede|podia) respirar|\b(me|se) ahog\w*", {"severity": "severe"}),
     ("abnormal_breathing", r"\bno respira|respira (raro|mal|entrecortad\w*|de forma anormal)|respiracion (anormal|irregular|agonica)|\bjadea", {}),
     ("chest_pain", r"dolor (de|en el) pecho|dolor toracico|(me|le) duele (el|mucho el) pecho|molestia en el pecho", {}),
@@ -52,7 +52,7 @@ _P = [
     ("confusion", r"confundid[oa]|confusion|desorientad[oa]|\bno sabe donde esta|\bno se donde estoy|delira", {}),
     ("stiff_neck", r"rigidez (de|en el) cuello|cuello rigido|nuca rigida", {}),
     ("dizziness", r"\bmare\w*|vertigo|da vueltas|aturdid[oa]", {}),
-    ("nausea", r"nausea\w*|ganas de vomitar|revuelto el estomago", {}),
+    ("nausea", r"nausea\w*|ganas de vomitar|revuelto el estomago|estomago revuelto", {}),
     ("vomiting", r"(?<!ganas de )vomit\w*|devolv\w+", {}),
     ("repeated_vomiting", r"vomit\w* (\w+ )?(varias|muchas|repetidas|tres|cuatro|cinco) veces|\bno (puedo|puede) (dejar|parar) de vomitar|vomitos repetidos|sin parar de vomitar|vomitando sin parar|sigo vomitando|llevo todo el dia vomitando", {"persistence": "recurrent"}),
     ("diarrhea", r"diarrea|evacuaciones liquidas|heces liquidas", {}),
@@ -101,7 +101,7 @@ _UNKNOWN = re.compile(r"\bno (se|sabe|sabemos|estoy segur[oa]( de)?) si\b")
 _EDUCATIONAL = re.compile(
     r"\b(que es|que son|que causa\w*|que provoca\w*|por que se produce\w*|para que sirve\w*|como funciona\w*"
     r"|como se mide|explicame|explica|cuales son (los|las) (sintomas|causas|signos|senales)"
-    r"|en que consiste|informacion sobre|hablame de)\b"
+    r"|en que consiste|informacion sobre|informacion general|hablame de)\b"
 )
 _HYPOTHETICAL = re.compile(
     r"\b(que pasa si|que pasaria si|que hago si|que hacer si|que (debo|debe|deberia) hacer si|que hago en caso"
@@ -164,6 +164,20 @@ _UNWELL = re.compile(
     r"\b(no me siento bien|me siento mal|me encuentro mal|no me encuentro bien|me siento rar[oa]"
     r"|algo no (anda|va) bien|no estoy bien|me siento fatal)\b"
 )
+# A concrete complaint outside the closed vocabulary ("me duele el oído"). Not negated.
+_COMPLAINT = re.compile(
+    r"(?<!no )(?<!no me )(?<!no le )(?<!no te )\b((me |le |te )?(duele\w*|arde|pica)\b"
+    r"|(dolor|ardor|picor|comezon|hinchazon|inflamacion|sangrado|herida|grano|bulto)\b"
+    r"|(hinchad|inflamad)\w*|color (roj|osc|amar|verd|blanc|negr|marr|caf|ros)\w*).*"
+)
+# Words that say something is wrong without naming a symptom ("malestar físico").
+VAGUE = re.compile(
+    r"\b(malestar|molestia|me siento (mal|rar[oa]|fatal)|no me siento bien|sintomas?|fisic[oa]"
+    r"|algo (raro|anda mal|no va bien)|incomod\w*|mal\b)"
+)
+# Explicit call for help. "SOS" in capitals (lowercase "sos" is also a Spanish verb form).
+_SOS_UPPER = re.compile(r"\bSOS\b")
+_SOS = re.compile(r"\b(mayday|auxilio|socorro)\b")
 _HEALTH = re.compile(
     r"\b(medic\w*|salud|sintoma\w*|enferm\w*|dolor\w*|duele|duelen|malestar|doctor\w*|sangre|orina\w*"
     r"|muestra|pulso|oxigeno|lesion|herida|cuerpo|radiacion|dosimetro)\b"
@@ -348,6 +362,15 @@ def _text_observations(message: str, other_message: bool) -> list[Observation]:
     return found
 
 
+def is_sos(message: str) -> bool:
+    text = normalize(message)
+    return bool(
+        _SOS_UPPER.search(message)
+        or re.sub(r"\W", "", text) == "sos"
+        or (_SOS.search(text) and not _HYPOTHETICAL.search(text))
+    )
+
+
 def interpret(request: AssistantRequest) -> Interpretation:
     text = normalize(request.message)
     other_message = bool(
@@ -410,10 +433,12 @@ def interpret(request: AssistantRequest) -> Interpretation:
         (CODE_CARD[o.symptom] for o in final if o.status == "present"), None
     )
     medical = bool(final or topic or readings or kind == "unclear" or _HEALTH.search(text))
+    complaint = None if reported_now or kind != "report" else _COMPLAINT.search(text)
     return Interpretation(
         observations=final,
         request_kind=kind,
         medical_signal=medical,
         mentions_readings=tuple(readings),
         topic_hint=topic,
+        uncovered=complaint.group(0).strip()[:120] if complaint else None,
     )

@@ -20,6 +20,10 @@ def build_medical_graph(
     g.add_node("interpret", partial(nodes.interpret_report, events=events))
     g.add_node("evaluate_alarms", nodes.check_alarms)
     g.add_node("respond_alarm", nodes.respond_alarm)
+    # Qwen reads the turn only after the rules found no alarm; its observations are
+    # checked against the alarm rules again before any slower dependency.
+    g.add_node("understand", partial(nodes.understand_turn, llm=llm))
+    g.add_node("recheck_alarms", nodes.check_alarms)
     g.add_node("load_context", partial(nodes.load_context, readings=readings))
     g.add_node("evaluate_case", nodes.assess_case)
     g.add_node("respond_clarify", nodes.respond_clarify)
@@ -30,7 +34,11 @@ def build_medical_graph(
     g.add_edge(START, "interpret")
     g.add_edge("interpret", "evaluate_alarms")
     g.add_conditional_edges(
-        "evaluate_alarms", nodes.route_after_alarms, ["respond_alarm", "load_context"]
+        "evaluate_alarms", nodes.route_after_alarms, ["respond_alarm", "understand"]
+    )
+    g.add_edge("understand", "recheck_alarms")
+    g.add_conditional_edges(
+        "recheck_alarms", nodes.route_after_recheck, ["respond_alarm", "load_context"]
     )
     g.add_edge("load_context", "evaluate_case")
     g.add_conditional_edges(
