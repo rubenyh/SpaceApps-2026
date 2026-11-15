@@ -1,6 +1,7 @@
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Astronaut, AstronautStatus } from "./api/types";
 import { listAstronauts } from "./api/astronauts";
+import { listIncidents } from "./api/incidents";
 import { getAstronautStatus } from "./api/status";
 import { Header } from "./components/Header";
 import { STATE_LABELS, StateIcon } from "./components/StatusPill";
@@ -9,6 +10,7 @@ import { ConnectionContext, type ConnectionState } from "./hooks/connection";
 import { usePolling } from "./hooks/usePolling";
 import { tabFlags } from "./lib/estado";
 import { formatUtcSeconds } from "./lib/format";
+import { newIncidentIds } from "./lib/incident";
 import { AsistenteScreen } from "./screens/AsistenteScreen";
 import { EstadoScreen } from "./screens/EstadoScreen";
 import { MusculoScreen } from "./screens/MusculoScreen";
@@ -80,6 +82,28 @@ function CrewScreen({ tab, astronautId, astronauts, onNavigate, status, statusUp
   }
 }
 
+let audio: AudioContext | null = null;
+
+/** Short 880 Hz beep for a new incident. Never throws: sound is a cue, not the alert itself. */
+function beep(): void {
+  try {
+    if (!audio || audio.state === "closed") audio = new AudioContext();
+    const ctx = audio;
+    // Autoplay policy can leave the context suspended until a user gesture; ignore if resume fails.
+    void ctx.resume().catch(() => {});
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.3);
+  } catch {
+    // No audio available: the incident still shows in the assistant tab.
+  }
+}
+
 /** Centred message for the states with no crew member to show. */
 function EmptyState({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -120,6 +144,17 @@ function Console({ connection }: { connection: ConnectionState }) {
     (signal) => getAstronautStatus(selected as string, signal),
     5000,
   );
+
+  // Beep when a new incident opens (e.g. watch SOS), on any tab. IncidentPanel polls too;
+  // usePolling keys are per hook instance, not a shared cache, so there is no collision.
+  const openIncidents = usePolling("shell:incidents:open", (signal) => listIncidents("open", signal), 5000);
+  const seenIncidents = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const data = openIncidents.data;
+    if (!data) return;
+    if (newIncidentIds(seenIncidents.current, data).length > 0) beep();
+    seenIncidents.current = new Set([...(seenIncidents.current ?? []), ...data.map((i) => i.id)]);
+  }, [openIncidents.data]);
 
   const onSelect = (id: string) => {
     storeAstronaut(id);
