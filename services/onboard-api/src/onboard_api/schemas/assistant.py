@@ -9,7 +9,9 @@ from typing import Literal
 
 from pydantic import AwareDatetime, BaseModel, Field
 
-AssistantWorkflow = Literal["medical", "clarify", "unsupported"]
+# status: deterministic, read-only quick questions about the crew member's own
+# readings ("Summarize my status today", "Which readings am I missing?").
+AssistantWorkflow = Literal["medical", "clarify", "unsupported", "status"]
 
 # No clinician is on board and the ground link may be down. immediate: emergency,
 # act now with the steps and the mission emergency procedure. review_required: act
@@ -208,15 +210,58 @@ class KnowledgeVersion(BaseModel):
     digest: str
 
 
+# Freshness of one reading against the onboard clock at the moment readings are
+# loaded. future: capture time ahead of that clock beyond the tolerance; shown
+# with a clock warning and never used as current evidence.
+Freshness = Literal["current", "stale", "future"]
+
+
+class SnapshotReading(BaseModel):
+    """One reading as the assessment saw it (contracts/case-report). Source, quality
+    and freshness stay separate: `simulated` is only a source label."""
+
+    id: int
+    kind: str
+    value: float | None = None
+    value_text: str | None = None
+    unit: str
+    recorded_at: AwareDatetime  # capture time
+    received_at: AwareDatetime  # ingest time onboard (later for buffered readings)
+    quality: Literal["good", "suspect", "bad"]
+    source: str
+    simulated: bool
+    freshness: Freshness
+    age_seconds: int  # >= 0; 0 for future readings
+
+
+class AssessmentSummary(BaseModel):
+    """Glanceable head of a clinical reply. Built from the rules and protocol card
+    only; the LLM never writes it."""
+
+    urgency: Urgency
+    urgency_label: str  # "Immediate", "Review required", "Undetermined", "Informational"
+    reported: str  # "Dizziness reported", "Cabin alarm reported"
+    action: str | None = None  # short form, e.g. "Limit movement and monitor"
+    # Card steps / notify lines that say when and to whom to escalate, verbatim.
+    escalation: list[str] = []
+
+
+# Delivery of a case report to ground. draft: built, not sent. queued: crew sent it,
+# waiting for ground. received: ground acknowledged this report id. failed: ground
+# rejected it permanently (see the case-report status endpoint for the reason).
+ReportTransmission = Literal["draft", "queued", "received", "failed"]
+
+
 class CaseReport(BaseModel):
-    """Plain-text report built deterministically from the case, for the astronaut to copy."""
+    """Plain-text report built deterministically from the case. Stored onboard as a
+    draft under `id`; the crew sends it with POST /case-reports/{id}/send."""
 
     text: str
     # Active approved bundle when the report was made; null when none is active.
     knowledge_version: KnowledgeVersion | None = None
-    # Nothing transmits it yet. Only a real delivery mechanism that confirms
-    # transmission may set another value.
-    transmission: Literal["not_sent"] = "not_sent"
+    # Stable report id (UUID v4). None only for older servers.
+    id: str | None = None
+    transmission: ReportTransmission = "draft"
 
 
 class IncidentRef(BaseModel):
@@ -257,6 +302,12 @@ class AssistantResponse(BaseModel):
     clarification: Clarification | None = None
     # Set only when urgency == "immediate".
     incident: IncidentRef | None = None
+    # Onboard clock when the readings were loaded (the assessment snapshot time).
+    assessed_at: AwareDatetime | None = None
+    # Readings as loaded at `assessed_at` (medical and status workflows).
+    readings_snapshot: list[SnapshotReading] = []
+    # Medical replies with an urgency only.
+    assessment: AssessmentSummary | None = None
 
 
 class OperationalEvent(BaseModel):
