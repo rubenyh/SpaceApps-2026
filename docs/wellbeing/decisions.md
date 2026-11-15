@@ -109,11 +109,11 @@ Las fechas son las de los commits (hora local del equipo). Los PR se fusionaron 
 
 **Contexto.** Para asignar cada dato a la persona correcta hace falta identidad. En el diseño del equipo, el rostro identifica cuando se ve la cara, pero en una nave real la identidad principal vendría de un wearable (proximidad).
 
-**Decisión.** El contrato tiene `identity.method` con tres valores: `face`, `wearable`, `manual`, más `match_score`. Las personas no identificadas se mandan como `unknown-<track>`: se guardan y no se rechazan.
+**Decisión.** El contrato tiene `identity.method` con tres valores: `face`, `wearable`, `manual`, más `match_score`. Las personas no identificadas se mandan como `unknown-<track>`: se guardan y no se rechazan en visión y co-presencia, pero nunca tienen evaluación propia (`404` en las demás rutas, PR #91).
 
 **Estado en `main`.**
 - `manual`: **Implementado**. La bitácora real lo usa (el astronauta se indica con `--astronaut`).
-- `face`: sólo como valor del contrato y en bitácoras simuladas. El reconocimiento facial está **Pendiente** del PR #33.
+- `face`: **Implementado** (PR #33). La bitácora lo usa cuando la cara confirma al astronauta indicado; si la cara parece de otra persona, no se manda nada. El modo ambiente lo usa en cada sesión de movimiento.
 - `wearable`: sólo como valor del contrato y en las ventanas ambiente simuladas. La identidad por proximidad de un wearable **no está implementada**.
 
 **Fuente:** contrato en el PR #12 (commit `f66f403`); `IdentityMethod` en [`schemas.py`](../../services/onboard-api/src/onboard_api/wellbeing/schemas.py); [`bitacora.py`](../../services/wellbeing-vision/src/wellbeing_vision/bitacora.py).

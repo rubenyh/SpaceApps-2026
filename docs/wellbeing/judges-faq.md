@@ -30,7 +30,7 @@ El diseño parte de privacidad y consentimiento:
 
 - **Todo se procesa a bordo.** No hay llamadas a la nube.
 - **No se guarda video.** El proceso de visión sólo manda números derivados; `wellbeing.db` no tiene imágenes ni plantillas faciales.
-- **La bitácora es un acto deliberado:** el astronauta se sienta ~60 s frente a la cámara. La cámara ambiente no existe en `main` (**Pendiente** del PR #33). Las zonas sin cámara (dormitorio, higiene) son parte del diseño.
+- **La bitácora es un acto deliberado:** el astronauta se sienta ~60 s frente a la cámara. Las cámaras de ambiente (una por módulo) sólo mandan números: tiempo acompañado, distancia y movimiento relativo al cuerpo. Las zonas sin cámara (dormitorio, higiene) son parte del diseño.
 - **Cada quien ve lo suyo.** La tripulación sólo ve el semáforo y la tendencia; el detalle está detrás del PIN de cada persona.
 - **Nada sale de la nave sin consentimiento.** La telemetría nunca lleva datos de bienestar, y un paquete al psicólogo en Tierra exige la confirmación del astronauta.
 
@@ -75,4 +75,4 @@ Lo decimos abiertamente. En la demo, el historial de 21 días es **simulado** y 
 
 ### ¿Y el sesgo del reconocimiento facial?
 
-Hoy `main` no hace reconocimiento facial: en la bitácora, el astronauta se indica a mano y la identidad sale como `manual`. El reconocimiento facial está **Pendiente** del PR #33. En el diseño, en una nave real la identidad principal vendría de un wearable (proximidad), que **no está implementado**. Las métricas se miden contra el neutral de la misma persona, no contra un promedio de caras. Aun así, no hemos medido si la detección de la cara funciona igual de bien en personas distintas: sólo calibramos con una.
+El reconocimiento facial (SFace) sólo confirma quién es quién: el astronauta se registra con `enroll`, y las plantillas se quedan en el equipo de visión, nunca se envían. Si la coincidencia no es clara, la bitácora sale como `manual`, y una cara sin coincidencia en el modo ambiente queda como `unknown-<track>`, que nunca tiene evaluación. En el diseño, en una nave real la identidad principal vendría de un wearable (proximidad), que **no está implementado**. Las métricas se miden contra el neutral de la misma persona, no contra un promedio de caras. Aun así, no hemos medido si la detección de la cara funciona igual de bien en personas distintas: sólo calibramos con una.

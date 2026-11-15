@@ -4,7 +4,7 @@ Este documento explica de dónde sale cada rango de visión que usan el simulado
 
 **Todo es PROVISIONAL.** Las bitácoras son de **una sola persona** del equipo. Son rangos de simulación y pisos de diseño, no rangos clínicos.
 
-> **Pendiente de actualizar tras el PR #33.** El PR #33 cambia la medición de visión (mirada hacia abajo, detector de habla, identidad, modo ambiente, rendimiento). Los números de abajo vienen de la versión de visión que está en `main`.
+> **Versión de visión.** R1–R3 y L2 se grabaron antes del último cambio del detector de habla (commit `19b5d86`, PR #33), que también cuenta los vaivenes de `mouthPress` como habla. Al repetir sus trazas con el código nuevo, el habla en R1–R3 pasa de 7/1/6 % a 59/67/83 % del tiempo y L2 sigue en 0 % (su pico de 0.466 se mantiene). Ese detector sólo decide qué cuadros cuentan para los labios, que no puntúan. **Pendiente:** grabar bitácoras nuevas con la versión de `main` para confirmar los rangos.
 
 ## Las sesiones
 
@@ -59,7 +59,7 @@ Todos son **supuestos**, sólo para la historia de la demo (más fatiga y tensi�
 
 ## Movimiento en modo ambiente (`MOTION_REST`, `MOTION_ALTERED`)
 
-**Supuestos, sin ninguna medición real**: en `main` no existe el modo ambiente (**Pendiente** del PR #33). Ventanas de 10 min.
+**Supuestos, sin ninguna medición real.** El modo ambiente ya está en `main` (PR #33), pero todavía no hay mediciones guardadas para calibrar. Las ventanas del simulador son de 10 min; las reales, de 60 s.
 
 | Métrica | Reposo | Alterado |
 |---|---|---|
