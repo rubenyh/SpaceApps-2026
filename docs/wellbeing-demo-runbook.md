@@ -6,6 +6,8 @@ Demo en Mexicali, zona de misión `America/Tijuana`. Todo en PowerShell, desde l
 
 Lo que se ve en vivo es real (la bitácora de hoy de ast-01); el historial de 21 días es **simulado**, y se dice abiertamente.
 
+> **¿Nativo o Docker?** Esta guía levanta la API de forma nativa, porque así corre con la zona de Mexicali. Si el equipo levanta todo con Docker (`.\run.ps1`, ver [`RUN-REPO.md`](RUN-REPO.md)), no abras la Terminal 1: el puerto 8000 ya es del contenedor. En ese caso sigue [Con Docker](#con-docker-runps1) al final de la sección 1.
+
 ## 1. Preparación (en este orden)
 
 En **cada** terminal nueva:
@@ -21,10 +23,11 @@ $env:PYTHONUTF8 = "1"
 cd services\onboard-api
 uv sync --locked
 $env:WELLBEING_MISSION_TZ = "America/Tijuana"
+$env:ONBOARD_TELEMETRY_ENABLED = "false"   # sin ground-api en el 8001; quítala si también levantas ground
 uv run fastapi dev
 ```
 
-Espera a que diga `Uvicorn running on http://127.0.0.1:8000`.
+Espera a que diga `Uvicorn running on http://127.0.0.1:8000`. Bienestar nunca usa la telemetría, así que apagarla no cambia nada de esta demo y evita avisos repetidos de "telemetry send failed" en la terminal.
 
 **Terminal 2: datos de la demo** (misma carpeta que la API, para que use el mismo `wellbeing.db`)
 
@@ -62,15 +65,27 @@ La bitácora en vivo se graba durante la demo (paso 2.4).
 
 ```powershell
 cd apps\spaceship-app
-npm install
-npm run tauri dev
+npm.cmd install
+npm.cmd run tauri dev
 ```
+
+Se usa `npm.cmd` y no `npm`, porque PowerShell bloquea `npm.ps1` con la política de ejecución por defecto.
 
 En cualquier terminal de respaldo:
 
 ```powershell
 $B = "http://127.0.0.1:8000"
 ```
+
+### Con Docker (`.\run.ps1`)
+
+Si el stack completo ya corre en Docker, no abras la Terminal 1. `wellbeing.db` vive dentro del contenedor, así que el reset se corre ahí (desde la raíz del repo):
+
+```powershell
+docker compose exec onboard-api python scripts/demo_reset.py
+```
+
+Limitación: el compose todavía no pasa `WELLBEING_MISSION_TZ`, así que en Docker los días van en UTC, y después de las 16:00 de Mexicali los datos caen al día siguiente. Para usar `America/Tijuana` en Docker falta una línea en `docker-compose.yml`, que hay que coordinar con Rubén. Hasta entonces, para la demo de bienestar conviene el camino nativo. La Terminal 3 (visión) y la sección 2 funcionan igual en los dos casos.
 
 ## 2. Guion
 
@@ -150,6 +165,8 @@ $k = Invoke-RestMethod "$B/wellbeing/ground-packages/$($p.id)/content"; "Nivel {
 try { Invoke-RestMethod "$B/wellbeing/ground-packages/$($p.id)/content" } catch { "Tras retirar -> HTTP " + [int]$_.Exception.Response.StatusCode }
 ```
 
+Si el equipo muestra el corte del enlace con Tierra ([`demo-outage.md`](demo-outage.md)), bienestar no se ve afectado: todo funciona a bordo.
+
 Mensaje: **privacidad por diseño.** La telemetría de la nave nunca transporta datos de bienestar. Un paquete sólo sale con el consentimiento explícito del astronauta y por un canal dedicado, distinto de la telemetría, que es el siguiente paso del proyecto. Por eso el paquete se queda en cola a bordo (`queued`). Lo puede iniciar el propio astronauta, el capitán o un psicólogo al final de la misión, siempre con consentimiento, y el astronauta puede retirarlo.
 
 **Frase para la demo:** "Los datos de bienestar nunca viajan en la telemetría de la nave: sólo salen con el consentimiento del astronauta, por un canal dedicado."
@@ -162,18 +179,27 @@ Mensaje: **privacidad por diseño.** La telemetría de la nave nunca transporta 
 2. Prueba otra cámara: `uv run wellbeing-vision bitacora --astronaut ast-01 --camera 1 --seconds 60`.
 3. Si no hay cámara, manda la bitácora real de reposo grabada antes (S2) como la de hoy. **Dilo así en la demo:** es una bitácora real grabada antes, no en vivo.
 
+Las métricas de la S2 van incluidas aquí, así que no depende de ningún archivo local:
+
 ```powershell
-cd services\wellbeing-vision
-$s2 = (Get-Content data\rest.jsonl)[1] | ConvertFrom-Json
 $now = (Get-Date).ToUniversalTime()
-$s2.body.started_at = $now.AddSeconds(-60).ToString("o"); $s2.body.ended_at = $now.ToString("o")
-$s2.body.source = "vision:replay"
-Invoke-RestMethod -Method Post "$B/wellbeing/vision-sessions" -ContentType "application/json" -Body ($s2.body | ConvertTo-Json -Depth 4)
+$s2 = @{ astronaut_id = "ast-01"; session_type = "bitacora"; module_id = "modulo-a"; source = "vision:replay"
+  started_at = $now.AddSeconds(-60).ToString("o"); ended_at = $now.ToString("o"); quality = "good"
+  valid_frame_ratio = 0.966; identity = @{ method = "manual"; match_score = $null }; neutral_ok = $true
+  fatigue = @{ blink_rate_per_min = 23.2; perclos = 0.122; eye_openness_vs_neutral = 0.925; yawn_count = 0; nod_count = 0 }
+  tension = @{ brow_lower_delta = 0.029; lip_press_delta = 0.09; brow_lower_peak_1s = 0.129; lip_press_peak_1s = 0.492 }
+  motion = $null; provisional = $true }
+Invoke-RestMethod -Method Post "$B/wellbeing/vision-sessions" -ContentType "application/json" -Body ($s2 | ConvertTo-Json -Depth 4)
 ```
 
 **La API se cae o no responde**
 1. Mira la Terminal 1. Ciérrala con `Ctrl+C` y vuelve a levantarla con los mismos comandos (incluida `$env:WELLBEING_MISSION_TZ`).
-2. Si el puerto 8000 está ocupado: `Get-NetTCPConnection -LocalPort 8000 | Select-Object OwningProcess`, y luego `Stop-Process -Id <pid>`.
+2. Si el puerto 8000 está ocupado (por ejemplo, porque se cerró la ventana en vez de usar `Ctrl+C`): `Get-NetTCPConnection -State Listen -LocalPort 8000 | Select-Object OwningProcess`, y luego `Stop-Process -Id <pid>`. Si `Stop-Process` dice que no encuentra el proceso, quedó vivo un proceso hijo de `fastapi dev` que conserva el puerto. Ciérralo así y vuelve a levantar la API:
+
+   ```powershell
+   $dead = (Get-NetTCPConnection -State Listen -LocalPort 8000).OwningProcess | Select-Object -First 1
+   Get-CimInstance Win32_Process -Filter "ParentProcessId=$dead" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+   ```
 3. Visión no pierde la bitácora: si la API estaba caída, la guarda en `outbox\pending.jsonl` y la reenvía en el siguiente envío.
 4. Comprueba que la zona sea la correcta: `(Invoke-RestMethod "$B/wellbeing/parameters").mission_tz` debe decir `America/Tijuana`.
 
@@ -201,10 +227,10 @@ Después levanta la API. `demo_reset.py` hace un respaldo cada vez que corre, as
 
 ## 4. Checklist de 5 minutos antes
 
-- [ ] Terminal 1 con la API arriba y `(Invoke-RestMethod "$B/wellbeing/parameters").mission_tz` = `America/Tijuana`.
+- [ ] Terminal 1 con la API arriba y `(Invoke-RestMethod "$B/wellbeing/parameters").mission_tz` = `America/Tijuana` (con Docker sale `UTC`, ver sección 1).
 - [ ] `demo_reset.py --tz America/Tijuana` corrido hoy, y su tabla con los 4 casos como en la sección 1.
 - [ ] Prueba de cámara sin enviar nada: `uv run wellbeing-vision bitacora --astronaut ast-01 --seconds 10 --dry-run`. Se abre la vista, la cara se detecta y pasa el neutral.
 - [ ] Luz frontal, cámara a ~50 cm, fondo tranquilo, notificaciones de Windows apagadas, cargador conectado.
 - [ ] Consola abierta y conectada a la API (o, si no está la pestaña, esta guía abierta en el paso 2.1).
-- [ ] Plan B a mano: `data\rest.jsonl` existe en `services\wellbeing-vision` y hay respaldos en `services\onboard-api\data\backups\`.
+- [ ] Plan B a mano: hay respaldos en `services\onboard-api\data\backups\` (los crea `demo_reset.py`) y esta guía abierta en la sección 3.
 - [ ] Frase lista: "el historial es simulado; la bitácora de hoy es real; el sistema no diagnostica, apoya".
