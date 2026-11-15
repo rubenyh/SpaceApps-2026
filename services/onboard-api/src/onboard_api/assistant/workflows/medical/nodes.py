@@ -70,7 +70,8 @@ def _response(
     if always_report or d or (interp and any(o.temporality != "hypothetical" for o in interp.observations)):
         report = build_report(
             state["request"], state["now"], interp, state.get("events", []),
-            state.get("readings"), d, urgency, action, list(state.get("notices", [])),
+            state.get("readings"), d, urgency, action,
+            [n for n in state.get("notices", []) if n not in prompts.ASSISTANT_NOTICES],
         )
     return {
         "response": AssistantResponse(

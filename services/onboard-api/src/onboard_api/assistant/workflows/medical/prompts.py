@@ -42,9 +42,14 @@ NOTICE_LLM_FAILED = (
     " o de la guía."
 )
 NOTICE_DRAFT_REJECTED = (
-    "La explicación generada citaba fuentes o datos no proporcionados y se descartó:"
-    " se muestra el texto conservado de la ficha o de la guía."
+    "La explicación generada no pasó las comprobaciones (citas, cifras o afirmaciones no"
+    " permitidas) y se descartó: se muestra el texto conservado de la ficha o de la guía."
 )
+# About the assistant's own dependencies, not the case: kept out of the report.
+ASSISTANT_NOTICES = frozenset({
+    ALARM_NOTICE, NOTICE_GUIDES_FAILED, NOTICE_EMBEDDING_FAILED, NOTICE_NO_GUIDES,
+    NOTICE_LLM_FAILED, NOTICE_DRAFT_REJECTED,
+})
 EXCERPT_CHARS = 600
 
 SYSTEM = """Eres el asistente médico informativo de una nave. Escribe SIEMPRE en español.
