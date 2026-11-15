@@ -62,7 +62,7 @@ export function BodyMap({ lungs, heart, kidneys, limbs }: Props) {
       </g>
       {LABELS.map((l) => (
         <g key={l.text} className="bodymap__label">
-          <rect x={l.x} y={l.y} width={l.w} height={26} rx={13} />
+          <rect x={l.x} y={l.y} width={l.w} height={26} rx={2} />
           <text x={l.x + l.w / 2} y={l.y + 18} textAnchor="middle">
             {l.text}
           </text>

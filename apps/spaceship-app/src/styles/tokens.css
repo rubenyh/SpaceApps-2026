@@ -6,6 +6,7 @@
   --color-surface: #111A2E;
   --color-surface-2: #17223A;
   --color-border: #2A3854;
+  --color-rule: #1F2B44;         /* hairlines: grid, dividers, panel heads */
   --color-brand: #0B3D91;        /* header band */
   --color-brand-rule: #C8301A;   /* rule under the header */
 
@@ -33,9 +34,9 @@
   --border-norange: 3px double var(--state-norange);
   --border-dubious: 2px solid var(--color-text-muted); /* DOUBTFUL SAMPLE */
 
-  /* Typography (no bundled fonts) */
-  --font-sans: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  /* Typography (bundled with @fontsource in main.tsx) */
+  --font-sans: "IBM Plex Sans", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
   --text-xs: 14px;     /* minimum: labels, axes, notes */
   --text-sm: 15px;     /* body */
   --text-md: 16px;     /* tabs, chat */
@@ -46,7 +47,8 @@
   --value-md: 56px;    /* value in card */
   --value-lg: 72px;    /* value on Vital signs */
   --weight-regular: 400;
-  --weight-bold: 700;
+  --weight-medium: 500;
+  --weight-bold: 600;   /* heaviest bundled Plex Sans weight */
   --leading-body: 1.5;
   --numeric: tabular-nums;
 
@@ -61,10 +63,10 @@
   --space-10: 40px;
 
   /* Shape */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-pill: 999px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-pill: 2px;   /* status tags are squared */
   --target-min: 44px;
 
   /* Window layout (1280×800, minimum 1024×700) */
