@@ -56,7 +56,7 @@ The live connections are HTTP calls into onboard-api: from the console (reads an
 | Device simulator | Implemented (simulated hardware) | Software stand-in for the biomonitor: pulse oximeter per astronaut, shared urine analyser, muscle scanner. Registers `ast-01` and `ast-02`, uploads a history "flash log", then posts live readings with source `device:<sensor>`. Buffers readings (up to 10 000) while the API is down. Stdlib only. | [`firmware/simulator.py`](../firmware/simulator.py) | [`firmware/test_simulator.py`](../firmware/test_simulator.py) |
 | Demo seeder | Implemented (dev tool) | Creates the same two demo astronauts and posts fake readings with source `demo`, optionally every 5 s. | [`scripts/seed_demo.py`](../services/onboard-api/scripts/seed_demo.py) | |
 | Database schema | Implemented | SQLite schema and seed rows for `sensor_config`, applied at onboard-api startup. | [`db/migrations/onboard/0001_baseline.sql`](../db/migrations/onboard/0001_baseline.sql) | [`db/data-dictionary.md`](../db/data-dictionary.md), [`repositories/database.py`](../services/onboard-api/src/onboard_api/repositories/database.py) |
-| ground-api | Scaffold | Health route only (`GET /`). Its FastAPI title still reads "Space Apps Onboard API" (copied). | `ground_api.main:app` in [`main.py`](../services/ground-api/src/ground_api/main.py) | |
+| ground-api | Scaffold | Health route only (`GET /`). FastAPI title "Space Apps Ground API". | `ground_api.main:app` in [`main.py`](../services/ground-api/src/ground_api/main.py) | |
 | base-app | Scaffold | Tauri + React template with the sample `greet` command. Assumed ground console. | [`App.tsx`](../apps/base-app/src/App.tsx), [`lib.rs`](../apps/base-app/src-tauri/src/lib.rs) | |
 | Hardware collectors | Planned | pySerial, OpenCV, MediaPipe pose. No code in the repo. `firmware/simulator.py` stands in for the device. Readings arrive only through `POST /readings`. | none | |
 | Telemetry publisher/receiver | Planned | Ship-to-ground contract. No code in the repo. `notify` in assistant replies is never transmitted. | none | |
@@ -107,7 +107,7 @@ Runtime configuration (all prefixed `ONBOARD_`):
 | `CHROMA_PATH` | `data/chroma` | `GuideRetriever` |
 | `GUIDES_COLLECTION` | `medical_guides` | `GuideRetriever` |
 | `RETRIEVAL_MAX_DISTANCE` | `0.50` | Drops chunks with a larger cosine distance |
-| `DEMO_EVENTS_PATH` | unset | Ship events for the demo, e.g. [`demo/events.example.json`](../services/onboard-api/demo/events.example.json) |
+| `DEMO_EVENTS_PATH` | unset | Ship events for the demo, e.g. [`demo/events.example.json`](../services/onboard-api/demo/events.example.json): a simulated radiation event and a `cabin_co2` event, both for `ast-02` only. While an event is active, every message for that astronaut routes to an `immediate` alarm; `ast-01` has no events. |
 
 Demo data, with the service running (pick one):
 
@@ -196,7 +196,7 @@ Trigger: the user sends a message in [`AsistenteScreen.tsx`](../apps/spaceship-a
    10. `retrieve_guides`: queries ChromaDB with the primary card's title (never the personal text), filtered by the card's `guide_topics`. Only an educational question with no known topic uses the message itself. `k=3`, Spanish first, English fallback, distance ≤ `RETRIEVAL_MAX_DISTANCE`.
    11. `compose_answer`: when chunks exist, calls `llm.chat(SYSTEM, user)` with the card, action, findings, notices and numbered chunks. `valid_draft` rejects a draft that is empty, cites a chunk that does not exist, contains a number not present in the grounding text, or claims transmission or de-escalation. The reply is always the card action first, then the validated draft. Without a valid draft, the reply is the card summary (or a guide excerpt for an educational question).
 8. Every terminal node builds the same `AssistantResponse`: `reply`, `workflow`, `needs_clarification`, `urgency`, `action`, `notify`, `protocol_id`, `matched_rules`, `findings`, `possible_causes`, `sources`, `data_notices`, `disclaimer`, `clarifying_question`, `clarification`.
-9. The console appends the reply to its local log. If `needs_clarification` is true, it stores the request as `pending`. It does not store the `clarification` object (see flow 4).
+9. The console appends the reply to its local log. If `needs_clarification` is true, it stores the request as `pending`, together with the response's `clarification` object (see flow 4).
 
 Who decides what:
 
@@ -251,7 +251,7 @@ sequenceDiagram
 
 ### 4. Assistant follow-up turn (clarification)
 
-The server keeps no conversation state. The case travels with the request. The server supports two ways to continue a case:
+The server keeps no conversation state. The case travels with the request. The server supports two ways to continue a case. The console uses A whenever the reply carries `clarification`, and falls back to B otherwise.
 
 **A. Echoed case (server contract, added in #17).**
 
@@ -260,11 +260,11 @@ The server keeps no conversation state. The case travels with the request. The s
 3. `select_intent` sees the open case through `case_for` (only when `clarification.astronaut_id` equals `request.astronaut_id`; another person starts a new case) and routes to `medical`.
 4. `interpret_report` reads the answer against the pending question and merges it with the earlier observations. The full rule pass runs again, so the answer can raise an alarm, finish the assessment, or ask another question.
 
-**B. Resent message (what the console does today).**
+**B. Resent message (fallback for replies without `clarification`).**
 
-1. A reply with `needs_clarification: true` makes `AsistenteScreen` store the request in `pending`.
+1. A reply with `needs_clarification: true` makes `AsistenteScreen` store the request in `pending`, with `response.clarification` attached when present.
 2. The next message calls `buildRequest(pending, text, ...)` ([`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts)). When the reply carried `clarification`, it sends that object back unchanged with only the new text in `message`. Otherwise it joins the original message and the new text with a newline (max 4000 chars). Both keep `astronaut_id` and `reported_by` and merge symptoms with `mergeSymptoms` (newest answer per code wins, max 40). "New report" clears the pending case.
-3. The server runs the full graph on the combined text as a new case. Bare answers such as "sí" or "un poco" lose their link to the question in this path.
+3. In the fallback, the server runs the full graph on the combined text as a new case. Bare answers such as "sí" or "un poco" lose their link to the question in this path.
 
 In both paths:
 
