@@ -172,7 +172,7 @@ Astronauts are created with `POST /astronauts` (`id`, `display_name`; 409 if the
 Trigger: the user sends a message in [`AsistenteScreen.tsx`](../apps/spaceship-app/src/screens/AsistenteScreen.tsx), with optional structured symptom chips and an optional "Reported by" crewmate.
 
 1. `send` builds the request with `buildRequest(null, ...)` ([`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts)): `message`, `astronaut_id` (the selected crew member), `reported_by`, `reported_symptoms`.
-2. `sendAssistantMessage` ([`api/assistant.ts`](../apps/spaceship-app/src/api/assistant.ts)) sends `POST /assistant/messages` through `apiRequest` with a 10 s client timeout.
+2. `sendAssistantMessage` ([`api/assistant.ts`](../apps/spaceship-app/src/api/assistant.ts)) sends `POST /assistant/messages` through `apiRequest` with a 60 s client timeout (other requests use 10 s), above the server worst case of 8 + 20 + 20 s of sequential Ollama calls.
 3. FastAPI validates the body as `AssistantRequest` ([`schemas/assistant.py`](../services/onboard-api/src/onboard_api/schemas/assistant.py)). `post_message` ([`routers/assistant.py`](../services/onboard-api/src/onboard_api/routers/assistant.py)) receives a `Responder` from `get_assistant_responder` ([`dependencies.py`](../services/onboard-api/src/onboard_api/dependencies.py)).
 4. `get_assistant_responder` gets the compiled parent graph from `build_assistant_graph(deps)`. It is compiled once per `AssistantDeps` object (`lru_cache`, identity hash). The responder calls `respond(graph, request, now)`, which runs `graph.invoke({"request": request, "now": now})` and returns `["response"]`.
 5. **Parent node `select_intent`** ([`routing.py`](../services/onboard-api/src/onboard_api/assistant/routing.py)) decides the intent without an LLM:
@@ -263,7 +263,7 @@ The server keeps no conversation state. The case travels with the request. The s
 **B. Resent message (what the console does today).**
 
 1. A reply with `needs_clarification: true` makes `AsistenteScreen` store the request in `pending`.
-2. The next message calls `buildRequest(pending, text, ...)` ([`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts)). It joins the original message and the new text with a newline (max 4000 chars), keeps `astronaut_id` and `reported_by`, and merges symptoms with `mergeSymptoms` (newest answer per code wins, max 40). It does not send `clarification`; [`types.ts`](../apps/spaceship-app/src/api/types.ts) has no such field.
+2. The next message calls `buildRequest(pending, text, ...)` ([`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts)). When the reply carried `clarification`, it sends that object back unchanged with only the new text in `message`. Otherwise it joins the original message and the new text with a newline (max 4000 chars). Both keep `astronaut_id` and `reported_by` and merge symptoms with `mergeSymptoms` (newest answer per code wins, max 40). "New report" clears the pending case.
 3. The server runs the full graph on the combined text as a new case. Bare answers such as "sí" or "un poco" lose their link to the question in this path.
 
 In both paths:
@@ -298,7 +298,7 @@ Not implemented. ground-api exposes only `GET /`. base-app is the Tauri template
 | Guide index | Ingest CLI | ChromaDB at `ONBOARD_CHROMA_PATH`, collection `medical_guides` | Written by ingest only. Read by `GuideRetriever.search`. The assistant never writes to it. |
 | Ship events | onboard-api process | In memory (`StaticEventSource`), loaded once from `ONBOARD_DEMO_EVENTS_PATH` | Read by `select_intent` and `evaluate_alarms`. No API writes them; a restart is needed to change them. |
 | Assistant graph state | One request | LangGraph state dicts `AssistantState` ([`state.py`](../services/onboard-api/src/onboard_api/assistant/state.py)) and `MedicalState` ([`medical/state.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/state.py)) | Discarded after the response. No checkpointer. |
-| Open clarification case | The client | `clarification` object in the response, echoed back in the next request | Server reads it in `case_for` and `interpret_report`. The console does not echo it yet. |
+| Open clarification case | The client | `clarification` object in the response, echoed back in the next request | Server reads it in `case_for` and `interpret_report`. The console stores it with the pending request and echoes it. |
 | Conversation | Console | `AsistenteScreen` component state (`entries`, `pending`) | Lost on tab change or reload |
 | Unsent device readings | Simulator process | In-memory `deque` (max 10 000, oldest dropped) in [`simulator.py`](../firmware/simulator.py) | Flushed to `POST /readings` when the API answers again. Lost when the simulator stops. |
 | Selected astronaut | Console | `localStorage` key `consola-medica.astronaut` | `App.tsx` |
@@ -311,7 +311,7 @@ API contract mirror: [`schemas/`](../services/onboard-api/src/onboard_api/schema
 
 | Situation | Where handled | Behavior |
 |---|---|---|
-| onboard-api unreachable or slower than 10 s | `apiRequest` ([`client.ts`](../apps/spaceship-app/src/api/client.ts)), `usePolling` | `NetworkError`. Header shows offline. Screens keep the last data. App shows "ONBOARD SERVICE UNAVAILABLE" until the crew list loads. The assistant shows "ONBOARD SERVICE UNAVAILABLE: the message was not sent." |
+| onboard-api unreachable, or slower than 10 s (60 s for the assistant) | `apiRequest` ([`client.ts`](../apps/spaceship-app/src/api/client.ts)), `usePolling` | `NetworkError`. Header shows offline. Screens keep the last data. App shows "ONBOARD SERVICE UNAVAILABLE" until the crew list loads. The assistant shows "ONBOARD SERVICE UNAVAILABLE: the message was not sent.", or "NO REPLY IN TIME" after its 60 s timeout. |
 | onboard-api down while the simulator runs | `Uplink.flush` in [`simulator.py`](../firmware/simulator.py) | Readings stay buffered and are retried each cycle. Crew registration retries every 5 s at boot. An HTTP rejection drops that reading and logs it. |
 | HTTP 404 / 409 / 422 | Routers, `extractDetail` in `client.ts` | `HttpError` with the server `detail`. Assistant shows `Error <status>: <detail>`. |
 | Unknown astronaut | `ensure_astronaut_exists` ([`services/astronauts.py`](../services/onboard-api/src/onboard_api/services/astronauts.py)) | 404 for status and readings. The assistant still answers without readings. |
@@ -320,7 +320,7 @@ API contract mirror: [`schemas/`](../services/onboard-api/src/onboard_api/schema
 | Alarm or SOS detected | `respond_alarm` | Returns from local cards at once. Readings, ChromaDB and Ollama are never waited on. |
 | Local interpreter fails, times out (8 s) or returns invalid JSON | `understand.read_turn` | Returns `None`; the turn continues with the rule interpretation only. No notice. |
 | Model proposes a symptom not backed by the user's words | `understand.accept` | Observation dropped. |
-| Ollama or ChromaDB down during retrieval | `retrieve_guides` | Notice "No se pudieron consultar las guías locales (ChromaDB)." An embedding failure (Ollama) shows the same notice, because the query embedding runs inside `GuideRetriever.search`. Reply uses card text. |
+| Ollama or ChromaDB down during retrieval | `retrieve_guides` | ChromaDB failure: notice `NOTICE_GUIDES_FAILED` ("... (ChromaDB)."). Query embedding failure (Ollama): `GuideRetriever.search` raises `EmbeddingUnavailable`, notice `NOTICE_EMBEDDING_FAILED`. Reply uses card text. |
 | No relevant guide chunk | `retrieve_guides`, `compose_answer` | Notice "No se encontró una guía local pertinente." A case with a decision uses the card summary. An educational question returns `EDUCATIONAL_ABSTAIN` and does not answer. |
 | Ollama chat error or timeout (20 s per call) | `OllamaClient._post` raises `DependencyUnavailable`; `compose_answer` catches it | Notice `NOTICE_LLM_FAILED`. Reply uses card summary or a guide excerpt. |
 | LLM draft cites unknown sources, adds numbers or unsafe claims | `valid_draft` | Draft discarded, notice `NOTICE_DRAFT_REJECTED`, card text shown. |
@@ -329,10 +329,4 @@ API contract mirror: [`schemas/`](../services/onboard-api/src/onboard_api/schema
 | Concrete complaint the cards do not cover ("me duele el oído") | `select_route` → `respond_out_of_coverage` | `urgency: "review_required"`, notify the onboard medical officer. Verified at runtime. |
 | DB schema newer than code, gaps in migration numbers, legacy DB that differs from 0001, FK violations | `apply_migrations`, `load_migrations`, `_baseline_legacy` | Startup fails with `RuntimeError`. Each migration runs in one transaction and rolls back on error. |
 
-Known gaps found while tracing:
-
-- The console timeout (10 s) is shorter than the server's worst case. A non-alarm assessment can make three Ollama calls in sequence: `chat_json` (up to 8 s), `embed` (up to 20 s) and `chat` (up to 20 s). A cold model load took 17.5 s in a local run, so the console reports the service as unavailable while the server still produces a 200 reply.
-- The console does not echo `clarification` (flow 4, path B), so the server's case continuity and bare-answer handling are not used from the UI yet.
-- With `ONBOARD_DEMO_EVENTS_PATH=demo/events.example.json`, the cabin-wide `cabin_co2` event matches every astronaut. Every message, including "hola" or an educational question, then routes to `medical` and returns an `immediate` alarm.
-- The demo events target astronaut `ana`, but `seed_demo.py` and `firmware/simulator.py` create `ast-01` and `ast-02`. Readings for `ana` exist only if created by hand.
-- `listSensors` in [`api/sensors.ts`](../apps/spaceship-app/src/api/sensors.ts) has no caller.
+Known gaps found while tracing: none open. The gaps listed on 2026-11-14 were fixed by issues #18 to #24.
