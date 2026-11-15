@@ -72,7 +72,7 @@ Quién escribe qué:
 | Checklist (`PUT …/checkins/{day}`) | La consola (pantalla de check-in). |
 | Señales (`POST /wellbeing/signals`) | El importador de Apple Health; `demo_reset.py` con el export sintético. |
 | Bitácora de visión (`POST /wellbeing/vision-sessions`, `bitacora`) | `wellbeing-vision`. El simulador también genera bitácoras simuladas hasta ayer. |
-| Movimiento en modo ambiente (`ambiente`) y co-presencia (`POST /wellbeing/co-presence`) | Sólo el simulador. La captura real está **Pendiente** del PR #33. |
+| Movimiento en modo ambiente (`ambiente`) y co-presencia (`POST /wellbeing/co-presence`) | `wellbeing-vision ambiente`, en ventanas de 60 s. El simulador genera la historia de días anteriores (ventanas de 10 min). |
 | Pulso (`heart_rate` en `onboard.db`) | La parte física (sensores, `firmware/simulator.py`), por `POST /readings`. Bienestar nunca escribe ahí. |
 
 ## Bases de datos
@@ -80,7 +80,7 @@ Quién escribe qué:
 - **`wellbeing.db` es un archivo aparte** (`WELLBEING_DB_PATH`, por defecto `data/wellbeing.db`). Tablas: `checkins`, `signals`, `vision_sessions`, `co_presence`, `co_presence_members`, `ground_packages`. Detalle en [data-dictionary.md](../../db/data-dictionary.md#data-dictionary-wellbeing-database). Por qué aparte: [decisions.md](decisions.md#2-base-de-datos-propia-wellbeingdb).
 - **`onboard.db` sólo se lee** (`mode=ro`), siempre a través de `AstronautRepository` y `ReadingRepository`. Usa la misma variable `ONBOARD_DB_PATH` que el servicio onboard.
 - **Migraciones:** el mismo runner que onboard (`init_db`) con `db/migrations/wellbeing/` ([`0001_baseline.sql`](../../db/migrations/wellbeing/0001_baseline.sql), [`0002_ground_packages.sql`](../../db/migrations/wellbeing/0002_ground_packages.sql)). El módulo no toca el arranque (`lifespan`) de la app: migra al abrir su primera conexión, una vez por proceso y ruta. Una base en versión 1 sube a 2 sin perder filas (test `test_existing_v1_copy_upgrades_and_keeps_data`).
-- **Sin imágenes:** las sesiones de visión guardan el JSON validado (`body`) con métricas derivadas. No hay video, cuadros ni plantillas faciales.
+- **Sin imágenes:** las sesiones de visión guardan el JSON validado (`body`) con métricas derivadas. No hay video, cuadros ni plantillas faciales: las plantillas viven sólo en el equipo de visión (`data/faces/`, ver abajo).
 
 ## Zona horaria de misión
 
@@ -104,14 +104,52 @@ Quién escribe qué:
 
 ## Visión
 
-> **Pendiente de actualizar tras el PR #33.** Esta sección describe la visión de `main`. El PR #33 (abierto) cambia: **identidad** (reconocimiento facial con SFace), **modo ambiente** (dos cámaras, co-presencia y movimiento reales), **mirada hacia abajo** (no contarla como fatiga ni tensión), **detector de habla** (nueva regla) y **rendimiento** (FPS con dos cámaras).
+El proceso [`wellbeing-vision`](../../services/wellbeing-vision/README.md) es opcional y corre aparte de `onboard-api`. Manda sólo números: nunca guarda ni envía cuadros. Si la API no responde, los envíos quedan en `outbox/pending.jsonl` y se reintentan; los que la API rechaza (4xx) van a `outbox/rejected.jsonl`.
 
-Hoy en `main` el proceso `wellbeing-vision` sólo tiene el comando `bitacora` ([`bitacora.py`](../../services/wellbeing-vision/src/wellbeing_vision/bitacora.py)):
+| Comando | Qué hace | Manda |
+|---|---|---|
+| `bitacora` | Bitácora diaria frente a la cámara ([`bitacora.py`](../../services/wellbeing-vision/src/wellbeing_vision/bitacora.py)). | Una sesión `bitacora` a `POST /wellbeing/vision-sessions`. |
+| `enroll` | Registra la cara de un astronauta: 10 plantillas SFace en `data/faces/<astronauta>.npz`. | Nada. |
+| `identify` | Vista previa con una caja por cara, su nombre o `unknown-<n>`, y su pose. | Nada. |
+| `ambiente` | Modo ambiente con dos cámaras ([`ambiente.py`](../../services/wellbeing-vision/src/wellbeing_vision/ambiente.py), [`motion.py`](../../services/wellbeing-vision/src/wellbeing_vision/motion.py)). | Cada 60 s: co-presencia por módulo y una sesión `ambiente` por persona. |
 
-1. Abre la cámara a 1280x720. Un recorte cuadrado alrededor de la cara (YuNet) alimenta al Face Landmarker de MediaPipe.
-2. **Neutral del día:** 3 s seguidos con la cara cerca, quieta y relajada. Un parpadeo, un movimiento de cabeza o hablar lo reinicia. Se compara con un ancla de largo plazo por astronauta (mediana de los últimos 7 neutrales, sólo números, en `data/neutrals/`).
-3. **Medición** durante `--seconds` (60 por defecto): parpadeos, PERCLOS, apertura de ojos frente al neutral, bostezos, cabeceos, ceño (media y pico sostenido 1 s) y labios apretados (sólo mientras no habla).
-4. **Calidad:** cuadros con la cara a menos de 160 px (`WELLBEING_VISION_MIN_FACE_PX`) no cuentan. Con `valid_frame_ratio` menor a 0.8 la sesión es `suspect`; menor a 0.5, `bad`.
-5. **Envío:** un resumen con `session_type: "bitacora"`, `identity.method: "manual"` (el astronauta viene de `--astronaut`) y `source: "vision:cam<N>"`. Si la API no responde, queda en `outbox/pending.jsonl` y se reintenta en el siguiente envío.
+### Bitácora diaria
+
+1. Abre la cámara a 1280x720. Un recorte cuadrado alrededor de la cara (YuNet) alimenta al Face Landmarker de MediaPipe. Si la cámara deja de entregar cuadros por 2 s, la bitácora termina.
+2. **Neutral del día:** 3 s seguidos con la cara cerca, quieta, relajada y mirando a la cámara. Un parpadeo, un movimiento de cabeza, hablar o mirar a otro lado lo reinicia. Se compara con un ancla de largo plazo por astronauta (mediana de los últimos 7 neutrales, sólo números, en `data/neutrals/`).
+3. **Medición** durante `--seconds` (60 por defecto): parpadeos, PERCLOS, apertura de ojos frente al neutral, bostezos, cabeceos, ceño (media y pico sostenido 1 s) y labios apretados.
+4. **Mirar hacia abajo no es fatiga ni tensión.** Al leer bajan los párpados y el ceño. Los cuadros que miran hacia abajo más de 0.5 s no cuentan (la vista previa dice "Look at the camera"), salvo cierres profundos de ojos, que sí cuentan como ojos cerrados.
+5. **Cabeceo:** la cabeza baja más de 15° y vuelve a menos de 10° en 0.3–2 s. Quedarse con la cabeza abajo es una postura, no un cabeceo.
+6. **Detector de habla:** los labios sólo se miden mientras la persona no habla. Cuenta como hablar si en 1 s hay dos aperturas de mandíbula, o dos vaivenes de `mouthPress` de 0.08 o más mientras los labios no están apretados ([`face.py`](../../services/wellbeing-vision/src/wellbeing_vision/face.py)). Una sola apertura (tragar, suspirar) no es hablar. Con menos de 10 s en silencio, los labios salen `null`.
+7. **Calidad:** cuadros con la cara a menos de 160 px (`WELLBEING_VISION_MIN_FACE_PX`) no cuentan. Con `valid_frame_ratio` menor a 0.8 la sesión es `suspect`; menor a 0.5, `bad`.
+8. **Identidad:** cada 10 cuadros compara la cara con la galería ([`identity.py`](../../services/wellbeing-vision/src/wellbeing_vision/identity.py)).
+   - Si confirma al astronauta de `--astronaut`, sale `identity.method: "face"` con su `match_score`.
+   - Si la cara coincide con otra persona, la vista previa dice "This looks like X, not Y" y **no se manda nada** (tampoco se guarda el neutral).
+   - Si no hay coincidencia clara o no hay caras registradas, sale `manual`.
+9. **Envío:** un resumen con `session_type: "bitacora"` y `source: "vision:cam<N>"`.
+
+### Identidad
+
+- YuNet encuentra las caras y SFace convierte cada una en una plantilla de 128 números, alineada por los ojos. Por eso una cara al revés coincide con un registro derecho.
+- Una cara es de un astronauta si la similitud es de al menos 0.363 (el umbral publicado con SFace) y le saca 0.08 al segundo lugar (PROVISIONAL). Cada pista promedia sus últimas 10 plantillas y necesita 3 antes de recibir nombre. Las demás personas salen como `unknown-<track>`.
+- **Las plantillas son datos biométricos:** viven sólo en `data/faces/` del equipo de visión (fuera de git), nunca se envían y se borran borrando el archivo.
+- `onboard-api` acepta `unknown-<track>` sólo en sesiones de visión y co-presencia, y nunca les calcula línea base. Las rutas de evaluación, checklist y señales responden `404` para esos ids (PR #91).
+
+### Modo ambiente
+
+- **Una cámara por módulo** (cam 0 = `modulo-a`, cam 1 = `modulo-b` por defecto). Si las dos ven el mismo espacio, `--overlap` las une en un solo módulo.
+- **Un astronauta cuenta una sola vez:** si dos cámaras lo ven, se queda en su módulo. Un traslado exige 10 s sin verlo en el módulo anterior y 5 s seguidos en el nuevo (PROVISIONAL).
+- **Pistas por cara o por cuerpo:** cada pose se empareja con la cara que contiene su nariz, así que alguien de espaldas sigue presente con su nombre. Una pista cuenta como ocupante después de 3 s (`--min-track`, PROVISIONAL).
+- **Cada 60 s, por módulo:** `POST /wellbeing/co-presence` con ocupantes, parejas (segundos juntos, distancia media en anchos de hombro y `facing_ratio`) y cobertura de cámara.
+- **Cada 60 s, por persona** con 10 s o más de pose: una sesión `session_type: "ambiente"` con `identity.method: "face"`, `neutral_ok: false` y `motion` (`speed`, `stationary_ratio`, `fidget_index`, `torso_angle_dev`). Todo relativo al cuerpo, así que no cambia con la cámara ni con el astronauta de cabeza.
+
+### Rendimiento
+
+- Las cámaras corren en hilos paralelos y cada una guarda sólo su cuadro más reciente.
+- Las caras se detectan en una copia de 960 px y las poses en una de 640 px. El reconocimiento usa el recorte de la cara a resolución completa.
+- El reconocimiento sólo corre para pistas nuevas o sin confirmar: revisa una pista identificada cada 2 s y una desconocida cada 1 s.
+- En la laptop de desarrollo, con dos cámaras: de 6.8 a 12.5 FPS por cámara con caras (PR #33). El runbook pide 10 FPS o más por cámara antes de la demo.
+
+**Pendiente** de validar con cámaras reales (lo dice el PR #33): FPS y reconocimiento a 1280x720, `facing_ratio` con parejas reales y la nueva regla de habla en bitácoras nuevas.
 
 Comandos, umbrales y captura: [wellbeing-vision/README.md](../../services/wellbeing-vision/README.md). Variables: [CONFIGURATION.md](../CONFIGURATION.md#wellbeing-vision-wellbeing_vision_).

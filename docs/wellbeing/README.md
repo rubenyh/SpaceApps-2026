@@ -27,15 +27,19 @@ Cómo se calcula, paso a paso: [fusion.md](fusion.md).
 | Fuente (`source`) | Qué aporta | Estado hoy en `main` |
 |---|---|---|
 | `checkin` (autorreporte) | Checklist diario de 7 preguntas (sueño, calidad de sueño, energía, ánimo, interés, tensión, conexión con la tripulación) más un comentario privado opcional. Unos 45 s. Preguntas en [`checkin_form.py`](../../services/onboard-api/src/onboard_api/wellbeing/checkin_form.py). | **Implementado**: API y pantalla de check-in en la consola. |
-| `vision` (cámara) | Bitácora diaria (`bitacora`): fatiga (PERCLOS, apertura de ojos, bostezos, cabeceos) y tensión (ceño). Modo ambiente (`ambiente`): movimiento (`motion`). Sólo métricas derivadas, nunca imágenes. | Bitácora: **Implementado** (proceso `wellbeing-vision`). Modo ambiente: la API lo acepta, pero en `main` sólo el simulador lo genera; el modo real está **Pendiente** del PR #33. |
+| `vision` (cámara) | Bitácora diaria (`bitacora`): fatiga (PERCLOS, apertura de ojos, bostezos, cabeceos) y tensión (ceño). Modo ambiente (`ambiente`): movimiento (`motion`). Sólo métricas derivadas, nunca imágenes. | **Implementado** en el proceso `wellbeing-vision`: bitácora y modo ambiente con dos cámaras (PR #33). En la demo, la historia de días anteriores es simulada. |
 | `physiology` | HRV (SDNN), frecuencia cardiaca en reposo y horas de sueño desde un export de Apple Health. Además, el pulso (`heart_rate`) que ya registra la parte física, leído en sólo lectura. | **Implementado**: importador del export (`export.zip` / `export.xml`) y un export sintético de ejemplo. No hay app de HealthKit. |
-| `social` (co-presencia) | Minutos acompañado al día, a partir de ventanas de co-presencia por módulo. | La API lo acepta y lo puntúa. En `main` sólo hay datos simulados; la captura real está **Pendiente** del PR #33. |
+| `social` (co-presencia) | Minutos acompañado al día, a partir de ventanas de co-presencia por módulo. | **Implementado**: el modo ambiente (`ambiente`) manda ventanas de co-presencia por módulo (PR #33). En la demo, la historia de días anteriores es simulada. |
 
-### Visión hoy en `main`
+### Visión
 
-El proceso [`wellbeing-vision`](../../services/wellbeing-vision/README.md) sólo tiene la bitácora diaria: el astronauta se pone frente a la cámara a unos 50 cm durante unos 60 s. Primero se calibra un neutral del día (3 s quieto y relajado) y después se miden fatiga y tensión **respecto a ese neutral**. Se manda un solo resumen a `POST /wellbeing/vision-sessions`. El astronauta se indica a mano en la línea de comandos (`--astronaut`), así que la identidad sale como `manual`. No se guarda ni se envía ningún cuadro de video.
+El proceso [`wellbeing-vision`](../../services/wellbeing-vision/README.md) corre junto a `onboard-api` y sólo manda números derivados: nunca guarda ni envía cuadros de video. Tiene tres partes:
 
-> **Pendiente de actualizar tras el PR #33.** El PR #33 (abierto) cambia la visión en cinco temas: **identidad** (reconocimiento facial), **modo ambiente** con dos cámaras, **mirada hacia abajo**, **detector de habla** y **rendimiento**. Lo que dice `docs/wellbeing/` sobre visión describe `main` de hoy.
+- **Bitácora diaria (`bitacora`):** el astronauta habla ~60 s a la cámara, a unos 50 cm. Primero se calibra un neutral del día y después se miden fatiga y tensión **respecto a ese neutral**. Mirar hacia abajo (leer) no cuenta como fatiga ni tensión. Manda un resumen a `POST /wellbeing/vision-sessions`.
+- **Identidad (`enroll`, `identify`):** reconocimiento facial con plantillas locales. La bitácora confirma que la cara es la del astronauta indicado (`identity.method: "face"`). Si no hay una coincidencia clara, sale `manual`; si la cara parece de otra persona, no se manda nada.
+- **Modo ambiente (`ambiente`):** dos cámaras, una por módulo. Cada 60 s manda la co-presencia del módulo y una sesión de movimiento por persona.
+
+Detalle en [architecture.md](architecture.md#visión). **Pendiente** de validar con cámaras reales (lo dice el PR #33): FPS y reconocimiento a 1280x720, `facing_ratio` con parejas reales y la nueva regla de habla en bitácoras nuevas.
 
 ## Qué entrega
 
