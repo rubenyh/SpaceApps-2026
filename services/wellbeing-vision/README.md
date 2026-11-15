@@ -33,11 +33,12 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
 - A square crop around the face (seeded by YuNet, then following the landmarks) is what the Face Landmarker sees,
   so the face is found even when small in the frame.
 - Frames where the face is narrower than `WELLBEING_VISION_MIN_FACE_PX` (default 160 px cheek to cheek, about
-  80 cm on a 720p webcam) show "Acércate a la cámara" and are not usable: they add nothing to blinks, PERCLOS or
+  80 cm on a 720p webcam) show "Move closer to the camera" and are not usable: they add nothing to blinks, PERCLOS or
   tension and lower `valid_frame_ratio` (below 0.8 the session is `suspect`, below 0.5 `bad`).
-- Neutral calibration needs 3 s in a row with the face close, still and relaxed. A blink, a head move over 5°
-  or talking restarts it, and the hint on screen says why. The neutral is then rejected if the eyes are not
-  plausibly open (eyeBlink median over 0.25).
+- The log is spoken to the camera. Neutral calibration needs 3 s in a row with the face close, still, relaxed
+  and looking at the camera. A blink, a head move over 5°, talking or looking away restarts it, and the hint
+  on screen says why. The neutral is then rejected if the eyes are not plausibly open (eyeBlink median over
+  0.3).
 - Long-term anchor: each accepted neutral is appended (numbers only) to `data/neutrals/<astronaut>.jsonl`.
   The anchor is the median of the last 7 neutrals (from 3 on). If today's neutral EAR is more than 15 % off
   the anchor, calibration is asked once more. If it is off again, the eyes are measured against the anchor.
@@ -45,10 +46,16 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
 - Eye closure (blinks, PERCLOS) uses the eyeBlink blendshape over `max(0.4, neutral + 0.25)`, not EAR. EAR of
   open eyes doubles when the face moves back, so it needs the day's neutral. `eye_openness_vs_neutral` is
   still the EAR ratio.
-- Lip press is measured only while not talking (jaw travel under 0.15 in 1 s, plus 0.5 s after). With less
-  than 10 s of quiet time, `lip_press_delta` and `lip_press_peak_1s` are `null`.
+- Looking down (reading) lowers the lids and the brows. Frames looking down for over 0.5 s (eyeLookDown
+  0.25 over neutral, or the head 15° down without the eyes going up) show "Look at the camera" and are not
+  usable, unless the eyes are deeply shut (eyeBlink 0.6 or more, which still counts as closed).
+- A nod is a drop of the head past 15° that comes back under 10° within 0.3-2 s. Staying down is a posture.
+- Lip press is measured only while not talking: two jaw openings within 1 s, plus 0.5 s after, count as
+  talking (a single opening, like a swallow, does not). With less than 10 s of quiet time,
+  `lip_press_delta` and `lip_press_peak_1s` are `null`.
 - `--trace t.csv` writes per-frame derived numbers (face px, EAR and its ratio, eyeBlink, jaw/brow/lip deltas,
-  talking flag) to tune thresholds. No images.
+  talking flag, head pitch and yaw, eyeLookDown/Up, looking-down flag) to tune thresholds. No images. It
+  never overwrites: if `t.csv` exists it writes `t-2.csv`, `t-3.csv`... and prints the path.
 
 ## Settings (env vars)
 
@@ -62,5 +69,5 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
 
 ## Thresholds
 
-All thresholds (eye closed, yawn, nod, calibration, anchor, talking) are PROVISIONAL, tuned on one person's
+All thresholds (eye closed, yawn, nod, calibration, anchor, talking, looking down) are PROVISIONAL, tuned on one person's
 traces, and not clinically validated. Every payload carries `"provisional": true`.
