@@ -5,6 +5,7 @@
 x-onboard-env: &onboard-env
   ONBOARD_DB_PATH: /data/sqlite/onboard.db
   WELLBEING_DB_PATH: /data/sqlite/wellbeing.db
+  WELLBEING_MISSION_TZ: ${WELLBEING_MISSION_TZ:-America/Tijuana}
   # Telemetry goes to the ground-api service below. Set false to keep the ship offline.
   ONBOARD_TELEMETRY_ENABLED: ${ONBOARD_TELEMETRY_ENABLED:-true}
   ONBOARD_GROUND_API_URL: ${ONBOARD_GROUND_API_URL:-http://ground-api:8001}
