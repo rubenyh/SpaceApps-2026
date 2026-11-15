@@ -1,4 +1,4 @@
-"""Onboard incidents (db/migrations/onboard/0002_incidents.sql).
+"""Onboard incidents (db/migrations/onboard/0002_incidents.sql, 0003_incident_origin.sql).
 
 Mirrored by apps/spaceship-app/src/api/types.ts.
 """
@@ -54,6 +54,8 @@ class Incident(BaseModel):
     data_notices: list[str]
     mission_procedures: list[MissionProcedure]
     missing_guidance: list[str]
+    reported_via: Literal["console", "watch"] | None = None  # None: created before version 3
+    reading_ids: list[int] = []  # readings.id of the latest readings when created
     acknowledgments: list[Acknowledgment]  # oldest first
     events: list[IncidentEvent]  # oldest first
     ground_delivery: GroundDelivery

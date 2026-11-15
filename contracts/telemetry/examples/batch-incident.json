@@ -18,7 +18,9 @@
       "protocol_version": "1.0",
       "matched_rules": [{ "rule_id": "resp-cannot-breathe", "protocol_id": "respiratory-distress", "protocol_version": "1.0" }],
       "action": "Start oxygen and call the crew medical officer now.",
-      "acknowledged_by": null
+      "acknowledged_by": null,
+      "reported_via": "watch",
+      "reading_ids": [101, 102]
     },
     {
       "id": "7a6b5c4d-3e2f-4a1b-9c8d-7e6f5a4b3c21",
@@ -31,7 +33,9 @@
       "protocol_version": "1.0",
       "matched_rules": [{ "rule_id": "resp-cannot-breathe", "protocol_id": "respiratory-distress", "protocol_version": "1.0" }],
       "action": "Start oxygen and call the crew medical officer now.",
-      "acknowledged_by": "ast-02"
+      "acknowledged_by": "ast-02",
+      "reported_via": "watch",
+      "reading_ids": []
     }
   ]
 }

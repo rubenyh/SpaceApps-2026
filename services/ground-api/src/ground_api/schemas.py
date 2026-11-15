@@ -2,7 +2,7 @@
 and the ground read API shapes."""
 
 import uuid
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
@@ -21,6 +21,7 @@ Quality = Literal["good", "suspect", "bad"]
 ReadingStatus = Literal["normal", "alert", "no_data", "stale", "no_range"]
 Urgency = Literal["immediate", "review_required", "undetermined", "informational"]
 IncidentUpdateType = Literal["created", "acknowledged", "closed"]
+ReportedVia = Literal["console", "watch"]
 
 
 class Contract(BaseModel):
@@ -74,6 +75,9 @@ class IncidentUpdate(Contract):
     matched_rules: list[IncidentRule]
     action: str | None
     acknowledged_by: str | None
+    # Optional inside v1: old batches omit them.
+    reported_via: ReportedVia | None = None
+    reading_ids: list[Annotated[int, Field(ge=1)]] = []
 
 
 class TelemetryBatch(Contract):
@@ -158,5 +162,8 @@ class GroundIncident(BaseModel):
     protocol_version: str | None
     matched_rules: list[IncidentRule]
     action: str | None
+    reported_via: ReportedVia | None
+    readings: list[GroundReading]  # stored readings for reading_ids, in that order
+    missing_reading_ids: int  # reading_ids not received by ground yet
     acknowledgments: list[GroundAcknowledgment]
     updates: list[GroundIncidentUpdate]  # occurred_at ascending

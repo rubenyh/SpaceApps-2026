@@ -1,12 +1,15 @@
 import { getIncidents } from "../api/ground";
 import type { GroundIncident } from "../api/types";
 import { usePolling } from "../hooks/usePolling";
+import { readingValueText, SENSOR_LABELS } from "../lib/format";
 import { delayLabel, sortIncidents, sortUpdates, UPDATE_LABELS, utcFull } from "../lib/incidents";
 
 const POLL_MS = 5_000;
 
 function Incident({ incident: i }: { incident: GroundIncident }) {
   const rules = i.matched_rules.map((r) => r.rule_id).join(", ");
+  const readings = i.readings ?? [];
+  const missing = i.missing_reading_ids ?? 0;
   return (
     <section className="section" aria-labelledby={`inc-${i.id}`}>
       <h2 id={`inc-${i.id}`}>
@@ -21,6 +24,28 @@ function Incident({ incident: i }: { incident: GroundIncident }) {
         <div>
           <dt>Astronaut</dt>
           <dd>{i.astronaut_id ?? <span className="muted">Not named</span>}</dd>
+        </div>
+        <div>
+          <dt>Reported via</dt>
+          <dd>{i.reported_via ? (i.reported_via === "watch" ? "Watch" : "Console") : <span className="muted">Not recorded</span>}</dd>
+        </div>
+        <div>
+          <dt>Readings at creation</dt>
+          <dd>
+            {readings.length === 0 && !missing ? <span className="muted">No readings snapshot</span> : null}
+            {readings.map((r) => (
+              <div key={r.id}>
+                {SENSOR_LABELS[r.kind] ?? r.kind}: {readingValueText(r)}
+                {r.value_text === null && r.value !== null && r.unit ? ` ${r.unit}` : ""}{" "}
+                <span className="muted">at {utcFull(r.recorded_at)}</span>
+              </div>
+            ))}
+            {missing > 0 ? (
+              <div className="muted">
+                {missing} snapshot reading{missing === 1 ? "" : "s"} not yet received by ground
+              </div>
+            ) : null}
+          </dd>
         </div>
         <div>
           <dt>Action presented onboard</dt>

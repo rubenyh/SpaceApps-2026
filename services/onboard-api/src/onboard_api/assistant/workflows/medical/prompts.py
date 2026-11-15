@@ -105,7 +105,12 @@ SOS_ACTION = (
     "SOS: follow the mission emergency procedure now and call for help with the ship"
     " alarm (crew, mission control if the link is up)."
 )
-SOS_FINDING = "Urgent call for help (SOS) typed in the console."
+# SOS finding text by AssistantRequest.source; incidents.trigger_key recognises every value.
+SOS_FINDINGS = {
+    "console": "Urgent call for help (SOS) typed in the console.",
+    "watch": "Urgent call for help (SOS) sent from the watch.",
+}
+SOS_FINDING = SOS_FINDINGS["console"]
 
 INTERPRET_SYSTEM = """You read a crew member's message and extract symptoms. Reply with JSON only.
 The message may be in English or Spanish.

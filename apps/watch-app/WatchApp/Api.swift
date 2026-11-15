@@ -54,7 +54,7 @@ enum Api {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         // Only "SOS": other text can route to the symptom interpreter.
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["message": "SOS", "astronaut_id": astronautID])
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["message": "SOS", "astronaut_id": astronautID, "source": "watch"])
         _ = try await send(req)
     }
 

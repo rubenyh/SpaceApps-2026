@@ -154,11 +154,22 @@ def connect(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
+# Columns added after the first release; CREATE TABLE IF NOT EXISTS skips existing DBs.
+_ADDED_COLUMNS = {
+    "incidents": {"reported_via": "TEXT", "reading_ids_json": "TEXT NOT NULL DEFAULT '[]'"},
+}
+
+
 def init_db(db_path: Path) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = connect(db_path)
     try:
         conn.executescript(SCHEMA)
+        for table, columns in _ADDED_COLUMNS.items():
+            existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+            for name, decl in columns.items():
+                if name not in existing:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
     finally:
         conn.close()
 
@@ -261,19 +272,28 @@ def _ingest_incident_update(
         (ship_id, u.id, u.incident_id, u.type, to_db(u.occurred_at), u.acknowledged_by, to_db(now)),
     ).rowcount:
         return False
-    # began_at comes only from the created update; the summary takes the latest values.
+    # began_at, reported_via and reading_ids come only from the created update;
+    # the summary takes the latest values.
+    created = u.type == "created"
     conn.execute(
         "INSERT INTO incidents (ship_id, id, astronaut_id, began_at, urgency, protocol_id,"
-        " protocol_version, matched_rules_json, action) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        " protocol_version, matched_rules_json, action, reported_via, reading_ids_json)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         " ON CONFLICT (ship_id, id) DO UPDATE SET astronaut_id = excluded.astronaut_id,"
         " began_at = coalesce(incidents.began_at, excluded.began_at), urgency = excluded.urgency,"
         " protocol_id = excluded.protocol_id, protocol_version = excluded.protocol_version,"
-        " matched_rules_json = excluded.matched_rules_json, action = excluded.action",
+        " matched_rules_json = excluded.matched_rules_json, action = excluded.action,"
+        " reported_via = coalesce(incidents.reported_via, excluded.reported_via),"
+        " reading_ids_json = CASE WHEN ? THEN excluded.reading_ids_json"
+        " ELSE incidents.reading_ids_json END",
         (
             ship_id, u.incident_id, u.astronaut_id,
-            to_db(u.occurred_at) if u.type == "created" else None,
+            to_db(u.occurred_at) if created else None,
             u.urgency, u.protocol_id, u.protocol_version,
             json.dumps([r.model_dump() for r in u.matched_rules], ensure_ascii=False), u.action,
+            u.reported_via if created else None,
+            json.dumps(u.reading_ids if created else []),
+            created,
         ),
     )
     return True
@@ -368,6 +388,15 @@ def _to_incident(conn: sqlite3.Connection, row: sqlite3.Row) -> GroundIncident:
             (row["ship_id"], row["id"]),
         )
     ]
+    reading_ids = json.loads(row["reading_ids_json"])
+    by_id = {
+        r["id"]: _to_reading(r)
+        for r in conn.execute(
+            f"SELECT {_READING_COLUMNS} FROM readings r JOIN json_each(?) j ON r.id = j.value"
+            " WHERE r.ship_id = ?",
+            (row["reading_ids_json"], row["ship_id"]),
+        )
+    }
     return GroundIncident(
         ship_id=row["ship_id"],
         id=row["id"],
@@ -378,6 +407,9 @@ def _to_incident(conn: sqlite3.Connection, row: sqlite3.Row) -> GroundIncident:
         protocol_version=row["protocol_version"],
         matched_rules=json.loads(row["matched_rules_json"]),
         action=row["action"],
+        reported_via=row["reported_via"],
+        readings=[by_id[i] for i in reading_ids if i in by_id],
+        missing_reading_ids=sum(i not in by_id for i in reading_ids),
         acknowledgments=[
             GroundAcknowledgment(
                 acknowledged_by=u.acknowledged_by, acknowledged_at=u.occurred_at, received_at=u.received_at

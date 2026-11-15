@@ -38,7 +38,7 @@ def readings_ctx(rows: list[dict]) -> ReadingsContext:
         ctx.latest[r["kind"]] = VitalReading(
             kind=r["kind"], value=r.get("value"), value_text=r.get("value_text"), unit=r["unit"],
             recorded_at=at, quality=r["quality"], source=r["source"], age_seconds=age,
-            stale=age > STALE_AFTER.get(r["kind"], 86400),
+            stale=age > STALE_AFTER.get(r["kind"], 86400), id=r.get("id", 0),
         )
     return ctx
 
