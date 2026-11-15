@@ -15,6 +15,7 @@ import {
 } from "../api/types";
 import { sendAssistantMessage } from "../api/assistant";
 import { HttpError, NetworkError, toApiError } from "../api/client";
+import { IncidentPanel } from "../components/IncidentPanel";
 import { Panel } from "../components/Panel";
 import { StateIcon, type VisualState } from "../components/StatusPill";
 import { useNow } from "../hooks/useNow";
@@ -362,6 +363,7 @@ export function AsistenteScreen({ astronautId, astronauts, status, statusUpdated
   return (
     <div className="asistente__grid">
       <section className="chat">
+        <IncidentPanel crew={astronauts} />
         <div className="chat__log" ref={logRef} aria-live="polite">
           {entries.length === 0 ? (
             <p className="chat__hint">
