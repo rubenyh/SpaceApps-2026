@@ -5,24 +5,31 @@ from onboard_api.services.assistant import DISCLAIMER
 
 __all__ = ["DISCLAIMER"]
 
-MEDICAL_OFFICER = "responsable médico a bordo"
+# No clinician is on board and the ground link may be down: nothing here refers to an
+# onboard medical officer, and nothing claims that anyone was notified.
+NOTIFY_EMERGENCY = ("tripulación", "control de misión (si hay enlace)")
+NOTIFY_GROUND = ("control de misión (si hay enlace)",)
+EMERGENCY_PROCEDURE = "Procedimiento de emergencia médica de la misión"
+MEDICAL_PROCEDURE = "Procedimientos médicos de la misión"
 
 ALARM_NOTICE = (
-    "Alarma inmediata: la respuesta usa solo fichas locales; no se esperó a consultar"
-    " lecturas, guías ni el modelo local."
+    "Alarma inmediata: la decisión usa solo fichas locales, sin esperar a las guías ni al"
+    " modelo local. Las lecturas solo se añaden como evidencia y nunca rebajan la alarma."
 )
 OUT_OF_COVERAGE_ACTION = (
-    "Pide una valoración al responsable médico a bordo y describe lo que observas."
+    "Este síntoma no está cubierto por las fichas: busca la sección que corresponda en los"
+    " procedimientos médicos de la misión, anota lo que observas y copia el informe para"
+    " control de misión cuando haya enlace. Si aparece una señal de alarma (falta de aire"
+    " intensa, dolor en el pecho, desmayo, sangrado que no para), trátalo como emergencia."
 )
 OUT_OF_COVERAGE_REPLY = (
-    "Este caso no está cubierto por las fichas locales del asistente, así que no puedo"
-    " orientarlo. Si aparece una señal de alarma, sigue el procedimiento de emergencia"
-    " de la nave."
+    "Las fichas locales del asistente no cubren este caso, así que no puedo darte pasos"
+    " específicos con fuente."
 )
+OUT_OF_COVERAGE_MISSING = "No hay ficha local para este síntoma: no hay pasos con fuente."
 EDUCATIONAL_ABSTAIN = (
     "No encontré una fuente local que respalde una respuesta a esta consulta, así que"
-    " no voy a responder sin respaldo. Si tienes síntomas, descríbelos; si tienes dudas,"
-    " consulta al responsable médico a bordo."
+    " no voy a responder sin respaldo. Si tienes síntomas, descríbelos."
 )
 NOTICE_READINGS_FAILED = "Repositorio de lecturas no disponible: no se consultaron lecturas."
 NOTICE_GUIDES_FAILED = "No se pudieron consultar las guías locales (ChromaDB)."
@@ -50,8 +57,9 @@ Reglas obligatorias:
 4. Cita los fragmentos como [n], solo con los números dados. Nunca inventes una cita.
 5. No repitas la acción indicada: ya se muestra antes de tu texto. No la contradigas.
 6. Si falta un dato o una lectura es vieja o dudosa, dilo.
-7. No digas que se envió ningún aviso.
-8. No des un diagnóstico; el diagnóstico y el tratamiento corresponden al responsable médico."""
+7. No digas que se envió, avisó o informó a nadie: nada se transmite.
+8. No des un diagnóstico. No hay médico a bordo: no menciones médicos ni personal clínico.
+9. Un dato "desconocido" sigue desconocido: no digas que un síntoma falta o se descarta salvo que el informe diga "ausente"."""
 
 
 def number_chunks(chunks: list[GuideChunk]) -> str:
@@ -67,6 +75,7 @@ def build_user_prompt(
     findings: list[str],
     notices: list[str],
     chunks: list[GuideChunk],
+    report: str | None = None,
 ) -> str:
     def bullets(items: list[str]) -> str:
         return "\n".join(f"- {x}" for x in items) or "- (ninguno)"
@@ -77,6 +86,7 @@ def build_user_prompt(
         f"Resumen de la ficha:\n{card_summary or '(sin ficha)'}\n\n"
         f"Hallazgos:\n{bullets(findings)}\n\n"
         f"Avisos de datos:\n{bullets(notices)}\n\n"
+        f"Informe del caso:\n{report or '(sin informe)'}\n\n"
         f"Fragmentos de guías:\n{number_chunks(chunks)}\n\n"
         "Escribe la explicación en español siguiendo las reglas."
     )
@@ -88,8 +98,8 @@ def guide_excerpt(chunk: GuideChunk) -> str:
 
 
 SOS_ACTION = (
-    "SOS: sigue ahora el procedimiento de emergencia de la nave y avisa de inmediato al"
-    " responsable médico a bordo y a la tripulación."
+    "SOS: sigue ahora el procedimiento de emergencia de la misión y pide ayuda con la alarma"
+    " de la nave (tripulación, control de misión si hay enlace)."
 )
 SOS_FINDING = "Petición de ayuda urgente (SOS) escrita en la consola."
 

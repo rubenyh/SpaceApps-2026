@@ -1,39 +1,132 @@
 {
   "id": "loss_of_consciousness_or_seizure",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Pérdida de conciencia o convulsión",
   "priority": 10,
-  "summary": "Tripulante que no responde, pérdida de conciencia, desmayo o convulsión observada. Diferenciar pérdida de conciencia actual, episodio resuelto y evento convulsivo. Son criterios de aviso inmediato: no responde, primera convulsión, convulsión de más de cinco minutos, convulsiones repetidas sin recuperación o dificultad para respirar o despertar. Tras un desmayo con recuperación se comprueba si coinciden señales cardíacas, neurológicas o un golpe. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Tripulante que no responde, pérdida de conciencia, desmayo o convulsión observada. Diferenciar pérdida de conciencia actual, episodio resuelto y evento convulsivo. Son criterios de aviso inmediato: no responde, primera convulsión, convulsión de más de cinco minutos, convulsiones repetidas sin recuperación o dificultad para respirar o despertar. Tras un desmayo con recuperación se comprueba si coinciden señales cardíacas, neurológicas o un golpe. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
     "unresponsive": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo y a la tripulación: tripulante que no responde. Seguir la ficha de emergencia de la misión y comprobar la respiración.",
+      "text": "Tripulante que no responde: emergencia.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "crew",
+          "text": "Da la alarma de emergencia de la nave.",
+          "source_ids": [
+            "medlineplus_unconsciousness"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Comprueba vía aérea, respiración y pulso con frecuencia; inicia RCP si hace falta.",
+          "source_ids": [
+            "medlineplus_unconsciousness"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Si respira y no sospechas lesión de columna, colócala de lado (posición de recuperación).",
+          "source_ids": [
+            "medlineplus_unconsciousness"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "No la dejes sola, no le des comida ni bebida y no le pongas una almohada bajo la cabeza.",
+          "source_ids": [
+            "medlineplus_unconsciousness"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Mantenla abrigada.",
+          "source_ids": [
+            "medlineplus_unconsciousness"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de emergencia médica de la misión"
     },
     "seizure": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo: convulsión observada. Seguir la ficha de convulsiones de la misión y proteger de golpes sin sujetar a la persona.",
+      "text": "Convulsión observada: emergencia.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "crew",
+          "text": "Quédate con la persona, aparta objetos con los que pueda golpearse; no la sujetes ni le pongas nada en la boca.",
+          "source_ids": [
+            "cdc_seizure_first_aid"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Mide la duración: más de 5 minutos, otra convulsión seguida, dificultad para respirar o despertar, o una lesión requieren ayuda de emergencia.",
+          "source_ids": [
+            "cdc_seizure_first_aid"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Al terminar, colócala de lado en un lugar seguro; no le des agua ni comida hasta que esté completamente alerta.",
+          "source_ids": [
+            "cdc_seizure_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Si fuiste tú y estás solo/a: no comas ni bebas hasta estar completamente alerta y pide ayuda.",
+          "source_ids": [
+            "cdc_seizure_first_aid"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de convulsiones de la misión"
     },
     "fainted_recovered": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo tras un desmayo con recuperación. Comprobar si hubo palpitaciones, dolor torácico, signos neurológicos o un golpe.",
+      "text": "Desmayo con recuperación: túmbate y comprueba si hubo palpitaciones, dolor torácico, signos neurológicos o un golpe; si los hubo, trátalo como emergencia.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Túmbate y, si puedes, eleva los pies unos 30 cm para evitar otra caída.",
+          "source_ids": [
+            "medlineplus_unconsciousness"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Otro tripulante: no dejes sola a la persona.",
+          "source_ids": [
+            "medlineplus_unconsciousness"
+          ]
+        }
       ]
     },
     "recovery_check": {
       "urgency": "undetermined",
-      "text": "Desmayo reportado sin saber si ya hay recuperación: confirmar el estado de conciencia. Si no responde, avisar de inmediato.",
+      "text": "Desmayo reportado sin saber si ya hay recuperación: confirma el estado de conciencia. Si no responde, es una emergencia.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "crew",
+          "text": "Comprueba si responde; un cambio súbito e inexplicado del estado mental es una emergencia.",
+          "source_ids": [
+            "medlineplus_unconsciousness"
+          ]
+        }
       ]
     }
   },

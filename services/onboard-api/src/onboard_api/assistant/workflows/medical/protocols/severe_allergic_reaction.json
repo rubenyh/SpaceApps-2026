@@ -1,23 +1,52 @@
 {
   "id": "severe_allergic_reaction",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Reacción alérgica grave",
   "priority": 50,
-  "summary": "Hinchazón de lengua o garganta, dificultad respiratoria u otros signos de reacción grave tras una posible exposición. La anafilaxia es posible cuando el cuadro es compatible. Mostrar la ficha autorizada de la misión cuando exista. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Hinchazón de lengua o garganta, dificultad respiratoria u otros signos de reacción grave tras una posible exposición. La anafilaxia es posible cuando el cuadro es compatible. Mostrar la ficha autorizada de la misión cuando exista. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo y seguir la ficha autorizada de reacción alérgica grave de la misión.",
+      "text": "Posible reacción alérgica grave: emergencia.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "equipment",
+          "text": "Si hay un autoinyector de epinefrina (adrenalina) en el botiquín, úsalo de inmediato.",
+          "source_ids": [
+            "medlineplus_anaphylaxis"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "source_ids": [
+            "medlineplus_anaphylaxis"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento autorizado de reacción alérgica grave de la misión"
     },
     "limited": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo por síntomas alérgicos limitados. Avisar de inmediato si aparece hinchazón de garganta o lengua o dificultad para respirar.",
+      "text": "Síntomas alérgicos limitados: vigila la respiración y la garganta.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Si aparece hinchazón de garganta o lengua o dificultad para respirar, usa el autoinyector si lo hay y trátalo como emergencia.",
+          "source_ids": [
+            "medlineplus_anaphylaxis"
+          ]
+        }
+      ],
+      "missing_guidance": [
+        "Las fuentes de la ficha no dan pasos para síntomas alérgicos leves (por ejemplo, antihistamínicos): depende del procedimiento de la misión."
       ]
     }
   },

@@ -1,23 +1,77 @@
 {
   "id": "heat_illness",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Enfermedad por calor",
   "priority": 100,
-  "summary": "Síntomas tras calor o esfuerzo intenso. Según la combinación de síntomas se consideran agotamiento por calor, calambres por calor o golpe de calor a descartar. La temperatura corporal, si se conoce, proviene de una fuente independiente (no de la muestra de orina). Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Síntomas tras calor o esfuerzo intenso. Según la combinación de síntomas se consideran agotamiento por calor, calambres por calor o golpe de calor a descartar. La temperatura corporal, si se conoce, proviene de una fuente independiente (no de la muestra de orina). Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo: confusión o colapso con exposición al calor. Seguir la ficha de calor de la misión.",
+      "text": "Confusión o colapso con exposición al calor: posible golpe de calor, emergencia.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "crew",
+          "text": "Pide ayuda de emergencia y quédate con la persona.",
+          "source_ids": [
+            "niosh_heat_illnesses"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Llévala a un lugar fresco, quítale la ropa exterior y enfríala rápido con agua fría, paños fríos y mojados o hielo, y circulación de aire.",
+          "source_ids": [
+            "niosh_heat_illnesses"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Si eres tú y puedes moverte: pide ayuda, ve a la zona más fresca y enfríate con paños mojados y aire.",
+          "source_ids": [
+            "niosh_heat_illnesses"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de calor de la misión"
     },
     "review": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo y mostrar la ficha de calor prevista para síntomas compatibles con la persona consciente.",
+      "text": "Síntomas por calor con la persona consciente: enfríate e hidrátate.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Sal del calor, quítate la ropa sobrante y refréscate con paños o agua fría en cabeza, cara y cuello.",
+          "source_ids": [
+            "niosh_heat_illnesses"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Bebe líquidos.",
+          "source_ids": [
+            "niosh_heat_illnesses"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Si tienes calambres: bebe agua y toma una bebida o refrigerio con electrolitos cada 15 a 20 minutos; evita las tabletas de sal.",
+          "source_ids": [
+            "niosh_heat_illnesses"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Si aparecen confusión o pérdida de conciencia, trátalo como golpe de calor (emergencia).",
+          "source_ids": [
+            "niosh_heat_illnesses"
+          ]
+        }
       ]
     }
   },

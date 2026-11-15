@@ -11,7 +11,7 @@ NASA Space Apps 2026 monorepo. An astronaut console (Tauri) talks to an onboard 
 | `services/onboard-api/` | FastAPI 0.163, Python 3.12, uv. Package `onboard_api` in `src/`. App `onboard_api.main:app`. | Readings API, SQLite repository, `POST /assistant/messages` (LangGraph medical workflow, Ollama, ChromaDB), pytest |
 | `services/ground-api/` | FastAPI 0.163, Python 3.12, uv. Package `ground_api` in `src/`. App `ground_api.main:app`. | Health route only |
 | `services/wellbeing-vision/` | Camera collector for the wellbeing module. Python 3.12, uv, OpenCV + MediaPipe. Own process, CLI `wellbeing-vision`. Sends derived metrics only (never frames) to onboard-api `POST /wellbeing/vision-sessions`. | Daily video log; identity, co-presence and demo mode planned |
-| `firmware/` | `simulator.py`: software stand-in for the biomonitor device (pulse-ox, urine analyser, muscle scanner). Posts to onboard-api `/readings` with source `device:*`; buffers while the API is down. Stdlib only. | Simulated until real hardware exists |
+| `firmware/` | `simulator.py`: software stand-in for the biomonitor device (pulse-ox, urine analyser, muscle scanner). Posts to onboard-api `/readings` with source `simulated:*`; buffers while the API is down. Stdlib only. | Simulated until real hardware exists |
 | `db/` | SQLite migrations (`db/migrations/onboard/`, applied at onboard-api startup) and `db/data-dictionary.md` (tables, columns, allowed values). Only onboard-api has a database. | |
 | `.claude/agents/`, `.claude/skills/` | Claude Code subagents and skills. | |
 

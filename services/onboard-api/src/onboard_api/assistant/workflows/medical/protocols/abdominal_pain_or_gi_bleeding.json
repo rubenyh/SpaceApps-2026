@@ -1,30 +1,86 @@
 {
   "id": "abdominal_pain_or_gi_bleeding",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Dolor abdominal o sangrado digestivo",
   "priority": 90,
-  "summary": "Dolor abdominal, vómito con sangre o sangre en heces. El dolor localizado y el posible sangrado se muestran como hallazgos. Una causa digestiva solo se considera con evidencia suficiente. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Dolor abdominal, vómito con sangre o sangre en heces. El dolor localizado y el posible sangrado se muestran como hallazgos. Una causa digestiva solo se considera con evidencia suficiente. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo: dolor abdominal repentino e intenso, vómito con sangre o heces negras alquitranadas reportadas.",
+      "text": "Dolor abdominal repentino e intenso, vómito con sangre o heces negras: emergencia.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "source_ids": [
+            "medlineplus_abdominal_pain_care"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "No tomes medicamentos por tu cuenta.",
+          "source_ids": [
+            "medlineplus_abdominal_pain_care"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de emergencia médica de la misión"
     },
     "prompt_review": {
       "urgency": "review_required",
-      "text": "Pedir valoración pronta al responsable médico a bordo por dolor abdominal persistente, focal o que empeora, o sangre en heces.",
+      "text": "Dolor abdominal persistente, focal o que empeora, o sangre en heces: vigila de cerca.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Toma sorbos de agua u otros líquidos claros y evita alimentos sólidos las primeras horas.",
+          "source_ids": [
+            "medlineplus_abdominal_pain_care"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "No tomes medicamentos por tu cuenta.",
+          "source_ids": [
+            "medlineplus_abdominal_pain_care"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Si el dolor se vuelve repentino y agudo, vomitas sangre, las heces son negras o con sangre, el abdomen está rígido o te cuesta respirar, trátalo como emergencia.",
+          "source_ids": [
+            "medlineplus_abdominal_pain_care"
+          ]
+        }
       ]
     },
     "review": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo por dolor abdominal. Avisar de inmediato si se vuelve repentino e intenso o aparece sangrado.",
+      "text": "Dolor abdominal: cuídate y vigila. Si se vuelve repentino e intenso o aparece sangrado, es una emergencia.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Toma sorbos de agua u otros líquidos claros y evita alimentos sólidos las primeras horas.",
+          "source_ids": [
+            "medlineplus_abdominal_pain_care"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Si el dolor se vuelve repentino y agudo, vomitas sangre, las heces son negras o con sangre, el abdomen está rígido o te cuesta respirar, trátalo como emergencia.",
+          "source_ids": [
+            "medlineplus_abdominal_pain_care"
+          ]
+        }
       ]
     }
   },
@@ -51,6 +107,12 @@
       "title": "MedlinePlus: Bleeding",
       "section": "Resumen",
       "url": "https://medlineplus.gov/bleeding.html"
+    },
+    {
+      "id": "medlineplus_abdominal_pain_care",
+      "title": "MedlinePlus: Abdominal pain",
+      "section": "Cuidados en casa y cuándo pedir ayuda",
+      "url": "https://medlineplus.gov/ency/article/003120.htm"
     }
   ],
   "guide_topics": [
