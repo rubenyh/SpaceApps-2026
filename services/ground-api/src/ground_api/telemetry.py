@@ -11,13 +11,17 @@ from ground_api import storage
 from ground_api.schemas import (
     Alert,
     BatchAccepted,
+    CaseReportAck,
+    CaseReportV1,
     CrewMember,
     Cursor,
+    GroundCaseReport,
     GroundIncident,
     GroundReading,
     Link,
     SensorKind,
     TelemetryBatch,
+    Urgency,
 )
 from ground_api.status import evaluate_sensor
 
@@ -107,9 +111,33 @@ def incident(incident_id: str, conn: Connection) -> GroundIncident:
     return found
 
 
+@router.post("/case-reports/v1")
+def receive_case_report(report: CaseReportV1, conn: Connection, clock: ClockDep) -> CaseReportAck:
+    """contracts/case-report: 200 with the first receipt time, also for a resend."""
+    return storage.insert_case_report(conn, report, clock())
+
+
+@router.get("/case-reports")
+def case_reports(
+    conn: Connection,
+    astronaut_id: str | None = None,
+    incident_id: str | None = None,
+    urgency: Urgency | None = None,
+) -> list[GroundCaseReport]:
+    return storage.list_case_reports(conn, astronaut_id, incident_id, urgency)
+
+
+@router.get("/case-reports/{report_id}")
+def case_report(report_id: str, conn: Connection) -> GroundCaseReport:
+    found = storage.get_case_report(conn, report_id)
+    if found is None:
+        raise HTTPException(404, f"case report {report_id} not found")
+    return found
+
+
 @router.delete("/demo/incidents")
 def reset_incidents(astronaut_id: str, request: Request, conn: Connection) -> dict[str, int]:
-    """Demo reset: delete one astronaut's incidents and their updates (idempotent)."""
+    """Demo reset: delete one astronaut's incidents, their updates and case reports (idempotent)."""
     if not request.app.state.settings.demo_controls_enabled:
         raise HTTPException(403, "demo controls are off (set GROUND_DEMO_CONTROLS_ENABLED=true)")
     conn.execute("BEGIN IMMEDIATE")
@@ -120,6 +148,7 @@ def reset_incidents(astronaut_id: str, request: Request, conn: Connection) -> di
             (astronaut_id,),
         )
         deleted = conn.execute("DELETE FROM incidents WHERE astronaut_id = ?", (astronaut_id,)).rowcount
+        conn.execute("DELETE FROM case_reports WHERE astronaut_id = ?", (astronaut_id,))
         conn.execute("COMMIT")
     except Exception:
         conn.execute("ROLLBACK")

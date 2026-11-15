@@ -3,7 +3,9 @@
 SQLite is the queue: the publisher sends readings with id > cursor, so a lost
 link loses nothing and holds no memory. Incident updates are queued in
 `incident_events` (`delivered_at IS NULL`) and marked delivered only after ground
-answers 2xx for the batch carrying them. It runs as one background task, reads
+answers 2xx for the batch carrying them. Queued case reports (contracts/case-report)
+go after each confirmed batch, one POST each, until ground acknowledges the id.
+It runs as one background task, reads
 through the monitoring repositories and never raises into the app.
 """
 
@@ -19,6 +21,7 @@ import httpx
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from onboard_api.repositories.astronauts import AstronautRepository
+from onboard_api.repositories.case_reports import CaseReportRepository
 from onboard_api.repositories.database import connect
 from onboard_api.repositories.incidents import IncidentRepository, QueuedIncidentEvent
 from onboard_api.repositories.readings import ReadingRepository
@@ -32,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 500
 INCIDENT_BATCH_SIZE = 500
+REPORT_BATCH_SIZE = 50
 MAX_BACKOFF_SECONDS = 60.0
 # While paused (demo link outage), how often run() checks for resume. No backoff.
 PAUSE_CHECK_SECONDS = 0.5
@@ -107,6 +111,13 @@ class TelemetryBatch(BaseModel):
     sensors: list[SensorConfig]
     readings: list[Reading] = Field(max_length=1000)
     incident_updates: list[IncidentUpdate] = Field(default=[], max_length=INCIDENT_BATCH_SIZE)
+
+
+class CaseReportAck(BaseModel):
+    """Ground's answer to POST /case-reports/v1."""
+
+    report_id: str
+    received_at: AwareDatetime
 
 
 class TelemetryPublisher:
@@ -193,7 +204,35 @@ class TelemetryPublisher:
         )
         self.pending = None
         self.batches_sent += 1
-        return full
+        return await self._send_case_reports() or full
+
+    async def _send_case_reports(self) -> bool:
+        """Send queued case reports oldest first (contracts/case-report). A network
+        error, 5xx, 404/408/429 or a wrong ack raises: run() backs off and the report
+        stays queued. Ground dedups by report id. True if a full batch was read."""
+        reports = await asyncio.to_thread(self._with_reports, lambda r: r.queued(self._ship_id, REPORT_BATCH_SIZE))
+        for report in reports:
+            response = await self._client.post("/case-reports/v1", json=report.model_dump(mode="json"))
+            code = response.status_code
+            if 400 <= code < 500 and code not in (404, 408, 429):
+                error = f"ground rejected (HTTP {code}): {response.text[:300]}"
+                await asyncio.to_thread(self._with_reports, lambda r: r.mark_failed(report.report_id, error))
+                continue
+            response.raise_for_status()
+            ack = CaseReportAck.model_validate(response.json())
+            if ack.report_id != report.report_id:
+                raise ValueError(f"ground acknowledged {ack.report_id!r} for case report {report.report_id!r}")
+            await asyncio.to_thread(
+                self._with_reports, lambda r: r.mark_received(report.report_id, ack.received_at)
+            )
+        return len(reports) >= REPORT_BATCH_SIZE
+
+    def _with_reports(self, action: Callable[[CaseReportRepository], object]) -> object:
+        conn = connect(self._db_path)
+        try:
+            return action(CaseReportRepository(conn))
+        finally:
+            conn.close()
 
     async def run(self) -> None:
         while True:

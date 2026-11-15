@@ -126,6 +126,22 @@ Sit facing the camera, about 50 cm away, in good light. The process sends only d
 
 The watch app shows the astronaut's readings and sends an SOS. `./run.sh` starts it in the watchOS simulator. Compose publishes onboard-api only on `127.0.0.1` by default, so a real watch cannot reach it. For a real watch, use `./run.sh --watch-device` (sets `ONBOARD_API_HOST=0.0.0.0`) or run onboard-api natively with `uv run fastapi dev --host 0.0.0.0`. Install and setup: [`apps/watch-app/README.md`](../apps/watch-app/README.md).
 
+### 6. Optional: live muscle demo with a phone slider (terminal 5, repo root)
+
+```sh
+python firmware/muscle_live.py        # add --port N to change port 8765
+```
+
+Startup prints two URLs: a LAN URL such as `http://192.168.1.20:8765/` for the phone, and `http://127.0.0.1:8765/` for testing on the computer. To set it up:
+
+1. Connect the phone to the same Wi-Fi as the computer. Guest networks and networks with client isolation block phone-to-computer traffic.
+2. The first time, allow Python through the Windows Defender Firewall prompt on **Private** networks. Without this, the phone cannot load the page.
+3. Open the LAN URL on the phone.
+
+The slider sets a target value from 0 kg to 5 kg. Once per second, the server makes one sample from the target plus random variation of up to ±0.10 kg. Each sample stays within 0 kg to 5 kg. On the **Muscle** screen, the console plots the last 60 samples in **Live muscle reading**, above the muscle density trend. The panel is labeled **Simulated**. While the server is down, the panel shows a waiting or disconnected state. It reconnects on its own when the server returns.
+
+This feed is separate from the rest of the system. The console reads only `GET /samples` from this server, which keeps samples in memory. Nothing is sent to onboard-api, so the feed never reaches the stored muscle density history, the assistant or telemetry. Set `VITE_MUSCLE_LIVE_URL` if the console must read the feed from another host or port. Self-check: `python firmware/muscle_live.py --check`.
+
 ## Option C: native, without Docker
 
 Run onboard-api, ground-api and the simulator as local processes: [README, local development](../README.md#quickstart-local-development). Then start the consoles as in steps 2 and 3 above. Optional extras for the native setup:
@@ -141,7 +157,7 @@ Run onboard-api, ground-api and the simulator as local processes: [README, local
 3. Ask the assistant a question. An SOS message gets its immediate reply even when `ollama` is stopped.
 4. base-app shows the same astronauts and alerts within a few seconds, and the link is up.
 
-Outage demo (urgent incident while the Earth link is down, about 30 s): see [demo-outage.md](demo-outage.md). Its controls (link pause/resume, incident reset) are off by default and answer 403. Start the stack with `$env:DEMO_CONTROLS_ENABLED="true"` in PowerShell (or `DEMO_CONTROLS_ENABLED=true docker compose up -d`) to turn them on. Reset with `python services/onboard-api/scripts/incident_demo.py reset`, then run it with `python services/onboard-api/scripts/incident_demo.py run --step`.
+Outage demo (urgent incident while the Earth link is down, about 30 s) and the case report demo (ship to base across an outage and an onboard restart): see [demo-outage.md](demo-outage.md). Its controls (link pause/resume, incident reset) are off by default and answer 403. Start the stack with `$env:DEMO_CONTROLS_ENABLED="true"` in PowerShell (or `DEMO_CONTROLS_ENABLED=true docker compose up -d`) to turn them on. Reset with `python services/onboard-api/scripts/incident_demo.py reset`, then run it with `python services/onboard-api/scripts/incident_demo.py run --step`.
 
 ## Stop
 

@@ -167,3 +167,57 @@ class GroundIncident(BaseModel):
     missing_reading_ids: int  # reading_ids not received by ground yet
     acknowledgments: list[GroundAcknowledgment]
     updates: list[GroundIncidentUpdate]  # occurred_at ascending
+    report_ids: list[str] = []  # case reports for this incident, newest received first
+
+
+# --- Case report v1 (mirror of contracts/case-report/case-report.v1.schema.json) -----------
+
+
+class SnapshotReading(Contract):
+    """One reading as the onboard assessment saw it, with provenance."""
+
+    id: int
+    kind: str
+    value: float | None = None
+    value_text: str | None = None
+    unit: str
+    recorded_at: AwareDatetime
+    received_at: AwareDatetime  # onboard ingest time
+    quality: Quality
+    source: str
+    simulated: bool
+    freshness: Literal["current", "stale", "future"]
+    age_seconds: int = Field(ge=0)
+
+
+class KnowledgeVersion(Contract):
+    candidate_id: str
+    digest: str
+
+
+class CaseReportV1(Contract):
+    schema_version: Literal[1]
+    report_id: uuid.UUID
+    ship_id: str = Field(min_length=1, max_length=64)
+    astronaut_id: str | None
+    reported_by: str | None
+    sent_by: str | None
+    urgency: Urgency
+    protocol_id: str | None
+    action: str | None
+    assessed_at: AwareDatetime
+    created_at: AwareDatetime
+    sent_at: AwareDatetime
+    incident_id: str | None
+    text: str
+    readings: list[SnapshotReading]
+    knowledge_version: KnowledgeVersion | None
+
+
+class CaseReportAck(BaseModel):
+    report_id: str
+    received_at: AwareDatetime  # ground clock, first receipt
+
+
+class GroundCaseReport(CaseReportV1):
+    received_at: AwareDatetime  # ground clock, first receipt

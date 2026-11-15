@@ -18,9 +18,9 @@ export const SENSOR_KINDS = [
 
 export type SensorKind = (typeof SENSOR_KINDS)[number];
 export type Quality = "good" | "suspect" | "bad";
-export type ReadingStatus = "normal" | "alert" | "no_data" | "stale" | "no_range";
+export type ReadingStatus = "normal" | "alert" | "no_data" | "future" | "stale" | "no_range";
 export type RangeRole = "health" | "sample_validity";
-export type AssistantWorkflow = "medical" | "clarify" | "unsupported";
+export type AssistantWorkflow = "medical" | "clarify" | "unsupported" | "status";
 
 /** Body of 404 and 409 responses. */
 export interface ErrorResponse {
@@ -353,10 +353,56 @@ export interface MissionProcedure {
   loaded: boolean;
 }
 
-/** Deterministic case report to copy. Nothing transmits it. */
+/** Freshness against the onboard clock when readings were loaded. future: ahead of that clock; never current evidence. */
+export type Freshness = "current" | "stale" | "future";
+
+/** One reading as the assessment saw it. `simulated` is a source label, separate from freshness and quality. */
+export interface SnapshotReading {
+  id: number;
+  kind: string;
+  value: number | null;
+  value_text: string | null;
+  unit: string;
+  /** Capture time. */
+  recorded_at: string;
+  /** Ingest time onboard. */
+  received_at: string;
+  quality: "good" | "suspect" | "bad";
+  source: string;
+  simulated: boolean;
+  freshness: Freshness;
+  age_seconds: number;
+}
+
+/** Glanceable head of a clinical reply, built from rules and protocol cards only. */
+export interface AssessmentSummary {
+  urgency: Urgency;
+  urgency_label: string;
+  reported: string;
+  action: string | null;
+  escalation: string[];
+}
+
+export type ReportTransmission = "draft" | "queued" | "received" | "failed";
+
+/** Deterministic case report. Stored onboard as a draft; sent with POST /case-reports/{id}/send. */
 export interface CaseReport {
   text: string;
-  transmission: "not_sent";
+  /** Stable report id; null only for older servers. */
+  id?: string | null;
+  transmission: ReportTransmission;
+  /** Readings listed in the report, with provenance. These go to ground. */
+  readings?: SnapshotReading[];
+}
+
+/** GET /case-reports/{id} and POST /case-reports/{id}/send. */
+export interface CaseReportStatus {
+  id: string;
+  status: ReportTransmission;
+  created_at: string;
+  queued_at: string | null;
+  received_at: string | null;
+  error: string | null;
 }
 
 /** Same shape for every workflow. New workflows add a `workflow` value. */
@@ -387,6 +433,10 @@ export interface AssistantResponse {
   clarification: Clarification | null;
   /** Set only when urgency is "immediate". Optional for older servers. */
   incident?: IncidentRef | null;
+  /** Onboard clock when readings were loaded (assessment snapshot time). */
+  assessed_at?: string | null;
+  readings_snapshot?: SnapshotReading[];
+  assessment?: AssessmentSummary | null;
 }
 
 // --- Wellbeing (mental health): docs/wellbeing-contract.md ---

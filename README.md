@@ -5,7 +5,7 @@ NASA Space Apps 2026. A crew health system for a spacecraft that cannot count on
 - A **device feed** (simulated today) posts pulse-oximeter, urine-analyser and muscle-scanner readings.
 - **onboard-api** stores the readings, flags out-of-range or stale sensors, and runs a **local medical assistant**: rules and versioned protocol cards decide urgency and actions; a local LLM (Ollama) and a local guide index (ChromaDB) add explanations. Alarms and SOS work even when the models are down.
 - The **astronaut console** (spaceship-app, Tauri desktop app) shows crew status, the assistant chat, urgent incidents and a wellbeing module. An **Apple Watch app** shows readings and sends an SOS.
-- **Telemetry** goes to **ground-api** when the link is up. The **ground console** (base-app) shows crew, alerts, incidents and the review screen for assistant releases.
+- **Telemetry** goes to **ground-api** when the link is up. The crew can also review a case report from the assistant and send it to base; it waits in an onboard queue until ground acknowledges it. The **ground console** (base-app) shows crew, alerts, incidents, received case reports and the review screen for assistant releases.
 
 Everything runs locally. No cloud LLM or vector database is called. The assistant gives informational support only; diagnosis and treatment decisions stay with qualified personnel.
 
@@ -20,7 +20,7 @@ flowchart LR
     API["onboard-api<br/>FastAPI :8000"] --> DB[("SQLite")]
     API --> Ollama["Ollama<br/>qwen2.5:3b, bge-m3"]
     API --> Chroma[("ChromaDB<br/>guide index")]
-    API -- "telemetry batches" --> Ground["ground-api<br/>FastAPI :8001"]
+    API -- "telemetry batches,<br/>case reports" --> Ground["ground-api<br/>FastAPI :8001"]
     Base["base-app<br/>ground console"] -- "HTTP :8001" --> Ground
 ```
 
@@ -36,7 +36,7 @@ Details, request traces and failure behavior: [docs/ARCHITECTURE.md](docs/ARCHIT
 | `apps/watch-app/` | Apple Watch app (watchOS 10+, macOS and Xcode only) | [README](apps/watch-app/README.md) |
 | `firmware/` | Software stand-in for the biomonitor device | [Architecture](docs/ARCHITECTURE.md#2-reading-ingestion) |
 | `db/` | SQLite migrations and data dictionary | [data-dictionary.md](db/data-dictionary.md) |
-| `contracts/` | Telemetry and medical-eval contracts | [telemetry](contracts/telemetry/README.md), [medical-eval](contracts/medical-eval/README.md) |
+| `contracts/` | Telemetry, case-report and medical-eval contracts | [telemetry](contracts/telemetry/README.md), [case-report](contracts/case-report/README.md), [medical-eval](contracts/medical-eval/README.md) |
 | `eval/medical/` | Synthetic evaluation cases for the assistant | [README](eval/medical/README.md) |
 
 Hardware collectors for real sensors (serial devices, pose camera) are **planned**; no code exists yet. All readings come from the simulator or the demo seeder.
@@ -103,6 +103,8 @@ npm install
 npm run tauri dev
 ```
 
+Optional live muscle demo: `python firmware/muscle_live.py` prints a URL to open on a phone on the same Wi-Fi. Its slider drives the **Live muscle reading** graph on the console's Muscle screen ([setup](docs/RUN-REPO.md#6-optional-live-muscle-demo-with-a-phone-slider-terminal-5-repo-root)).
+
 On Windows PowerShell, the commands are the same except: set `$env:PYTHONUTF8 = "1"` in each Python terminal, and run the simulator with `python firmware\simulator.py`.
 
 The assistant answers alarms and card decisions without anything else. For drafted explanations and guide search, start Ollama and build the index once:
@@ -152,7 +154,7 @@ docker compose down -v       # also deletes them
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Cargo for Tauri, Ollama models, empty index, ports, Windows encoding |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Checks, branch, commit and merge conventions |
 | [docs/assistant-frontend-integration.md](docs/assistant-frontend-integration.md) | Assistant request and response contract, as used by the console (Spanish) |
-| [docs/demo-outage.md](docs/demo-outage.md) | Demo: urgent incident while the Earth link is down |
+| [docs/demo-outage.md](docs/demo-outage.md) | Demos: urgent incident while the Earth link is down; case report sent to base across an outage |
 | [docs/wellbeing-contract.md](docs/wellbeing-contract.md), [docs/wellbeing-demo-runbook.md](docs/wellbeing-demo-runbook.md) | Wellbeing module API and demo (Spanish) |
 | [docs/medical-verification.md](docs/medical-verification.md) | Dated test run record for the medical assistant |
 | [PRODUCT.md](PRODUCT.md) | Product and design brief used by the Impeccable design skill |

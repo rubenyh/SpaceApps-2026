@@ -216,3 +216,19 @@ def test_live_log_on_a_simulated_day_is_marked_live_and_mixed(wb_client: TestCli
     assert [d["origin"] for d in days] == [None] + ["simulated"] * 7 + ["mixed"]
     crew = {m["astronaut_id"]: m for m in wb_client.get("/wellbeing/crew").json()["members"]}
     assert crew["ast-01"]["latest_origin"] == "mixed"
+
+
+def test_unknown_track_is_never_an_astronaut(wb_client: TestClient) -> None:
+    # Vision and co-presence accept unidentified tracks (stored, never baselined)...
+    assert wb_client.post("/wellbeing/vision-sessions",
+                          json={**VISION, "astronaut_id": "unknown-3"}).status_code == 201
+    assert wb_client.post("/wellbeing/co-presence", json=CO_PRESENCE).status_code == 201
+    # ...but an unknown track has no personal evaluation, history or inputs of its own.
+    for path in ("/astronauts/unknown-3/wellbeing", "/astronauts/unknown-3/wellbeing/timeline",
+                 "/astronauts/unknown-3/wellbeing/checkins"):
+        assert wb_client.get(path).status_code == 404, path
+    assert wb_client.put("/astronauts/unknown-3/wellbeing/checkins/2026-11-14",
+                         json=checkin_body()).status_code == 404
+    signal = {"astronaut_id": "unknown-3", "kind": "hrv_sdnn", "value": 50, "unit": "ms",
+              "recorded_at": "2026-11-14T07:00:00Z", "quality": "good", "source": "watch"}
+    assert wb_client.post("/wellbeing/signals", json=signal).status_code == 404

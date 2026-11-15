@@ -8,6 +8,8 @@ import type {
   DecisionRecord,
   EvalFinding,
   FindingBody,
+  CaseUrgency,
+  GroundCaseReport,
   GroundIncident,
   GroundReading,
   Link,
@@ -40,6 +42,18 @@ export const getIncidents = (signal?: AbortSignal) => apiGet<GroundIncident[]>("
 /** 404 for an unknown incident. */
 export const getIncident = (id: string, signal?: AbortSignal) =>
   apiGet<GroundIncident>(`/incidents/${encodeURIComponent(id)}`, signal);
+
+// --- Case reports (contracts/case-report/README.md) --------------------------
+
+/** Newest received_at first. */
+export const getCaseReports = (
+  query: { astronaut_id?: string; incident_id?: string; urgency?: CaseUrgency },
+  signal?: AbortSignal,
+) => apiGet<GroundCaseReport[]>(buildPath("/case-reports", query), signal);
+
+/** 404 for an unknown report. */
+export const getCaseReport = (id: string, signal?: AbortSignal) =>
+  apiGet<GroundCaseReport>(`/case-reports/${encodeURIComponent(id)}`, signal);
 
 // --- Medical evaluation (contracts/medical-eval/README.md section 4) ---------
 

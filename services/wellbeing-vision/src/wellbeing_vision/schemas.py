@@ -8,6 +8,11 @@ from pydantic import AwareDatetime, BaseModel, Field
 from wellbeing_vision.config import ASTRONAUT_ID_PATTERN
 
 Quality = Literal["good", "suspect", "bad"]
+
+
+def quality_of(valid_ratio: float) -> Quality:
+    # PROVISIONAL: share of usable frames (bitacora: close face; ambiente: pose or camera coverage).
+    return "good" if valid_ratio >= 0.8 else "suspect" if valid_ratio >= 0.5 else "bad"
 AstronautId = Annotated[str, Field(pattern=ASTRONAUT_ID_PATTERN)]
 
 
@@ -75,7 +80,7 @@ class CoPresence(BaseModel):
     source: str = Field(min_length=1, max_length=64)
     window_start: AwareDatetime
     window_end: AwareDatetime
-    occupants: list[CoPresenceOccupant]
+    occupants: list[CoPresenceOccupant] = Field(min_length=1)  # backend rejects empty windows
     pairs: list[CoPresencePair]
     quality: Quality = "good"
     provisional: bool = True

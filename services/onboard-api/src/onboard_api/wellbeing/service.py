@@ -43,9 +43,19 @@ class FutureDayError(Exception):
         super().__init__(f"Day {day.isoformat()} is in the future")
 
 
-def _ensure_astronauts(reader: OnboardReader, *astronaut_ids: str) -> None:
+def _ensure_astronauts(
+    reader: OnboardReader, *astronaut_ids: str, allow_unknown: bool = False
+) -> None:
+    """404 unless every id is a registered astronaut.
+
+    `unknown-<track>` (unidentified person from vision) is accepted only where
+    the contract allows it (vision sessions, co-presence): it is stored but is
+    never an astronaut, so it has no evaluation, history, check-ins or signals.
+    """
     for astronaut_id in astronaut_ids:
-        if not is_unknown_person(astronaut_id) and reader.get_astronaut(astronaut_id) is None:
+        if allow_unknown and is_unknown_person(astronaut_id):
+            continue
+        if reader.get_astronaut(astronaut_id) is None:
             raise AstronautNotFoundError(astronaut_id)
 
 
@@ -116,14 +126,14 @@ def record_signal(
 def record_vision_session(
     repo: WellbeingRepository, reader: OnboardReader, data: VisionSessionCreate, now: datetime
 ) -> VisionSession:
-    _ensure_astronauts(reader, data.astronaut_id)
+    _ensure_astronauts(reader, data.astronaut_id, allow_unknown=True)
     return repo.create_vision_session(data, received_at=now)
 
 
 def record_co_presence(
     repo: WellbeingRepository, reader: OnboardReader, data: CoPresenceCreate, now: datetime
 ) -> CoPresence:
-    _ensure_astronauts(reader, *(o.astronaut_id for o in data.occupants))
+    _ensure_astronauts(reader, *(o.astronaut_id for o in data.occupants), allow_unknown=True)
     return repo.create_co_presence(data, received_at=now)
 
 

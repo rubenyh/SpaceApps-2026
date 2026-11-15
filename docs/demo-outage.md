@@ -1,5 +1,7 @@
 # Outage demo: urgent incident while the Earth link is down
 
+A second, shorter demo sends a crew-reviewed case report across the same outage: [Case report: ship to base](#case-report-ship-to-base-across-an-outage-and-a-restart).
+
 Four beats in about 30 seconds:
 
 1. A reading arrives.
@@ -57,6 +59,23 @@ Keep the spaceship console on crew member `scn-01 · Scenario crew (scripted)` a
 Labels marked as scripted or simulated on screen: the crew member name "Scenario crew (scripted)" (both consoles), the reading source `simulated:scenario` (spaceship), the "Simulated" evidence tag (spaceship incident card), and "Earth link: down (simulated outage)" (spaceship header). The ground Incidents tab shows only the astronaut id `scn-01`, with no scripted tag.
 
 Language: every screen of both consoles is in English, including the ground Crew, Astronaut and Alerts screens. Only file and route names (`Tripulacion.tsx`, `AsistenteScreen.tsx`) keep their Spanish names; nothing on screen does.
+
+## Case report: ship to base across an outage and a restart
+
+The crew reviews an assistant case report and sends it to base. The report waits in the onboard SQLite queue (`case_reports`) while ground is down, survives an onboard-api restart, and reaches ground once. Contract: [case-report](../contracts/case-report/README.md). The report is informational support; diagnosis and treatment decisions stay with qualified personnel.
+
+1. Start ground-api (`services/ground-api`: `uv run fastapi dev --port 8001`) and onboard-api (`services/onboard-api`: `ONBOARD_DEMO_CONTROLS_ENABLED=true uv run fastapi dev`), then the device feed from the repo root: `python3 firmware/simulator.py` (needs Python 3.12; on Windows `python3` may be an older Python, use `python`).
+2. Start both consoles ([RUN-REPO.md](RUN-REPO.md)). In the spaceship console, Assistant tab, crew member `ast-01`, type `im dizzy`. The reply is `Review required` and carries a report with the tag **Draft**.
+3. Open **Review & send to base**. It shows the report text and "Readings in this report".
+4. Take the link down: stop ground-api (Ctrl+C), or `POST /telemetry/pause` on onboard-api.
+5. Press **Send to base**. The tag changes to **Queued**.
+6. Restart onboard-api. The report stays **Queued** (`GET /case-reports/{id}`).
+7. Bring the link back: start ground-api again, or `POST /telemetry/resume`. The tag changes to **Received by base** with ground's receipt time. After a stopped ground-api the first retry can wait up to 60 s (backoff). The pause is held in memory, so the onboard restart in step 6 already ends a paused outage.
+8. In the ground console, **Reports** tab: exactly one row for the report. The **Incidents** tab lists case reports only for incidents (`immediate` replies); a `Review required` report has no incident.
+
+Reset: `DELETE /demo/incidents?astronaut_id=<id>` on onboard-api and on ground-api (both demo-gated) also deletes that astronaut's case reports.
+
+Verified 2026-11-15 at the API level, not in the consoles: native ground-api and onboard-api on ports 18001 and 18000 with temporary databases, Ollama not running, `python firmware/simulator.py --url http://127.0.0.1:18000 --no-history`. `POST /assistant/messages {"message":"im dizzy","astronaut_id":"ast-01"}` gave `review_required` and a `draft` report with 2 readings. With ground-api stopped, `POST /case-reports/{id}/send` gave `queued`; still `queued` after an onboard-api restart; `received` 13 s after ground-api started again; ground `GET /case-reports` listed the id once. The console steps (2, 3, 5, 8) and the pause variant were not run here (GUI).
 
 ## Results
 

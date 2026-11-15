@@ -2,6 +2,7 @@ import numpy as np
 
 from wellbeing_vision.overlay import AMBER, GREEN, RED, Notice, Row, render, severity
 
+# Accented labels on purpose: the TTF font must keep rendering them.
 SECTIONS = [("FATIGA", [Row("Apertura de ojos", "88 %", GREEN, 0.7, 0.5), Row("Parpadeos", "18 /min")]),
             ("TENSIÓN", [Row("Cejo fruncido", "12 %", AMBER, 0.3, 0.5)])]
 
@@ -15,9 +16,9 @@ def test_render_never_touches_input_and_does_not_accumulate():
     frame = _frame()
     before = frame.copy()
     a = render(frame, "BITÁCORA · ast-01", "GRABANDO", SECTIONS, "Umbrales provisionales",
-               Notice("Mantén el rostro relajado", "Calibrando", progress=0.5), [(0.5, 0.5)])
+               Notice("Keep your face relaxed", "Calibrating", progress=0.5), [(0.5, 0.5)])
     b = render(frame, "BITÁCORA · ast-01", "GRABANDO", SECTIONS, "Umbrales provisionales",
-               Notice("Mantén el rostro relajado", "Calibrando", progress=0.5), [(0.5, 0.5)])
+               Notice("Keep your face relaxed", "Calibrating", progress=0.5), [(0.5, 0.5)])
     assert np.array_equal(frame, before)
     assert np.array_equal(a, b)
     assert a.shape == (720, 960 + 480, 3)
@@ -47,7 +48,20 @@ def test_live_rows_show_dash_without_data_and_red_over_threshold():
 
     m = SessionMetrics(FaceFrame(0, 0.3, 0.05, 0.1, 0.1, 0.0))
     empty = {r.label: r for _, rows in live_sections(m, {}) for r in rows}
-    assert empty["PERCLOS (ojos cerrados)"].value == "—" and empty["Parpadeos"].value == "—"
+    assert empty["PERCLOS (eyes closed)"].value == "—" and empty["Blinks"].value == "—"
     hot = {r.label: r for _, rows in live_sections(m, {"perclos": 0.25, "eyes": 0.5, "brow": 0.05}) for r in rows}
-    assert hot["PERCLOS (ojos cerrados)"].color == RED and hot["Apertura de ojos"].color == RED
-    assert hot["Cejo fruncido"].color == GREEN
+    assert hot["PERCLOS (eyes closed)"].color == RED and hot["Eye openness"].color == RED
+    assert hot["Brow lowering"].color == GREEN
+    talking = {r.label: r for _, rows in live_sections(m, {"speaking": True}) for r in rows}
+    assert talking["Lip press"].value == "talking"
+
+
+def test_trace_never_overwrites(tmp_path):
+    from wellbeing_vision.bitacora import unused_path as _unused
+
+    first = tmp_path / "t.csv"
+    assert _unused(first) == first
+    first.write_text("x")
+    assert _unused(first) == tmp_path / "t-2.csv"
+    (tmp_path / "t-2.csv").write_text("x")
+    assert _unused(first) == tmp_path / "t-3.csv"
