@@ -22,8 +22,10 @@ from wellbeing_vision.face import (
     face_frame, neutral_of, neutral_problem,
 )
 from wellbeing_vision.facecrop import CROP_PX, FaceCrop
+from wellbeing_vision.identify import face_id, gallery_of
+from wellbeing_vision.identity import verify
 from wellbeing_vision.overlay import AMBER, MUTED, WHITE, Notice, Row, render, severity
-from wellbeing_vision.schemas import Identity, VisionSession
+from wellbeing_vision.schemas import VisionSession
 from wellbeing_vision.sink import Sink
 
 NEUTRAL_S = 3.0
@@ -43,6 +45,7 @@ FOOTER = "Provisional thresholds · no video is stored"
 EYES_MARK = 0.6
 PERCLOS_MARK = 0.15
 TENSION_MARK = 0.20
+ID_EVERY = 10  # frames between face templates for the identity check
 TRACE_FIELDS = ("t", "face_px", "usable", "ear", "ear_ratio", "eye_blink", "jaw_delta", "brow_delta", "lip_delta",
                 "speaking", "pitch_delta", "yaw", "look_down_delta", "look_up_delta", "looking_down")
 
@@ -132,6 +135,8 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
                  mirror: bool = True, trace: Path | None = None) -> VisionSession | None:
     landmarker = _landmarker(settings)
     cropper = FaceCrop(model_path(settings.models_dir, "face_detection_yunet_2023mar.onnx"))
+    faceid, gallery = face_id(settings), gallery_of(settings)
+    id_samples = []  # (scores, template) from the recording, for the identity check
     cap = open_camera(camera)
     cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
     title = f"DAILY LOG · {settings.astronauts.get(astronaut_id, astronaut_id)}"
@@ -155,6 +160,7 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
             if not ok:
                 print("Camera stopped delivering frames.")
                 break
+            raw = frame  # identity uses the unmirrored face, like the enrollment
             if mirror:
                 frame = cv2.flip(frame, 1)  # metrics average both eyes, so mirroring does not change them
             t = time.monotonic() - t0
@@ -194,6 +200,12 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
                     break
             else:
                 metrics.add(usable, t)
+                if gallery.people and metrics.frames_total % ID_EVERY == 0:
+                    faces = faceid.detect(raw)
+                    if faces:
+                        face = max(faces, key=lambda f: f.width)
+                        tpl = faceid.template(raw, face)
+                        id_samples.append((gallery.scores(tpl), tpl))
                 n = metrics.neutral
                 if usable and metrics.looking_down:
                     notice = LOOK_DOWN
@@ -237,6 +249,7 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
 
     if metrics is None or metrics.frames_total == 0:
         return None
+    identity, new_templates, id_msg = verify(id_samples, astronaut_id)
     session = VisionSession(
         astronaut_id=astronaut_id,
         session_type="bitacora",
@@ -246,13 +259,16 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
         ended_at=datetime.now(UTC),
         quality=quality_of(metrics.valid_frame_ratio),
         valid_frame_ratio=round(metrics.valid_frame_ratio, 3),
-        identity=Identity(method="manual"),
+        identity=identity,
         neutral_ok=True,
         fatigue=metrics.fatigue(),
         tension=metrics.tension(),
     )
     sink.send("/wellbeing/vision-sessions", session)
     save_neutral(anchor_path, day_neutral)
+    if new_templates:
+        gallery.add_auto(astronaut_id, new_templates)
+    print(f"Identity: {id_msg}")
     measured = metrics.talking_s + metrics.quiet_s
     talk = metrics.talking_s / measured if measured else 0.0
     print(f"Talking {talk:.0%} of valid time (excluded from lip press; null below {MIN_VALID_S:.0f} s quiet)")
