@@ -645,7 +645,7 @@ export function AsistenteScreen({ astronautId, astronauts, status, statusUpdated
           </button>
         </form>
       </section>
-      <Panel title="What the assistant can see">
+      <Panel title="What the assistant can see" className="asistente__side">
         <LiveReadings status={status} updatedAt={statusUpdatedAt} />
         {snapshot.length > 0 ? (
           <SnapshotReadings readings={snapshot} assessedAt={latestReply?.assessed_at} />
