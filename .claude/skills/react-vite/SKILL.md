@@ -9,7 +9,7 @@ description: Build the React + TypeScript + Vite UI of the Tauri apps, including
 - `apps/spaceship-app/src/` - `main.tsx`, `App.tsx` (template). Astronaut console.
 - `apps/base-app/src/` - same template. Assumed ground console.
 - Versions (package.json): `react`/`react-dom` ^19.1.0, `vite` ^8.0.16, `@vitejs/plugin-react` ^6.0.2, `typescript` ~6.0.3, `@tauri-apps/api` ^2. Package manager: npm (`package-lock.json`).
-- Vite dev server: port 1420 with `strictPort` in both apps. Run one app at a time unless you change a port.
+- Vite dev server: spaceship-app 1420, base-app 1422, both `strictPort`, so both run at once.
 
 ## Do
 - API clients (planned): `src/api/assistant.ts` and similar. Types mirror the service Pydantic models (`AssistantResponse` is in the `langgraph-workflows` skill). Base URL from `import.meta.env.VITE_ONBOARD_API_URL`, default `http://127.0.0.1:8000`.

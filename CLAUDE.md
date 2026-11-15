@@ -7,7 +7,7 @@ NASA Space Apps 2026 monorepo. An astronaut console (Tauri) talks to an onboard 
 | Path | What | Status |
 |---|---|---|
 | `apps/spaceship-app/` | Astronaut console. Tauri 2 + React 19 + Vite 8 + TypeScript 6. Rust crate `spaceship_app_lib`. Vite port 1420. Shares one visual identity with base-app (tokens: `src/styles/tokens.css`). | Status, vitals, muscle, urine, assistant (assessment card, review and send case reports), records, wellbeing |
-| `apps/base-app/` | Ground console, same stack and visual identity. Talks only to ground-api. Vite port 1421. | Crew, astronaut, alerts, incidents, case reports, medical eval, link |
+| `apps/base-app/` | Ground console, same stack and visual identity. Talks only to ground-api. Vite port 1422. | Crew, astronaut, alerts, incidents, case reports, medical eval, link |
 | `apps/watch-app/` | Apple Watch app, watchOS 10+ SwiftUI, watch-only (no iPhone app). Sends the wearer's HealthKit pulse/SpO₂ to `POST /readings` (source `watch:healthkit`), polls status and open incidents; 2 s hold sends SOS to `POST /assistant/messages`. Replaces ARCHeR (no live API). Setup: `apps/watch-app/README.md`. | Real pulse, readings, SOS, incident alert |
 | `services/onboard-api/` | FastAPI 0.163, Python 3.12, uv. Package `onboard_api` in `src/`. App `onboard_api.main:app`. | Readings API, SQLite repository, `POST /assistant/messages` (LangGraph medical workflow, Ollama, ChromaDB), incidents, case-report drafts and queue (`/case-reports`), `status` quick-question workflow, wellbeing, telemetry publisher, knowledge gate, eval runner, pytest |
 | `services/ground-api/` | FastAPI 0.163, Python 3.12, uv. Package `ground_api` in `src/`. App `ground_api.main:app`. | Telemetry receiver, case-report receiver, ground read API, medical-eval review, pytest |
@@ -44,7 +44,7 @@ Planned, not in the repo yet: hardware collectors for real sensors (pySerial, Op
 | `apps/spaceship-app` | `npm run tauri dev` | Not run by Claude (opens a window). Vite port 1420. |
 | `apps/watch-app` | `xcodebuild -project WatchApp.xcodeproj -target WatchApp -sdk watchsimulator build` | macOS + Xcode only. Self-check: `swiftc WatchApp/Api.swift Checks/main.swift -o /tmp/watch-checks && /tmp/watch-checks`. A real watch needs onboard-api started with `uv run fastapi dev --host 0.0.0.0`. |
 
-Vite ports (`strictPort`): spaceship-app 1420, base-app 1421, so both can run at once. Exception: spaceship-app's HMR also takes 1421 when `TAURI_DEV_HOST` is set (mobile dev).
+Vite ports (`strictPort`): spaceship-app 1420, base-app 1422, so both can run at once. With `TAURI_DEV_HOST` set (mobile dev), HMR adds 1421 (spaceship-app) and 1423 (base-app). `run.ps1` checks 1420 and 1422 before opening the consoles.
 On Windows, set `PYTHONUTF8=1` if `fastapi` CLI output fails with `UnicodeEncodeError`.
 
 ## Delegation

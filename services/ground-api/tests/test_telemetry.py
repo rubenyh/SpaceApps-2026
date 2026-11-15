@@ -222,8 +222,8 @@ def test_astronaut_readings_filters(client: TestClient) -> None:
 
 
 def test_cors_allows_base_app(client: TestClient) -> None:
-    response = client.get("/crew", headers={"Origin": "http://localhost:1421"})
-    assert response.headers["access-control-allow-origin"] == "http://localhost:1421"
+    response = client.get("/crew", headers={"Origin": "http://localhost:1422"})
+    assert response.headers["access-control-allow-origin"] == "http://localhost:1422"
 
 
 INCIDENT_ID = INCIDENT["incident_updates"][0]["incident_id"]

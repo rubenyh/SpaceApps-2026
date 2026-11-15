@@ -54,7 +54,7 @@ Hardware collectors for real sensors (serial devices, pose camera) are **planned
 | [uv](https://docs.astral.sh/uv/) with Python 3.12 | The local development path, tests, wellbeing-vision |
 | [Ollama](https://ollama.com) | The local development path, if you want LLM explanations and guide search |
 
-Free ports: 8000 (onboard-api), 8001 (ground-api), 1420 (spaceship-app), 1421 (base-app).
+Free ports: 8000 (onboard-api), 8001 (ground-api), 1420 (spaceship-app), 1422 (base-app).
 
 ```sh
 git clone https://github.com/rubenyh/SpaceApps-2026.git

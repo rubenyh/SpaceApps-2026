@@ -35,7 +35,24 @@ if ($UrineDevice) {
 }
 
 if (-not $NoApps) {
-    foreach ($app in 'spaceship-app', 'base-app') {
+    # Vite dev ports from each app's vite.config.ts / tauri.conf.json (strictPort). Check both before
+    # opening any window: an occupied port makes `tauri dev` fail after the Rust build.
+    $ports = [ordered]@{ 'spaceship-app' = 1420; 'base-app' = 1422 }
+    $busy = @{}
+    foreach ($app in $ports.Keys) {
+        $port = $ports[$app]
+        $listener = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $listener) { continue }
+        $busy[$app] = $true
+        $procId = $listener.OwningProcess
+        $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$procId" -ErrorAction SilentlyContinue
+        Write-Host "${app}: port $port is in use by PID $procId ($($proc.Name)); not opening ${app}." -ForegroundColor Yellow
+        if ($proc.CommandLine) { Write-Host "  $($proc.CommandLine)" }
+        Write-Host "  Console already open? Use it. Otherwise stop that process (Stop-Process -Id $procId) and run .\run.ps1 again."
+    }
+
+    foreach ($app in $ports.Keys) {
+        if ($busy[$app]) { continue }
         $dir = Join-Path $PSScriptRoot "apps\$app"
         # Own window per console so each one's log stays readable; close the window to stop it.
         # npm.cmd, not npm: npm.ps1 is blocked under the default execution policy (PSSecurityException).

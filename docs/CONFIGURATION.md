@@ -64,7 +64,7 @@ Source: [`config.py`](../services/ground-api/src/ground_api/config.py).
 | Variable | Default | Used by |
 |---|---|---|
 | `GROUND_DB_PATH` | `data/ground.db` | Ground database, created at startup. Compose: `/data/ground.db` on the `ground` volume. |
-| `GROUND_CORS_ORIGINS` | `["http://localhost:1421", "tauri://localhost", "http://tauri.localhost"]` | CORS middleware |
+| `GROUND_CORS_ORIGINS` | `["http://localhost:1422", "tauri://localhost", "http://tauri.localhost"]` | CORS middleware |
 | `GROUND_DEMO_CONTROLS_ENABLED` | `false` | Enables `DELETE /demo/incidents` |
 | `GROUND_BUNDLE_ROOT` | `../..` (the repo root when run from `services/ground-api`) | `GET /medical-eval/approved/bundle` reads the approved component files from here |
 
@@ -91,9 +91,9 @@ Vite reads these when the dev server starts or the bundle is built, from the she
 | `VITE_ONBOARD_API_URL` | spaceship-app | `http://127.0.0.1:8000` | [`api/client.ts`](../apps/spaceship-app/src/api/client.ts) |
 | `VITE_WELLBEING_PINS` | spaceship-app | demo PINs for `ast-01` to `ast-04`; any other astronaut uses `0000` | [`lib/wellbeingPins.ts`](../apps/spaceship-app/src/lib/wellbeingPins.ts). JSON map, for example `VITE_WELLBEING_PINS='{"ast-01":"<pin>"}'`. Demo convenience only: the API has no authentication and the PINs end up in the client bundle. |
 | `VITE_GROUND_API_URL` | base-app | `http://127.0.0.1:8001` | [`api/client.ts`](../apps/base-app/src/api/client.ts) |
-| `TAURI_DEV_HOST` | both | unset | `vite.config.ts` (Tauri template): host for development on a mobile device. When set, spaceship-app's HMR also takes port 1421, so base-app cannot run at the same time. |
+| `TAURI_DEV_HOST` | both | unset | `vite.config.ts` (Tauri template): host for development on a mobile device. When set, HMR also takes port 1421 (spaceship-app) or 1423 (base-app). |
 
-The Vite ports are fixed in `vite.config.ts` and `src-tauri/tauri.conf.json`: 1420 for spaceship-app and 1421 for base-app, both with `strictPort`. If you change one, change both files and add the new origin to `ONBOARD_CORS_ORIGINS` or `GROUND_CORS_ORIGINS`.
+The Vite ports are fixed in `vite.config.ts` and `src-tauri/tauri.conf.json`: 1420 for spaceship-app and 1422 for base-app, both with `strictPort`. If you change one, change both files and add the new origin to `ONBOARD_CORS_ORIGINS` or `GROUND_CORS_ORIGINS`.
 
 ## Docker Compose substitutions
 

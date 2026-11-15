@@ -3,7 +3,7 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_CORS_ORIGINS = [
-    "http://localhost:1421",  # base-app Vite dev server
+    "http://localhost:1422",  # base-app Vite dev server
     "tauri://localhost",  # Tauri production origin on macOS/Linux
     "http://tauri.localhost",  # Tauri production origin on Windows
 ]
