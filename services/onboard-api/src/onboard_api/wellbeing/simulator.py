@@ -34,6 +34,8 @@ BAD_DAY = 17
 # clinical ranges. One person only, so PROVISIONAL. Measured: corrected vision
 # build (speech-filtered lips, robust neutral), 60 s at ~50 cm, talking to the
 # camera (R1-R3), plus one silent pressed-lips log (L2), 2026-11-15.
+# R3's lips in rest3.jsonl (0.037 / 0.238) came from the previous speech detector;
+# reprocessing its trace with the new vision code gives null.
 VISION_REST = {
     "blink_rate_per_min": (14.0, 25.0),  # R1-R3: 14.5-24.2 (talking)
     "eye_openness_vs_neutral": (0.94, 1.13),  # R1-R3: 0.944-1.131
