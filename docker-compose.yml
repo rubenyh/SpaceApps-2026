@@ -76,7 +76,7 @@ services:
   simulator:
     image: python:3.12-slim-bookworm
     # SIMULATOR_ARGS="--real-vitals ast-01": a real watch sends ast-01's pulse (run.sh --watch-device).
-    # SIMULATOR_ARGS="--real-urine ast-01": the ESP32 sends ast-01's urine pH/salinity/temp (run.sh --urine-device).
+    # SIMULATOR_ARGS="--real-urine ast-01": the ESP32 sends ast-01's urine pH/salinity/temp (run.sh --urine-device, run.ps1 -UrineDevice).
     command: ["sh", "-c", "exec python -u /firmware/simulator.py --url http://onboard-api:8000 ${SIMULATOR_ARGS:-}"]
     volumes:
       - ./firmware:/firmware:ro
