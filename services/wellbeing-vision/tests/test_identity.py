@@ -242,3 +242,46 @@ def test_a_recognized_track_keeps_its_name_until_someone_else_is_confident():
         t.vote({"ast-01": 0.1, "ast-02": 0.8}, i)
     resolve([t])
     assert t.label == "ast-02"
+
+
+def test_enroll_asks_before_saving_a_lookalike_and_append_keeps_the_old_templates(monkeypatch, tmp_path):
+    import itertools
+
+    import wellbeing_vision.identify as ident
+    from wellbeing_vision.config import Settings
+
+    a, b = _unit(1), _unit(2)
+    Gallery(tmp_path / "faces").enroll("ast-02", [b])
+    template = {"v": b}
+
+    class FakeID:
+        def detect(self, img, orientations):
+            return [_face(0, 0, 200, 200)]
+
+        def template(self, img, face):
+            return template["v"]
+
+    ticks = itertools.count()
+    monkeypatch.setattr(ident.time, "monotonic", lambda: next(ticks) * 0.5)
+    monkeypatch.setattr(ident, "face_id", lambda s: FakeID())
+    monkeypatch.setattr(ident, "open_configured", lambda i, *a: type("C", (), {
+        "read": lambda self: (True, np.zeros((720, 1280, 3), np.uint8)), "release": lambda self: None})())
+    monkeypatch.setattr(ident, "render", lambda frame, *a, **k: frame)
+    monkeypatch.setattr(ident._Window, "__init__", lambda self, name: None)
+    monkeypatch.setattr(ident._Window, "show", lambda self, canvas: True)
+    monkeypatch.setattr(ident.cv2, "destroyAllWindows", lambda: None)
+    s = Settings(data_dir=tmp_path)
+    answers = iter(["n", "y"])
+    monkeypatch.setattr("builtins.input", lambda prompt: next(answers))
+    assert not ident.run_enroll(s, "ast-01", 0, 3)  # it is ast-02's face: refused
+    assert not (tmp_path / "faces" / "ast-01.npz").exists()
+    assert ident.run_enroll(s, "ast-01", 0, 3)  # confirmed
+    template["v"] = a  # ast-01's real face from now on
+    Gallery(tmp_path / "faces").enroll("ast-01", [a])
+    monkeypatch.setattr("builtins.input", lambda prompt: pytest.fail("no question for a clean append"))
+    assert ident.run_enroll(s, "ast-01", 0, 3, append=True)
+    assert len(Gallery(tmp_path / "faces").load(["ast-01"]).people["ast-01"]["enrolled"]) == 4
+    template["v"] = _unit(3)  # someone new appended to ast-01: matches nobody, not even ast-01
+    asked = []
+    monkeypatch.setattr("builtins.input", lambda prompt: asked.append(prompt) or "")
+    assert not ident.run_enroll(s, "ast-01", 0, 3, append=True) and len(asked) == 1

@@ -122,6 +122,14 @@ class Gallery:
         self.people[astronaut_id] = {"enrolled": np.vstack(templates), "auto": np.empty((0, 128), np.float32)}
         self._save(astronaut_id)
 
+    def append(self, astronaut_id: str, templates: list[np.ndarray]) -> None:
+        """Add enrolled templates (another camera, other light) and keep the existing ones."""
+        if astronaut_id not in self.people:
+            return self.enroll(astronaut_id, templates)
+        p = self.people[astronaut_id]
+        p["enrolled"] = np.vstack([p["enrolled"], *templates])
+        self._save(astronaut_id)
+
     def add_auto(self, astronaut_id: str, templates: list[np.ndarray]) -> None:
         p = self.people[astronaut_id]
         p["auto"] = np.vstack([p["auto"], *templates])[-AUTO_MAX:]

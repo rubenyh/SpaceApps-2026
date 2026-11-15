@@ -51,8 +51,11 @@ class _Window:
         return key not in (ord("q"), 27) and cv2.getWindowProperty(self.name, cv2.WND_PROP_VISIBLE) >= 1
 
 
-def run_enroll(settings: Settings, astronaut_id: str, camera: int, samples: int = ENROLL_SAMPLES) -> bool:
-    """Shows the frame as the camera delivers it: only the daily log mirrors (self-view)."""
+def run_enroll(settings: Settings, astronaut_id: str, camera: int, samples: int = ENROLL_SAMPLES,
+               append: bool = False) -> bool:
+    """Shows the frame as the camera delivers it: only the daily log mirrors (self-view).
+    append: add to the existing templates instead of replacing them. Asks before saving a face that matches
+    another astronaut, or (append) one that does not match the existing templates."""
     faceid, gallery = face_id(settings), gallery_of(settings)
     cap, window = open_configured(camera, settings), _Window("Enrollment - wellbeing-vision")
     title = f"ENROLLMENT · {settings.astronauts.get(astronaut_id, astronaut_id)}"
@@ -87,12 +90,23 @@ def run_enroll(settings: Settings, astronaut_id: str, camera: int, samples: int 
         print(f"Enrollment incomplete ({len(templates)}/{samples} samples). Nothing saved.")
         return False
     mean = np.mean(templates, axis=0)
-    others = {i: s for i, s in gallery.scores(mean / np.linalg.norm(mean)).items() if i != astronaut_id}
-    for i, s in others.items():
-        if s >= MATCH:
-            print(f"Warning: this face also matches {i} ({s:.2f}). Check who is enrolled as whom.")
-    gallery.enroll(astronaut_id, templates)
-    print(f"Enrolled {astronaut_id}: {samples} templates in {gallery.dir / (astronaut_id + '.npz')}")
+    scores = gallery.scores(mean / np.linalg.norm(mean))
+    problems = [f"this face also matches {i} ({s:.2f})" for i, s in scores.items() if i != astronaut_id and s >= MATCH]
+    if append and scores.get(astronaut_id, MATCH) < MATCH:
+        problems.append(f"it does not match the existing {astronaut_id} templates ({scores[astronaut_id]:.2f})")
+    if problems:
+        print(f"Warning: {'; '.join(problems)}. Check who is enrolled as whom.")
+        try:
+            ok = input(f"Save these templates as {astronaut_id} anyway? [y/N] ").strip().lower() in ("y", "yes", "s", "si", "sí")
+        except EOFError:
+            ok = False
+        if not ok:
+            print("Nothing saved.")
+            return False
+    (gallery.append if append else gallery.enroll)(astronaut_id, templates)
+    total = len(gallery.people[astronaut_id]["enrolled"])
+    print(f"{'Added' if append else 'Enrolled'} {astronaut_id}: {samples} templates ({total} enrolled) in "
+          f"{gallery.dir / (astronaut_id + '.npz')}")
     return True
 
 
