@@ -125,7 +125,7 @@ Data across the boundary: JSON matching [`schemas/status.py`](../services/onboar
 3. `record_reading` checks that the astronaut exists (404 if not) and that `unit` matches `sensor_config.unit` (422 if not, unless the configured unit is NULL).
 4. `ReadingRepository.create` ([`repositories/readings.py`](../services/onboard-api/src/onboard_api/repositories/readings.py)) inserts the row with `received_at` from the server clock.
 
-Astronauts are created with `POST /astronauts` (`id`, `display_name`; 409 if the id exists). Sensor ranges change with `PUT /sensors/{kind}` (404 for an unknown kind). The console does not call either endpoint.
+Astronauts are created with `POST /astronauts` (`id`, `display_name`; 409 if the id exists) and renamed with `PATCH /astronauts/{id}` (`display_name` only; 404 if the id does not exist). Ids never change. Sensor ranges change with `PUT /sensors/{kind}` (404 for an unknown kind). The console does not call either endpoint.
 
 ### 3. Assistant request (initial message)
 

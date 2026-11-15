@@ -60,6 +60,7 @@ The interactive OpenAPI page is at <http://127.0.0.1:8000/docs> and the schema a
 |---|---|
 | `GET /` | Health check |
 | `GET /astronauts`, `POST /astronauts` | List and register crew (409 if the id exists) |
+| `PATCH /astronauts/{id}` | Rename: `{"display_name": "..."}`, same validation as `POST` (404 if the id does not exist) |
 | `GET /astronauts/{id}/status` | Latest reading and status (`normal`, `alert`, `stale`, `no_data`, `no_range`) per sensor |
 | `POST /readings`, `GET /readings` | Store a reading; list one astronaut's readings, newest first (`astronaut_id` required; `kind`, `since`, `until`, `limit` up to 1000) |
 | `GET /sensors`, `PUT /sensors/{kind}` | Sensor units, ranges and staleness limits |
