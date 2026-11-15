@@ -391,6 +391,8 @@ export interface CaseReport {
   /** Stable report id; null only for older servers. */
   id?: string | null;
   transmission: ReportTransmission;
+  /** Readings listed in the report, with provenance. These go to ground. */
+  readings?: SnapshotReading[];
 }
 
 /** GET /case-reports/{id} and POST /case-reports/{id}/send. */

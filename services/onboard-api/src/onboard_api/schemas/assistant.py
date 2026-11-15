@@ -262,6 +262,9 @@ class CaseReport(BaseModel):
     # Stable report id (UUID v4). None only for older servers.
     id: str | None = None
     transmission: ReportTransmission = "draft"
+    # Readings listed in the report body (pertinent kinds of the matched protocols),
+    # with provenance. These, not the whole snapshot, go to ground.
+    readings: list[SnapshotReading] = []
 
 
 class IncidentRef(BaseModel):

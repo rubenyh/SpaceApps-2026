@@ -46,7 +46,7 @@ Idempotent on `(ship_id, report_id)`: a resend (for example after a lost acknowl
 | `sent_at` | UTC timestamp | Crew pressed send. |
 | `incident_id` | string or null | Onboard incident id when one exists. |
 | `text` | string | The report body exactly as previewed. |
-| `readings` | list of `SnapshotReading` | Relevant readings with provenance: `id, kind, value, value_text, unit, recorded_at, received_at, quality, source, simulated, freshness, age_seconds`. |
+| `readings` | list of `SnapshotReading` | `report.readings` from the reply: relevant readings with provenance: `id, kind, value, value_text, unit, recorded_at, received_at, quality, source, simulated, freshness, age_seconds`. |
 | `knowledge_version` | `{candidate_id, digest}` or null | |
 
 Never included: the raw chat message, the assistant reply text, wellbeing data, or readings unrelated to the case.
