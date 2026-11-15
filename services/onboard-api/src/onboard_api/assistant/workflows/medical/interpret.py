@@ -216,7 +216,9 @@ _ADAPTATION = re.compile(
 )
 _UNWELL = re.compile(
     r"\b(no me siento bien|me siento mal|me encuentro mal|no me encuentro bien|me siento rar[oa]"
-    r"|algo no (anda|va) bien|no estoy bien|me siento fatal)\b"
+    r"|algo no (anda|va) bien|no estoy bien|me siento fatal"
+    r"|i (don'?t|do not) feel (well|good|right)|not feeling (well|good|right)"
+    r"|i feel (bad|weird|strange|off|awful|terrible|funny)|something (is|feels) (off|wrong))\b"
 )
 # A concrete complaint outside the closed vocabulary ("me duele el oído"). Not negated.
 _COMPLAINT = re.compile(
@@ -227,7 +229,9 @@ _COMPLAINT = re.compile(
 # Words that say something is wrong without naming a symptom ("malestar físico").
 VAGUE = re.compile(
     r"\b(malestar|molestia|me siento (mal|rar[oa]|fatal)|no me siento bien|sintomas?|fisic[oa]"
-    r"|algo (raro|anda mal|no va bien)|incomod\w*|mal\b)"
+    r"|algo (raro|anda mal|no va bien)|incomod\w*|mal\b"
+    r"|discomfort|feel(ing)? (bad|weird|strange|off|awful|terrible|funny)|don'?t feel (well|good|right)"
+    r"|something (is|feels) (off|wrong)|physical|uncomfortable)"
 )
 # Explicit call for help. "SOS" in capitals (lowercase "sos" is also a Spanish verb form).
 _SOS_UPPER = re.compile(r"\bSOS\b")
@@ -235,30 +239,33 @@ _SOS = re.compile(r"\b(mayday|auxilio|socorro)\b")
 _HEALTH = re.compile(
     r"\b(medic\w*|salud|sintoma\w*|enferm\w*|dolor\w*|duele|duelen|malestar|doctor\w*|sangre|orina\w*"
     r"|muestra|pulso|oxigeno|lesion|herida|cuerpo|radiacion|dosimetro"
-    r"|symptoms?|pain|hurts?|sick|medical|health|doctor|blood|breath\w*|injur\w*)\b"
+    r"|symptoms?|pain|hurts?|sick|medical|health|doctor|blood|breath\w*|injur\w*|body|unwell)\b"
 )
 _READINGS = [
     (re.compile(r"oximetr\w*"), ("spo2", "heart_rate")),
     (re.compile(r"saturacion|\bspo2\b|oxigenacion|oxigeno en (la )?sangre"), ("spo2",)),
     (re.compile(r"\bpulso\b|frecuencia cardiaca|\bfrecuencia\b|\blpm\b|\bbpm\b"), ("heart_rate",)),
+    (re.compile(r"oximeter"), ("spo2", "heart_rate")),
+    (re.compile(r"\bsaturation|oxygen level|blood oxygen"), ("spo2",)),
+    (re.compile(r"\bpulse\b|heart rate"), ("heart_rate",)),
 ]
 _TOPICS = [
-    ("loss_of_consciousness_or_seizure", r"desmay|sincope|convuls|epileps|inconscien|perdida de (la )?conciencia"),
-    ("cabin_environment_alert", r"\bco2\b|dioxido de carbono|monoxido|calidad del aire|presion de (la )?cabina|despresuriz|humo|eclss"),
-    ("radiation_alert", r"radiacion|dosimetr|\bdosis\b|rayos cosmicos|particulas solares|tormenta solar|radionucl"),
-    ("breathing_difficulty", r"respir|oximetr|saturacion|\bspo2\b|disnea|falta de aire"),
-    ("severe_allergic_reaction", r"anafilax|alergi|alergic|urticaria|epinefrina|adrenalina"),
-    ("neurologic_red_flags", r"ictus|derrame cerebral|embolia|accidente cerebrovascular|\bacv\b|\bait\b|dolor de cabeza|cefalea|migran"),
-    ("chest_pain", r"infarto|dolor (de|en el) pecho|toracic|angina|coronari"),
-    ("heat_illness", r"golpe de calor|insolacion|\bcalor\b|hipertermi"),
-    ("injury_bleeding_or_burn", r"herida|quemadura|golpe|conmocion|contusion|sangrado|hemorragia|fractura|torcedura"),
-    ("abdominal_pain_or_gi_bleeding", r"abdom|estomag|barriga|vientre|apendic|heces negras|gastritis"),
-    ("urinary_symptoms", r"orina|urinari|rinon|renal|calculo|vejiga|cistitis|pielonefritis"),
-    ("muscle_symptoms", r"muscul|calambre|rabdomiolisis"),
-    ("fever_or_respiratory_illness", r"fiebre|\btos\b|gripe|resfriad|catarro|virus|infeccion respiratoria"),
-    ("vomiting_diarrhea_or_dehydration", r"deshidrat|vomit|diarrea|nausea|hidrata"),
-    ("palpitations", r"arritmi|palpitac|\bpulso\b|frecuencia cardiaca|ritmo cardiaco|taquicardi|corazon"),
-    ("dizziness_or_space_motion_sickness", r"\bmareo|vertigo|cinetosis|adaptacion espacial|sindrome de adaptacion"),
+    ("loss_of_consciousness_or_seizure", r"desmay|sincope|convuls|epileps|inconscien|perdida de (la )?conciencia|faint|passing out|seizure|epilep|unconscious|loss of consciousness"),
+    ("cabin_environment_alert", r"\bco2\b|dioxido de carbono|monoxido|calidad del aire|presion de (la )?cabina|despresuriz|humo|eclss|carbon dioxide|carbon monoxide|air quality|cabin pressure|depressuri|smoke"),
+    ("radiation_alert", r"radiacion|dosimetr|\bdosis\b|rayos cosmicos|particulas solares|tormenta solar|radionucl|radiation|dosimet|\bdose\b|cosmic ray|solar particle|solar storm"),
+    ("breathing_difficulty", r"respir|oximetr|saturacion|\bspo2\b|disnea|falta de aire|breath|oximet|saturation|oxygen"),
+    ("severe_allergic_reaction", r"anafilax|alergi|alergic|urticaria|epinefrina|adrenalina|anaphyla|allerg|hives|epinephrine|adrenaline"),
+    ("neurologic_red_flags", r"ictus|derrame cerebral|embolia|accidente cerebrovascular|\bacv\b|\bait\b|dolor de cabeza|cefalea|migran|stroke|\btia\b|headache|migraine"),
+    ("chest_pain", r"infarto|dolor (de|en el) pecho|toracic|angina|coronari|heart attack|chest pain|angina|coronary"),
+    ("heat_illness", r"golpe de calor|insolacion|\bcalor\b|hipertermi|heat stroke|heat exhaustion|\bheat\b|hypertherm|overheat"),
+    ("injury_bleeding_or_burn", r"herida|quemadura|golpe|conmocion|contusion|sangrado|hemorragia|fractura|torcedura|wound|\bburns?\b|concussion|bruise|bleeding|hemorrhage|fracture|sprain|injur"),
+    ("abdominal_pain_or_gi_bleeding", r"abdom|estomag|barriga|vientre|apendic|heces negras|gastritis|abdominal|stomach|belly|appendic|black stool|gastritis"),
+    ("urinary_symptoms", r"orina|urinari|rinon|renal|calculo|vejiga|cistitis|pielonefritis|urine|urinary|kidney|bladder|cystitis"),
+    ("muscle_symptoms", r"muscul|calambre|rabdomiolisis|muscle|cramp|rhabdo"),
+    ("fever_or_respiratory_illness", r"fiebre|\btos\b|gripe|resfriad|catarro|virus|infeccion respiratoria|fever|cough|\bflu\b|\bcold\b|respiratory infection"),
+    ("vomiting_diarrhea_or_dehydration", r"deshidrat|vomit|diarrea|nausea|hidrata|dehydrat|vomit|diarrh|nause|hydrat"),
+    ("palpitations", r"arritmi|palpitac|\bpulso\b|frecuencia cardiaca|ritmo cardiaco|taquicardi|corazon|arrhythm|palpitation|heart rate|heart rhythm|tachycard|\bheart\b"),
+    ("dizziness_or_space_motion_sickness", r"\bmareo|vertigo|cinetosis|adaptacion espacial|sindrome de adaptacion|dizz|vertigo|motion sickness|space adaptation"),
 ]
 _TOPICS_RX = [(re.compile(rx), card) for card, rx in _TOPICS]
 

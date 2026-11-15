@@ -215,3 +215,16 @@ def test_general_question_after_routing_stays_educational(ask) -> None:
     llm = qwen(("fever", "present", "la fiebre"))
     body, *_ = ask("información general sobre la fiebre", hola, llm=llm)
     assert body["urgency"] == "informational" and llm.json_calls == []
+
+
+@pytest.mark.parametrize("message", ["I don't feel well", "I feel weird, something is off"])
+def test_english_vague_report_asks_what_the_person_feels(ask, message) -> None:
+    body, *_ = ask(message, llm=qwen())
+    assert body["workflow"] == "medical" and body["needs_clarification"]
+    assert body["clarifying_question"] == GENERIC_CLARIFYING_QUESTION
+
+
+@pytest.mark.parametrize("message", ["What is dehydration?", "What causes a heart attack?"])
+def test_english_educational_question_reaches_the_medical_workflow(ask, message) -> None:
+    body, *_ = ask(message, llm=Forbidden("llm"))
+    assert body["workflow"] == "medical" and body["urgency"] == "informational"

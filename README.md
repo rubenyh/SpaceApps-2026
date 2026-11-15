@@ -13,7 +13,7 @@ un.ps1` from the repo root starts the stack and opens both consoles. Full guide:
 |---|---|
 | `onboard-api` | FastAPI on `http://127.0.0.1:8000`. Applies the SQLite migrations at startup. Starts without Ollama, so alarm and SOS replies keep working when the models are down. |
 | `ollama` | Official `ollama/ollama` image. Reachable only inside Compose as `http://ollama:11434`. |
-| `demo-init` | One-shot. Waits for Ollama, pulls `qwen2.5:3b` and `bge-m3` if missing, and runs the guide ingest when the Chroma index is missing or outdated. Exits 0 when done. Safe to rerun. |
+| `demo-init` | One-shot. Waits for Ollama, pulls `qwen2.5:3b` and `bge-m3` if missing, loads both models into memory (the `ollama` service keeps them loaded, `OLLAMA_KEEP_ALIVE=-1`), and runs the guide ingest when the Chroma index is missing or outdated. Exits 0 when done. Safe to rerun. |
 | `ground-api` | FastAPI on `http://127.0.0.1:8001`. Receives telemetry from `onboard-api` and serves base-app. Volume `ground`. |
 | `simulator` | `firmware/simulator.py`. Starts after the API healthcheck passes, registers `ast-01` and `ast-02`, and posts readings every 5 s. |
 

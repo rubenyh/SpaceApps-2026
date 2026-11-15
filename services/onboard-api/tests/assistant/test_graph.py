@@ -449,3 +449,10 @@ def test_spanish_only_chunks_are_not_shown(triage: Triage) -> None:
     assert r.reply == prompts.EDUCATIONAL_ABSTAIN
     assert prompts.NOTICE_NO_GUIDES in r.data_notices and r.sources == []
     assert llm.calls == []
+
+
+def test_card_statement_about_no_clinical_staff_is_allowed() -> None:
+    grounding = "Guide text number 1."
+    assert nodes.valid_draft("No clinical staff are available on board [1].", [chunk(1)], grounding)
+    assert not nodes.valid_draft("Consult a medical professional [1].", [chunk(1)], grounding)
+    assert not nodes.valid_draft("Ask the clinician on board [1].", [chunk(1)], grounding)

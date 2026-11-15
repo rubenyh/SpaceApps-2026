@@ -42,6 +42,10 @@ services:
 
   ollama:
     image: ollama/ollama:0.40.16
+    environment:
+      # Keep the chat model loaded: a cold load of qwen2.5:3b takes minutes on CPU,
+      # far over the interpreter timeout, so an unloaded model is never used.
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:--1}
     volumes:
       - ollama:/root/.ollama
     restart: unless-stopped
