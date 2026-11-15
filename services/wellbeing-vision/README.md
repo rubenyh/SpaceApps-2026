@@ -21,7 +21,7 @@ The repo lives in OneDrive: if `.venv` files get locked during `uv sync`, pause 
 | `uv run wellbeing-vision bitacora --astronaut ast-01 [--camera 0] [--seconds 60] [--no-mirror] [--trace t.csv] [--dry-run]` | Daily video log: 3 s neutral, then fatigue and tension with a live preview. Sends one summary. Keys: `f` fullscreen, `q`/Esc end. |
 | `uv run wellbeing-vision enroll --astronaut ast-01 [--camera 0] [--samples 10]` | Enroll a face: 10 templates while turning the head a little. Replaces the previous enrollment. Not mirrored: only the daily log mirrors (self-view, `--no-mirror` to turn it off). |
 | `uv run wellbeing-vision identify [--camera 0] [--rotate 180] [--seconds 0]` | Multi-person preview: one box per tracked face with its name or `unknown-<n>`, and the linked pose. Sends nothing. |
-| `uv run wellbeing-vision ambiente [--cameras 0 1] [--flip 1] [--overlap] [--size 640x480] [--window 60] [--trace t.csv] [--dry-run]` | Ambient mode: each camera is a module; every window sends co-presence and one motion session per person. Preview with both cameras stacked. |
+| `uv run wellbeing-vision ambiente [--cameras 0 1] [--flip 1] [--overlap] [--size 1280x720] [--window 60] [--trace t.csv] [--dry-run]` | Ambient mode: each camera is a module; every window sends co-presence and one motion session per person. Preview with both cameras stacked. |
 | `uv run pytest` | Unit tests (no camera needed). |
 
 `--dry-run` prints the JSON instead of posting it (add `--out file.jsonl` to also save it).
@@ -91,10 +91,12 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
 - **Point each camera at a different zone** (cam 0 = `modulo-a`, cam 1 = `modulo-b` by default,
   `WELLBEING_VISION_CAMERAS`). If both see the same space, run with `--overlap`: the cameras then feed one
   module (the first camera's) and an astronaut seen by both is counted once; there are no transfers.
-- Captures at 640x480 by default (`--size`; the daily log always asks 1280x720). Cameras run in parallel
-  threads; each keeps only its newest frame. Face detection runs at 640 px at most, the other orientations
-  are tried on the first frame without a face and then every 10 frames, and face recognition runs only for
-  new or unconfirmed tracks (an identified one is re-checked every 2 s, an unknown one every 1 s).
+- Captures at 1280x720 by default (`--size`). Cameras run in parallel threads; each keeps only its newest
+  frame. Faces are detected on a 960 px copy and poses on a 640 px copy; recognition uses the face crop at
+  full resolution (at 640x480, faces of 50-60 px lost about 0.1 of match score and were often missed).
+  The other orientations are tried on the first frame without a face and then every 10 frames, and face
+  recognition runs only for new or unconfirmed tracks (an identified one is re-checked every 2 s, an
+  unknown one every 1 s).
 - Tracks follow the face or the body: each pose is paired with the face that holds its nose, and a pose
   with visible shoulders and no face is still a person. Tracks are matched by overlap or by centre distance
   after a constant-velocity prediction, survive 2 s unseen, and an unknown that comes back in the same place

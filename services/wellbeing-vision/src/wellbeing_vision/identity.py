@@ -21,7 +21,8 @@ MARGIN = 0.08  # PROVISIONAL: the best astronaut must beat the runner-up by this
 AUTO_ENROLL = 0.5  # PROVISIONAL: only log frames that clearly match extend the gallery
 AUTO_MAX = 20  # templates added by logs; the oldest go first. Enrolled ones are never dropped.
 AUTO_PER_LOG = 3
-DETECT_MAX_SIDE = 640  # YuNet input: 42 ms at 1280x720 vs 12 ms at 640 px on the dev laptop
+DETECT_MAX_SIDE = 960  # YuNet input: 42 ms at 1280, 26 ms at 960, 10 ms at 640 px on the dev laptop; at 640 a
+# 55 px face (1280 frame) reached confidence 0.85 in 7% of simulated frames, at 960 in 93%
 SEARCH_EVERY = 10  # frames without a face before the other orientations are tried again (4x the cost)
 
 
@@ -67,7 +68,7 @@ class FaceID:
         run every orientation and merge by IoU if the demo needs mixed orientations."""
         h, w = frame.shape[:2]
         k = min(1.0, DETECT_MAX_SIDE / max(w, h))
-        small = cv2.resize(frame, (round(w * k), round(h * k))) if k < 1 else frame
+        small = cv2.resize(frame, (round(w * k), round(h * k)), interpolation=cv2.INTER_AREA) if k < 1 else frame
         # The other orientations cost 3 more detections: try them on the first miss, then every SEARCH_EVERY.
         search = self.misses % SEARCH_EVERY == 0
         for deg in sorted(orientations, key=lambda d: d != self.deg)[:None if search else 1]:

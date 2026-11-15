@@ -50,7 +50,7 @@ def main() -> None:
     amb.add_argument("--overlap", action="store_true",
                      help="the cameras watch the same space: count them as one module (default: one zone each)")
     amb.add_argument("--size", default=f"{settings.ambient_width}x{settings.ambient_height}",
-                     help="capture size WxH (default 640x480; the daily log always asks 1280x720)")
+                     help="capture size WxH (default 1280x720; 640x480 is faster but recognizes worse)")
     amb.add_argument("--min-track", type=float, default=settings.min_track_s,
                      help="seconds a track must live before it counts as occupant or in pairs")
     amb.add_argument("--trace", type=Path, help="CSV per frame and track (no images) for tuning")

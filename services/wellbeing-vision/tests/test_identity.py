@@ -207,3 +207,23 @@ def test_a_pose_with_shoulders_but_no_box_does_not_make_a_boxless_track():
     tr = IoUTracker()
     for k in range(3):
         assert all(t.box is not None for t in tr.update([], k * 0.1, [p]))
+
+
+@pytest.mark.parametrize("deg", [0, 90])
+def test_poses_found_on_the_small_copy_land_in_full_frame_pixels(deg):
+    from wellbeing_vision.identify import detect_poses
+
+    frame = np.zeros((720, 1280, 3), np.uint8)
+    full = rotate(frame, deg)
+    x, y = 0.25 * full.shape[1], 0.5 * full.shape[0]  # where the pose is in the rotated full-res frame
+    seen = []
+
+    class Fake:
+        def detect_for_video(self, img, ms):
+            seen.append(img.numpy_view().shape)
+            lm = [type("L", (), {"x": 0.25, "y": 0.5, "visibility": 1.0})()] * 33
+            return type("R", (), {"pose_landmarks": [lm]})()
+
+    (pose,) = detect_poses(Fake(), frame, deg, 0)
+    assert max(seen[0][:2]) == 640  # the model got the small copy
+    assert pose[0].tolist() == [*unrotate(np.array([[x, y]]), deg, 1280, 720)[0], 1.0]

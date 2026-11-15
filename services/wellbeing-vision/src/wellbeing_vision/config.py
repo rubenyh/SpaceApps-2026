@@ -32,9 +32,10 @@ class Settings(BaseSettings):
     # mirrored: WELLBEING_VISION_CAMERA_FLIP='[1]'. Turn is clockwise: WELLBEING_VISION_CAMERA_TURN='{"1": 180}'.
     camera_flip: list[int] = Field(default_factory=list)
     camera_turn: dict[int, Literal[0, 90, 180, 270]] = Field(default_factory=dict)
-    # Ambient mode captures smaller: 640x480 is ~3.5x cheaper for face detection than 1280x720.
-    ambient_width: int = 640
-    ambient_height: int = 480
+    # Ambient mode captures 1280x720 like the daily log: detection and pose run on a 640 px copy, SFace on
+    # the face crop at full resolution (at 640x480 small faces lost ~0.1 of match score and were missed).
+    ambient_width: int = 1280
+    ambient_height: int = 720
     min_track_s: float = 3.0  # PROVISIONAL: a track counts as occupant and in pairs only after this long
     astronauts: dict[str, str] = Field(
         default={f"ast-0{i}": f"ast-0{i}" for i in range(1, 5)}

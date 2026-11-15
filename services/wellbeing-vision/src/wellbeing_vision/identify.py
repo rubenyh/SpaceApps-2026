@@ -21,6 +21,7 @@ ENROLL_MIN_SCORE = 0.9  # YuNet confidence for an enrollment sample
 ENROLL_TIMEOUT_S = 60.0
 FOOTER = "Templates stay on this computer · no video is stored"
 # Upper body only: the crew sits at a table.
+POSE_MAX_SIDE = 640  # the pose model works at 256 px: a bigger copy only costs conversion time
 SKELETON = ((11, 12), (11, 13), (13, 15), (12, 14), (14, 16), (11, 23), (12, 24), (23, 24))
 
 
@@ -104,11 +105,15 @@ def _pose_landmarker(settings: Settings) -> PoseLandmarker:
 
 
 def detect_poses(pose: PoseLandmarker, frame: np.ndarray, deg: int, ts_ms: int) -> list[np.ndarray]:
-    """Poses found in the frame rotated like the faces, as 33 x (x, y, visibility) in frame pixels."""
-    img = rotate(frame, deg)
+    """Poses found in the frame rotated like the faces, as 33 x (x, y, visibility) in frame pixels.
+    Runs on a copy of at most POSE_MAX_SIDE px; landmarks are normalized, so they map back to full size."""
+    h, w = frame.shape[:2]
+    k = min(1.0, POSE_MAX_SIDE / max(w, h))
+    small = cv2.resize(frame, (round(w * k), round(h * k)), interpolation=cv2.INTER_AREA) if k < 1 else frame
+    img = rotate(small, deg)
     res = pose.detect_for_video(
         mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(img, cv2.COLOR_BGR2RGB)), ts_ms)
-    (h, w), (ih, iw) = frame.shape[:2], img.shape[:2]
+    ih, iw = (w, h) if deg in (90, 270) else (h, w)  # full-resolution size of the rotated frame
     return [np.column_stack([unrotate(np.array([(p.x * iw, p.y * ih) for p in lm]), deg, w, h),
                              [p.visibility for p in lm]]) for lm in res.pose_landmarks]
 
