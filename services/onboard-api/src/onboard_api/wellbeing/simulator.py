@@ -29,30 +29,37 @@ DERAIL_DAY = 14
 DISCREPANCY_DAY = 15
 BAD_DAY = 17
 
-# Daily-log (bitacora) ranges, uniform (low, high). "measured": one real session
-# at ~50 cm on 2026-11-14, at rest. "assumed": not measured yet. Simulation
-# parameters only, not clinical ranges; adjust as more sessions are measured.
+# Daily-log (bitacora) ranges, uniform (low, high). Simulation parameters, not
+# clinical ranges. ALL PROVISIONAL until logs from the corrected vision build
+# (more robust neutral calibration, speech-filtered lips) are measured.
+# Source: 3 rest logs, new build, 60 s at ~50 cm, reading/talking naturally,
+# no grimaces (data/rest.jsonl of wellbeing-vision, 2026-11-15): S1, S2, S3.
 VISION_REST = {
-    "blink_rate_per_min": (15.0, 25.0),  # measured
-    "eye_openness_vs_neutral": (0.90, 1.05),  # measured
-    "yawn_count": (0, 2),  # measured
-    "nod_count": (0, 2),  # measured
-    "tension_mean": (0.0, 0.05),  # measured (brow_lower / lip_press deltas)
-    # PENDING RECALIBRATION: placeholder from 3 logs of the old vision build (~1 m,
-    # repeated-blink bug; PERCLOS inconsistent with eye openness). Override with
-    # simulate(perclos=...) / --perclos until logs from the new build are measured.
-    "perclos": (0.10, 0.20),
-    "tension_peak_1s": (0.05, 0.15),  # assumed
+    "blink_rate_per_min": (19.0, 26.0),  # S1-S3: 26.0, 23.2, 19.5 (talking/reading)
+    # S1 0.949, S2 0.925. S3 (1.24) left out: its neutral calibration was biased.
+    "eye_openness_vs_neutral": (0.90, 1.05),
+    "yawn_count": (0, 2),  # 0 in S1-S3; up to 2 in the first session
+    "nod_count": (0, 2),  # 0 in S1-S3; up to 2 in the first session
+    # S1-S3: 0.183, 0.122, 0.065. Kept wide on purpose: it swings with each
+    # session's neutral calibration. Override with simulate(perclos=...) / --perclos.
+    "perclos": (0.06, 0.19),
+    "brow_lower_delta": (0.015, 0.03),  # S1-S3: 0.015, 0.029, 0.020
+    "brow_lower_peak_1s": (0.045, 0.13),  # S1-S3: 0.046, 0.129, 0.094 (acted: 0.663)
+    # Stored but not scored: talking alone peaks at 0.41-0.49.
+    "lip_press_delta": (0.035, 0.09),  # S1-S3: 0.047, 0.090, 0.039
+    "lip_press_peak_1s": (0.41, 0.49),  # S1-S3: 0.459, 0.492, 0.414
 }
 # Altered days (more fatigue and tension). Assumed, for the demo story only.
 # PERCLOS on altered days is derived from the rest range (see _vision_ranges).
 VISION_ALTERED = {
-    "blink_rate_per_min": (15.0, 25.0),
+    "blink_rate_per_min": (19.0, 26.0),
     "eye_openness_vs_neutral": (0.70, 0.80),
     "yawn_count": (2, 4),
     "nod_count": (2, 4),
-    "tension_mean": (0.08, 0.12),
-    "tension_peak_1s": (0.30, 0.50),
+    "brow_lower_delta": (0.06, 0.10),
+    "brow_lower_peak_1s": (0.35, 0.65),  # acted reference peak: 0.663
+    "lip_press_delta": (0.035, 0.09),  # not scored
+    "lip_press_peak_1s": (0.41, 0.49),  # not scored
 }
 
 
@@ -206,9 +213,9 @@ def _bitacora(
             "nod_count": n("nod_count"),
         },
         tension={
-            "brow_lower_delta": u("tension_mean"),
-            "lip_press_delta": u("tension_mean"),
-            "brow_lower_peak_1s": u("tension_peak_1s"),
-            "lip_press_peak_1s": u("tension_peak_1s"),
+            "brow_lower_delta": u("brow_lower_delta"),
+            "lip_press_delta": u("lip_press_delta"),
+            "brow_lower_peak_1s": u("brow_lower_peak_1s"),
+            "lip_press_peak_1s": u("lip_press_peak_1s"),
         },
     )
