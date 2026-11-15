@@ -7,8 +7,9 @@ Crew story (deterministic for a given seed):
   ast-03  says "I'm fine" in the check-in, but physiology and social drop from
           day DISCREPANCY_DAY -> discrepancy.
   ast-04  stable, with a single bad day: an isolated reading never alerts.
-Vision (daily logs) follows the same story and stops at yesterday, so a live
-log recorded today is judged alone against an already formed baseline.
+Vision (daily logs, and ambient-camera motion windows) follows the same story
+and stops at yesterday, so a live log recorded today is judged alone against an
+already formed baseline. In ambient windows ast-02 moves less from DERAIL_DAY.
 """
 
 import random
@@ -61,6 +62,20 @@ VISION_ALTERED = {
     "lip_press_delta": (0.035, 0.09),  # not scored
     "lip_press_peak_1s": (0.41, 0.49),  # not scored
 }
+
+
+# Ambient-camera motion per person and window (10 min). ASSUMED, PROVISIONAL:
+# no real ambient-mode measurements yet; replace once vision sends them.
+# speed in shoulder widths/s, torso_angle_dev in degrees from the own neutral posture.
+MOTION_REST = {
+    "speed": (0.25, 0.45),
+    "stationary_ratio": (0.45, 0.65),
+    "fidget_index": (0.05, 0.15),
+    "torso_angle_dev": (5.0, 15.0),
+}
+# Moving less: slower, more time still. Fidgeting and posture unchanged.
+MOTION_ALTERED = {**MOTION_REST, "speed": (0.08, 0.18), "stationary_ratio": (0.80, 0.92)}
+AMBIENT_HOURS = (10, 13, 16)
 
 
 def _at(day: date, hour: int, minute: int = 0, tz: tzinfo = UTC) -> datetime:
@@ -162,6 +177,14 @@ def simulate(
                     _bitacora(aid, _at(day, 8, tz=tz), vision_altered if altered else vision_rest, rng),
                     received_at=_at(day, 8, 2, tz=tz),
                 )
+                motion = MOTION_ALTERED if low or bad_day else MOTION_REST
+                for slot, hour in enumerate(AMBIENT_HOURS):
+                    begin = _at(day, hour, tz=tz)
+                    repo.create_vision_session(
+                        _ambient(aid, begin, "modulo-a" if slot % 2 == 0 else "modulo-b",
+                                 motion, rng),
+                        received_at=begin + timedelta(minutes=11),
+                    )
 
         # Six 30-minute shared slots per day (meals, briefings, leisure).
         withdrawn = {aid for aid, flag in derailed.items() if flag}
@@ -221,4 +244,23 @@ def _bitacora(
             "brow_lower_peak_1s": u("brow_lower_peak_1s"),
             "lip_press_peak_1s": u("lip_press_peak_1s"),
         },
+    )
+
+
+def _ambient(
+    aid: str, begin: datetime, module: str, ranges: dict[str, tuple[float, float]],
+    rng: random.Random,
+) -> VisionSessionCreate:
+    return VisionSessionCreate(
+        astronaut_id=aid,
+        session_type="ambiente",
+        module_id=module,
+        source=SOURCE,
+        started_at=begin,
+        ended_at=begin + timedelta(minutes=10),
+        quality="good",
+        valid_frame_ratio=0.9,
+        identity={"method": "wearable", "match_score": None},
+        neutral_ok=False,  # ambient cameras have no daily neutral; motion does not need it
+        motion={key: round(rng.uniform(*span), 3) for key, span in ranges.items()},
     )
