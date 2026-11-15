@@ -1276,6 +1276,17 @@ select option {
   gap: var(--space-5);
 }
 
+.musculo__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-width: 0;
+}
+
+.musculo__live-value {
+  font-variant-numeric: tabular-nums;
+}
+
 .musculo__side,
 .orina__side {
   display: flex;

@@ -37,6 +37,7 @@ Planned, not in the repo yet: hardware collectors for real sensors (pySerial, Op
 | `services/ground-api` | `uv sync --locked` then `uv run fastapi dev --port 8001` | Use a different port than onboard. |
 | `services/*` | `uv add <pkg>` / `uv add --dev <pkg>` | Always commit `uv.lock` together with `pyproject.toml`. |
 | repo root | `python3 firmware/simulator.py` | Live device feed for the console (needs onboard-api running). `--urine-every 120` for faster samples. Self-check: `cd firmware && python3 test_simulator.py`. |
+| repo root | `python firmware/muscle_live.py` | Phone-slider demo feed for the Muscle screen's live graph (port 8765, prints LAN URL). Memory only, never posts to onboard-api. Self-check: `--check`. |
 | `apps/spaceship-app` | `npm run build` | `tsc && vite build`. |
 | `apps/spaceship-app/src-tauri` | `cargo check` | On Git Bash, cargo is at `~/.cargo/bin/cargo.exe` (not on PATH). |
 | `apps/spaceship-app` | `npm run tauri dev` | Not run by Claude (opens a window). Vite port 1420. |
