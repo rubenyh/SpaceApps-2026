@@ -1,54 +1,56 @@
+/* REEMPLAZADO (2026-11-15): la paleta azul marino / azul NASA, la fuente del sistema y el
+ * verde de NORMAL ya no aplican. Copia de referencia de la identidad compartida con
+ * apps/base-app. Fuente de verdad: apps/spaceship-app/src/styles/tokens.css (si difieren,
+ * manda ese archivo). La fuente Barlow Condensed se empaqueta con @fontsource en main.tsx. */
 :root {
-  /* Superficies */
-  --color-bg: #0A1020;
-  --color-surface: #111A2E;
-  --color-surface-2: #17223A;
-  --color-border: #2A3854;
-  --color-brand: #0B3D91;        /* banda de cabecera */
-  --color-brand-rule: #C8301A;   /* línea bajo la cabecera */
+  color-scheme: dark;
 
-  /* Texto */
-  --color-text: #F1F4F9;
-  --color-text-muted: #A7B2C6;
-  --color-text-faint: #8592AA;
-  --color-accent: #6EA2FF;       /* interactivo, pestaña activa, aclaraciones */
+  /* Surfaces */
+  --color-bg: #15171a;           /* steel: page, sidebar, top bar */
+  --color-surface: #0b0b0d;      /* flap: cards and panels */
+  --color-surface-2: #1c1e22;    /* housing: inset blocks, table heads */
+  --color-border: #2a2d31;       /* frame */
+  --color-rule: #2a2d31;         /* hairlines: grid, dividers, panel heads */
+  --color-control: #5b5e63;      /* steel-mid: control borders, chart zone edges */
 
-  /* Estados de lectura (siempre con icono + texto + borde) */
-  --state-alert: #FF6A4D;        /* ALERTA: texto, borde, marcador */
-  --state-alert-fill: #C8301A;   /* ALERTA: fondo de etiqueta y aviso (texto blanco) */
-  --state-alert-tint: rgba(255, 106, 77, 0.08);
-  --state-normal: #3DD68C;
-  --state-stale: #F5B841;        /* DATO VIEJO */
-  --state-nodata: #8592AA;       /* SIN DATOS */
-  --state-norange: #8AB4FF;      /* SIN RANGO */
-  --range-zone: rgba(61, 214, 140, 0.18);
+  /* Text */
+  --color-text: #f2f2f2;
+  --color-text-muted: #a7aaaf;
+  --color-text-faint: #a7aaaf;
+  --color-accent: #f2f2f2;       /* interactive, active nav item, clarifications */
 
-  /* Bordes por estado */
-  --border-alert: 2px solid var(--state-alert);
+  /* Reading states: red alert, amber stale, grey muted. Normal is plain text, never green. */
+  --state-alert: #c8452f;        /* large text, borders, markers; small text goes on a filled chip */
+  --state-alert-fill: #c8452f;   /* chip and notice background (white text) */
+  --state-normal: #f2f2f2;
+  --state-stale: #ffb000;        /* OLD DATA */
+  --state-nodata: #a7aaaf;       /* NO DATA */
+  --state-norange: #a7aaaf;      /* NO RANGE */
+  --range-zone: rgb(242 242 242 / 0.06);
+
+  /* Borders per state: one frame line; only the alert turns red. */
+  --border-alert: 1px solid var(--state-alert);
   --border-normal: 1px solid var(--color-border);
-  --border-stale: 2px dashed var(--state-stale);
-  --border-nodata: 2px dotted var(--state-nodata);
-  --border-norange: 3px double var(--state-norange);
-  --border-dubious: 2px solid var(--color-text-muted); /* MUESTRA DUDOSA */
+  --border-nodata: 1px solid var(--color-border);
+  --border-dubious: 1px solid var(--color-border);
 
-  /* Tipografía (sin fuentes empaquetadas) */
-  --font-sans: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
-  --text-xs: 14px;     /* mínimo: etiquetas, ejes, notas */
-  --text-sm: 15px;     /* cuerpo */
-  --text-md: 16px;     /* pestañas, chat */
-  --text-lg: 19px;     /* títulos de tarjeta */
-  --text-xl: 22px;     /* título de aviso */
-  --text-2xl: 28px;    /* estados vacíos */
-  --value-sm: 40px;    /* valor en listas */
-  --value-md: 56px;    /* valor en tarjeta */
-  --value-lg: 72px;    /* valor en Signos vitales */
-  --weight-regular: 400;
+  /* Typography (bundled with @fontsource in main.tsx) */
+  --font-sans: "Barlow Condensed", sans-serif;
+  --font-mono: "Barlow Condensed", sans-serif;
+  --text-xs: 14px;     /* minimum: labels, axes, notes */
+  --text-sm: 16px;     /* body */
+  --text-md: 17px;     /* nav, chat */
+  --text-lg: 19px;     /* card titles */
+  --text-xl: 22px;     /* notice title */
+  --text-2xl: 28px;    /* empty states */
+  --data: 26px;        /* flap value in cards; 36px from 1200px */
+  --weight-regular: 500;
+  --weight-medium: 500;
   --weight-bold: 700;
-  --leading-body: 1.5;
+  --leading-body: 1.45;
   --numeric: tabular-nums;
 
-  /* Espaciado (base 4) */
+  /* Spacing (base 4) */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -58,22 +60,25 @@
   --space-8: 32px;
   --space-10: 40px;
 
-  /* Forma */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-pill: 999px;
+  /* Shape */
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-pill: 2px;
   --target-min: 44px;
 
-  /* Estructura de la ventana (1280×800, mínimo 1024×700) */
-  --header-h: 60px;
-  --tabs-h: 52px;
-  --footer-h: 40px;
-  --page-pad: 20px;
+  /* Window layout (1280×800, minimum 1024×700) */
+  --header-h: 56px;
+  --sidebar-w: 208px;
+  --page-pad: 24px;
   --gap: 16px;
 
-  /* Movimiento */
-  --alert-pulse: 1.4s ease-in-out infinite;  /* solo el icono de alerta */
+  /* Motion */
+  --alert-pulse: 1.4s ease-in-out infinite;  /* alert icon only */
+}
+
+@media (min-width: 1200px) {
+  :root { --data: 36px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

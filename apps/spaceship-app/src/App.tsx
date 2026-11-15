@@ -4,7 +4,7 @@ import { listAstronauts } from "./api/astronauts";
 import { listIncidents } from "./api/incidents";
 import { getAstronautStatus } from "./api/status";
 import { Header } from "./components/Header";
-import { STATE_LABELS, StateIcon } from "./components/StatusPill";
+import { StateIcon } from "./components/StatusPill";
 import { TabBar, type TabDef } from "./components/TabBar";
 import { ConnectionContext, type ConnectionState } from "./hooks/connection";
 import { usePolling } from "./hooks/usePolling";
@@ -18,8 +18,6 @@ import { OrinaScreen } from "./screens/OrinaScreen";
 import { RegistrosScreen } from "./screens/RegistrosScreen";
 import { VitalesScreen } from "./screens/VitalesScreen";
 import { WellbeingScreen } from "./screens/WellbeingScreen";
-import { WellbeingIcon } from "./components/WellbeingMarks";
-import { SUPPORT_LABELS } from "./lib/wellbeing";
 
 type TabKey = "estado" | "vitales" | "musculo" | "orina" | "asistente" | "registros" | "wellbeing";
 
@@ -34,8 +32,6 @@ const TABS: TabDef<TabKey>[] = [
   { key: "wellbeing", label: "Wellbeing" },
 ];
 
-const LEGEND = ["alert", "stale", "no_data", "no_range", "normal"] as const;
-const WELLBEING_LEGEND = ["ok", "attention", "needs_support", "baseline_pending", "stale", "no_data"] as const;
 const STORAGE_KEY = "consola-medica.astronaut";
 
 function readStoredAstronaut(): string | null {
@@ -215,49 +211,26 @@ function Console({ connection }: { connection: ConnectionState }) {
 
   return (
     <div className="app">
-      <Header astronauts={list} selectedId={selected} onSelect={onSelect} connection={connection} />
-      <TabBar
-        tabs={TABS}
-        active={tab}
-        onChange={setTab}
-        flags={tabFlags(status.data)}
-        disabled={!selected}
+      <aside className="sidebar">
+        <h1 className="sidebar__brand">Biomedical console</h1>
+        <TabBar
+          tabs={TABS}
+          active={tab}
+          onChange={setTab}
+          flags={tabFlags(status.data)}
+          disabled={!selected}
+        />
+      </aside>
+      <Header
+        title={TABS.find((t) => t.key === tab)?.label ?? ""}
+        astronauts={list}
+        selectedId={selected}
+        onSelect={onSelect}
+        connection={connection}
       />
       <main id="screen" className="main" role="tabpanel" aria-labelledby={`tab-${tab}`}>
         {content}
       </main>
-      <footer className="footer">
-        {tab === "wellbeing" && selected ? (
-          <>
-            <div className="footer__legend">
-              {WELLBEING_LEGEND.map((s) => (
-                <span key={s} className={`footer__state footer__state--wb-${s}`}>
-                  <WellbeingIcon kind={s} size={16} />
-                  {SUPPORT_LABELS[s]}
-                </span>
-              ))}
-            </div>
-            <span>LIVE · SIMULATED · MIXED · PROV. = provisional</span>
-          </>
-        ) : (
-          <>
-            <div className="footer__legend">
-              <span>States:</span>
-              {LEGEND.map((s) => (
-                <span key={s} className={`footer__state footer__state--${s}`}>
-                  <StateIcon state={s} size={15} />
-                  {STATE_LABELS[s]}
-                </span>
-              ))}
-            </div>
-            <span>
-              {selected
-                ? "Ranges marked PROV. are provisional"
-                : "Tabs become available once there is a crew member"}
-            </span>
-          </>
-        )}
-      </footer>
     </div>
   );
 }

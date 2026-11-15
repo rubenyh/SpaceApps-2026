@@ -22,7 +22,7 @@ From `apps/spaceship-app`:
 | `npm run tauri dev` | Desktop window with hot reload. Vite on port 1420 (`strictPort`). |
 | `npm run dev` | Vite only, in a browser at <http://localhost:1420> (no Tauri window) |
 | `npm run build` | Type check (`tsc`) and production bundle. This is the project's lint step for TypeScript. |
-| `node src/lib/<name>.check.ts` | Self-checks for the pure logic in `src/lib/` (`assistant`, `chartScale`, `estado`, `incident`, `wellbeing`). Each exits non-zero on a failure. |
+| `node src/lib/<name>.check.ts` | Self-checks for the pure logic in `src/lib/` (`assistant`, `board`, `chartScale`, `estado`, `incident`, `wellbeing`). Each exits non-zero on a failure. |
 | `cargo check` in `src-tauri/` | Check the Rust shell |
 | `npm run tauri build` | Installer for the current OS (not used in the demo) |
 

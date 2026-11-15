@@ -1,55 +1,50 @@
+/* Palette and type from the ground console (apps/base-app/src/styles/app.css). */
 :root {
   color-scheme: dark;
 
   /* Surfaces */
-  --color-bg: #0A1020;
-  --color-surface: #111A2E;
-  --color-surface-2: #17223A;
-  --color-border: #2A3854;
-  --color-rule: #1F2B44;         /* hairlines: grid, dividers, panel heads */
-  --color-brand: #0B3D91;        /* header band */
-  --color-brand-rule: #C8301A;   /* rule under the header */
+  --color-bg: #15171a;           /* steel: page, sidebar, top bar */
+  --color-surface: #0b0b0d;      /* flap: cards and panels */
+  --color-surface-2: #1c1e22;    /* housing: inset blocks, table heads */
+  --color-border: #2a2d31;       /* frame */
+  --color-rule: #2a2d31;         /* hairlines: grid, dividers, panel heads */
+  --color-control: #5b5e63;      /* steel-mid: control borders, chart zone edges */
 
   /* Text */
-  --color-text: #F1F4F9;
-  --color-text-muted: #A7B2C6;
-  --color-text-faint: #8592AA;
-  --color-accent: #6EA2FF;       /* interactive, active tab, clarifications */
+  --color-text: #f2f2f2;
+  --color-text-muted: #a7aaaf;
+  --color-text-faint: #a7aaaf;
+  --color-accent: #f2f2f2;       /* interactive, active nav item, clarifications */
 
-  /* Reading states (always icon + text + border) */
-  --state-alert: #FF6A4D;        /* ALERT: text, border, marker */
-  --state-alert-fill: #C8301A;   /* ALERT: pill and notice background (white text) */
-  --state-alert-tint: rgba(255, 106, 77, 0.08);
-  --state-normal: #3DD68C;
-  --state-stale: #F5B841;        /* OLD DATA */
-  --state-nodata: #8592AA;       /* NO DATA */
-  --state-norange: #8AB4FF;      /* NO RANGE */
-  --range-zone: rgba(61, 214, 140, 0.18);
+  /* Reading states: red alert, amber stale, grey muted. Normal is plain text, never green. */
+  --state-alert: #c8452f;        /* large text, borders, markers; small text goes on a filled chip */
+  --state-alert-fill: #c8452f;   /* chip and notice background (white text) */
+  --state-normal: #f2f2f2;
+  --state-stale: #ffb000;        /* OLD DATA */
+  --state-nodata: #a7aaaf;       /* NO DATA */
+  --state-norange: #a7aaaf;      /* NO RANGE */
+  --range-zone: rgb(242 242 242 / 0.06);
 
-  /* Borders per state */
-  --border-alert: 2px solid var(--state-alert);
+  /* Borders per state: one frame line; only the alert turns red. */
+  --border-alert: 1px solid var(--state-alert);
   --border-normal: 1px solid var(--color-border);
-  --border-stale: 2px dashed var(--state-stale);
-  --border-nodata: 2px dotted var(--state-nodata);
-  --border-norange: 3px double var(--state-norange);
-  --border-dubious: 2px solid var(--color-text-muted); /* DOUBTFUL SAMPLE */
+  --border-nodata: 1px solid var(--color-border);
+  --border-dubious: 1px solid var(--color-border);
 
   /* Typography (bundled with @fontsource in main.tsx) */
-  --font-sans: "IBM Plex Sans", "Helvetica Neue", Arial, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --font-sans: "Barlow Condensed", sans-serif;
+  --font-mono: "Barlow Condensed", sans-serif;
   --text-xs: 14px;     /* minimum: labels, axes, notes */
-  --text-sm: 15px;     /* body */
-  --text-md: 16px;     /* tabs, chat */
+  --text-sm: 16px;     /* body */
+  --text-md: 17px;     /* nav, chat */
   --text-lg: 19px;     /* card titles */
   --text-xl: 22px;     /* notice title */
   --text-2xl: 28px;    /* empty states */
-  --value-sm: 40px;    /* value in lists */
-  --value-md: 56px;    /* value in card */
-  --value-lg: 72px;    /* value on Vital signs */
-  --weight-regular: 400;
+  --data: 26px;        /* flap value in cards; 36px from 1200px */
+  --weight-regular: 500;
   --weight-medium: 500;
-  --weight-bold: 600;   /* heaviest bundled Plex Sans weight */
-  --leading-body: 1.5;
+  --weight-bold: 700;
+  --leading-body: 1.45;
   --numeric: tabular-nums;
 
   /* Spacing (base 4) */
@@ -64,20 +59,23 @@
 
   /* Shape */
   --radius-sm: 2px;
-  --radius-md: 3px;
-  --radius-lg: 4px;
-  --radius-pill: 2px;   /* status tags are squared */
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-pill: 2px;
   --target-min: 44px;
 
   /* Window layout (1280×800, minimum 1024×700) */
-  --header-h: 60px;
-  --tabs-h: 52px;
-  --footer-h: 40px;
-  --page-pad: 20px;
+  --header-h: 56px;
+  --sidebar-w: 208px;
+  --page-pad: 24px;
   --gap: 16px;
 
   /* Motion */
   --alert-pulse: 1.4s ease-in-out infinite;  /* alert icon only */
+}
+
+@media (min-width: 1200px) {
+  :root { --data: 36px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

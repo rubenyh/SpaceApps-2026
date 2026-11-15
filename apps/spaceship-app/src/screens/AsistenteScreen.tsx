@@ -17,6 +17,7 @@ import { sendAssistantMessage } from "../api/assistant";
 import { HttpError, NetworkError, toApiError } from "../api/client";
 import { EvidenceFlags, IncidentPanel } from "../components/IncidentPanel";
 import { Panel } from "../components/Panel";
+import { withSub2 } from "../components/Sub2";
 import { StateIcon, type VisualState } from "../components/StatusPill";
 import { useNow } from "../hooks/useNow";
 import { formatAge, formatUtcTime } from "../lib/format";
@@ -284,7 +285,7 @@ function VisibleData({ status, updatedAt }: { status: AstronautStatus | null; up
         <li key={r.label}>
           <span className={`visible__name visible__name--${r.state}`}>
             <StateIcon state={r.state} />
-            {r.label}
+            {withSub2(r.label)}
           </span>
           <span className={r.state === "stale" ? "visible__age visible__age--stale" : "visible__age"}>
             {status === null ? "…" : r.age === null ? "never measured" : formatAge(r.age)}
