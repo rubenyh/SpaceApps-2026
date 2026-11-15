@@ -13,6 +13,8 @@ Simulated data, not clinically validated. Stdlib only:
 
     python3 firmware/simulator.py                    # API on 127.0.0.1:8000
     python3 firmware/simulator.py --urine-every 120  # faster urine samples
+    python3 firmware/simulator.py --real-vitals ast-01  # ast-01 wears a real Apple Watch
+    python3 firmware/simulator.py --real-urine ast-01   # ast-01's urine pH/salinity/temp from the ESP32
 """
 
 import argparse
@@ -48,6 +50,9 @@ MUSCLE_LOSS_PER_DAY = 0.09  # u.a./day, microgravity atrophy trend
 
 
 class Astronaut:
+    real_vitals = False  # True: a real wearable (apps/watch-app) sends this astronaut's pulse-ox
+    real_urine = False  # True: the ESP32 analyser (serial_bridge.py) sends this astronaut's pH, salinity, temperature
+
     def __init__(self, astronaut_id: str, profile: dict, rng: random.Random):
         self.id = astronaut_id
         self.profile = profile
@@ -58,6 +63,8 @@ class Astronaut:
         self.hydration = rng.uniform(0.4, 0.8)  # 0 dry .. 1 well hydrated
 
     def vitals(self, when: datetime) -> list[dict]:
+        if self.real_vitals:
+            return []
         rng = self.rng
         if self.exercise_until is None and rng.random() < 0.004:
             self.exercise_until = when + timedelta(minutes=rng.randint(3, 8))
@@ -91,14 +98,18 @@ class Astronaut:
         temperature = round(36.0 - rng.uniform(0, 2.5) - (6 if rng.random() < 0.05 else 0), 1)
         temp_quality = "good" if 32 <= temperature <= 38 else "suspect"  # sample_validity range
         source = "simulated:urine-analyser"
-        return [
-            reading(self.id, "urine_ph", "pH", when, value=ph, source=source),
-            reading(self.id, "urine_salinity", "mS/cm", when, value=salinity, source=source),
+        out = [
             reading(self.id, "urine_color", "rgb_hex", when, value_text=urine_color(dry), source=source),
-            reading(self.id, "urine_temperature", "°C", when, value=temperature, quality=temp_quality, source=source),
             reading(self.id, "urine_radiation_marker", RADIATION_CONFIG["unit"], when,
                     value=max(0.5, round(self.profile["ohdg"] + rng.gauss(0, 0.5), 2)), source=source),
         ]
+        if not self.real_urine:
+            out += [
+                reading(self.id, "urine_ph", "pH", when, value=ph, source=source),
+                reading(self.id, "urine_salinity", "mS/cm", when, value=salinity, source=source),
+                reading(self.id, "urine_temperature", "°C", when, value=temperature, quality=temp_quality, source=source),
+            ]
+        return out
 
     def muscle(self, when: datetime, boot: datetime) -> list[dict]:
         days = (when - boot).total_seconds() / 86400
@@ -219,6 +230,10 @@ def main() -> None:
     parser.add_argument("--urine-every", type=float, default=600, help="seconds between urine samples")
     parser.add_argument("--muscle-every", type=float, default=3600, help="seconds between muscle scans")
     parser.add_argument("--no-history", action="store_true", help="skip the flash-log upload on boot")
+    parser.add_argument("--real-vitals", action="append", default=[], choices=list(CREW), metavar="ID",
+                        help="astronaut whose pulse-ox comes from a real watch: no simulated heart rate/SpO2 (repeatable)")
+    parser.add_argument("--real-urine", action="append", default=[], choices=list(CREW), metavar="ID",
+                        help="astronaut whose urine pH/salinity/temperature come from the ESP32 (serial_bridge.py); colour and 8-OHdG stay simulated (repeatable)")
     parser.add_argument("--seed", type=int, help="random seed for reproducible runs")
     args = parser.parse_args()
 
@@ -227,6 +242,9 @@ def main() -> None:
     now = datetime.now(UTC)
     boot = now - timedelta(days=30)  # muscle trend starts 30 days ago
     crew = [Astronaut(i, p, rng) for i, p in CREW.items()]
+    for a in crew:
+        a.real_vitals = a.id in args.real_vitals
+        a.real_urine = a.id in args.real_urine
 
     log(f"boot, crew {', '.join(CREW)}, uplink {args.url}")
     while not uplink.register_crew():
@@ -248,7 +266,7 @@ def main() -> None:
             if tick >= next_muscle:
                 batch += [r for a in crew for r in a.muscle(when, boot)]
                 next_muscle = tick + args.muscle_every
-            hr = ", ".join(f"{a.id} {a.hr:.0f} bpm" for a in crew)
+            hr = ", ".join(f"{a.id} real watch" if a.real_vitals else f"{a.id} {a.hr:.0f} bpm" for a in crew)
             log(f"{hr} | sent {uplink.flush(batch)}, buffered {len(uplink.buffer)}")
             time.sleep(max(0.0, args.vitals_every - (time.monotonic() - tick)))
     except KeyboardInterrupt:
