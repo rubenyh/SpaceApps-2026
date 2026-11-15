@@ -104,9 +104,38 @@ def test_embedding_failure_is_named_apart_from_chroma(tmp_path: Path) -> None:
         def embed(self, texts):
             raise DependencyUnavailable("ollama down")
 
-    r = GuideRetriever(tmp_path / "chroma", "medical_guides", DownEmbedder(), 0.6)
+    path = tmp_path / "chroma"
+    GuideRetriever(path, "medical_guides", KeywordEmbedder(), 0.6).upsert_chunks(CHUNKS)
+    r = GuideRetriever(path, "medical_guides", DownEmbedder(), 0.6)
     with pytest.raises(EmbeddingUnavailable):
         r.search("dolor de pecho")
+
+
+def test_index_built_by_another_process_is_seen_after_empty_search(tmp_path: Path) -> None:
+    import json
+    import subprocess
+    import sys
+
+    path = tmp_path / "chroma"
+    r = GuideRetriever(path, "medical_guides", KeywordEmbedder(), 0.6)
+    with pytest.raises(DependencyUnavailable, match="empty"):
+        r.search("dolor de pecho")
+    # Ingest runs in its own process (demo-init container) while the API is up.
+    script = (
+        "import json, sys\n"
+        "from onboard_api.assistant.integrations.chroma import GuideRetriever\n"
+        "class E:\n"
+        "    def __init__(self, v): self.v = v\n"
+        "    def embed(self, texts): return [self.v.pop(0) for _ in texts]\n"
+        "chunks, vectors = json.loads(sys.stdin.read())\n"
+        "GuideRetriever(sys.argv[1], 'medical_guides', E(vectors), 0.6).upsert_chunks(chunks)\n"
+    )
+    vectors = KeywordEmbedder().embed([f"{c['source_title']} {c['text']}" for c in CHUNKS])
+    subprocess.run(
+        [sys.executable, "-c", script, str(path)],
+        input=json.dumps([CHUNKS, vectors]), text=True, check=True,
+    )
+    assert r.search("dolor de pecho")[0].chunk_id == "mp-chestpain-es-01"
 
 
 def test_concurrent_first_use_opens_one_client(tmp_path: Path, monkeypatch) -> None:

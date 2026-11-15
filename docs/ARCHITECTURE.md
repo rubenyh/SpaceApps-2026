@@ -23,6 +23,7 @@ flowchart LR
         Events["Demo events JSON<br/>(optional)"]
         Seed["scripts/seed_demo.py"]
         Firmware["firmware/simulator.py<br/>simulated biomonitor"]
+        Init["demo-init (Compose)<br/>scripts/prepare_demo.py"]
     end
     subgraph Ground["Ground"]
         Ground_API["ground-api<br/>FastAPI :8001<br/>health only"]
@@ -36,11 +37,15 @@ flowchart LR
     API -- "interpret (JSON), embed, chat" --> Ollama
     API -- "vector search" --> Chroma
     Events -. "loaded at startup" .-> API
+    Init -. "pull models, embed" .-> Ollama
+    Init -. "ingest guides" .-> Chroma
     API -. "telemetry (Planned)" .-> Ground_API
     BaseApp -. "no connection yet" .-> Ground_API
 ```
 
 The live connections are HTTP calls into onboard-api: from the console (reads and assistant) and from the demo producers (writes). The ground side has no link to the ship yet.
+
+In the Docker Compose demo, `onboard-api`, `ollama`, `demo-init` and `simulator` run as containers and the console stays on the host. The paths in the diagram are the native defaults; Compose uses the `sqlite`, `chroma` and `ollama` volumes instead ([Docker Compose demo](#docker-compose-demo)).
 
 ## Component map
 
@@ -55,6 +60,7 @@ The live connections are HTTP calls into onboard-api: from the console (reads an
 | Corpus ingest | Implemented (offline CLI) | Builds guide chunks from MedlinePlus XML and curated text, embeds them with Ollama, upserts into ChromaDB. | `python -m onboard_api.assistant.ingest` ([`__main__.py`](../services/onboard-api/src/onboard_api/assistant/ingest/__main__.py)) | [`medlineplus.py`](../services/onboard-api/src/onboard_api/assistant/ingest/medlineplus.py), [`evaluate.py`](../services/onboard-api/src/onboard_api/assistant/ingest/evaluate.py), [`corpus/manifest.json`](../services/onboard-api/corpus/manifest.json), [`corpus/curated.json`](../services/onboard-api/corpus/curated.json) |
 | Device simulator | Implemented (simulated hardware) | Software stand-in for the biomonitor: pulse oximeter per astronaut, shared urine analyser, muscle scanner. Registers `ast-01` and `ast-02`, uploads a history "flash log", then posts live readings with source `device:<sensor>`. Buffers readings (up to 10 000) while the API is down. Stdlib only. | [`firmware/simulator.py`](../firmware/simulator.py) | [`firmware/test_simulator.py`](../firmware/test_simulator.py) |
 | Demo seeder | Implemented (dev tool) | Creates the same two demo astronauts and posts fake readings with source `demo`, optionally every 5 s. | [`scripts/seed_demo.py`](../services/onboard-api/scripts/seed_demo.py) | |
+| Demo setup | Implemented (Compose `demo-init`) | One-shot: waits for Ollama, pulls the chat and embedding models if missing, runs the guide ingest when `ingest-stamp.txt` in the Chroma path does not match the corpus, chunker and embedding model digest. Logs lines prefixed `[prepare-demo]`. Safe to rerun. | [`scripts/prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py) | [`docker-compose.yml`](../docker-compose.yml), [`Dockerfile`](../services/onboard-api/Dockerfile) |
 | Database schema | Implemented | SQLite schema and seed rows for `sensor_config`, applied at onboard-api startup. | [`db/migrations/onboard/0001_baseline.sql`](../db/migrations/onboard/0001_baseline.sql) | [`db/data-dictionary.md`](../db/data-dictionary.md), [`repositories/database.py`](../services/onboard-api/src/onboard_api/repositories/database.py) |
 | ground-api | Scaffold | Health route only (`GET /`). FastAPI title "Space Apps Ground API". | `ground_api.main:app` in [`main.py`](../services/ground-api/src/ground_api/main.py) | |
 | base-app | Scaffold | Tauri + React template with the sample `greet` command. Assumed ground console. | [`App.tsx`](../apps/base-app/src/App.tsx), [`lib.rs`](../apps/base-app/src-tauri/src/lib.rs) | |
@@ -66,6 +72,12 @@ The live connections are HTTP calls into onboard-api: from the console (reads an
 
 All commands were run on Windows 11 with Git Bash on 2026-11-14.
 
+### Docker Compose demo
+
+`docker compose up --build` from the repo root runs the onboard stack: `onboard-api` (port 8000), `ollama`, the one-shot `demo-init` (model pull and guide ingest via [`scripts/prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py)) and `simulator`. The API does not depend on Ollama or `demo-init`. The console stays native. Steps, logs and volumes: [README](../README.md#run-the-demo-docker-compose--tauri). The sections below describe the native setup.
+
+Until `demo-init` finishes, the guide index is empty and searches fall back as described in [Failure and fallback behavior](#failure-and-fallback-behavior). The API picks up the first ingest without a restart. After a later re-ingest, restart it with `docker compose restart onboard-api`.
+
 ### onboard-api
 
 Working directory: `services/onboard-api`.
@@ -73,7 +85,7 @@ Working directory: `services/onboard-api`.
 ```sh
 uv sync --locked
 uv run fastapi dev                 # port 8000, auto-reload
-PYTHONUTF8=1 uv run pytest -q      # 269 passed
+PYTHONUTF8=1 uv run pytest -q      # 326 passed, 1 skipped
 ```
 
 Optional local dependencies, needed only by some assistant paths:
@@ -296,7 +308,7 @@ Not implemented. ground-api exposes only `GET /`. base-app is the Tauri template
 | Astronauts, sensor config, readings | onboard-api | SQLite at `ONBOARD_DB_PATH` (default `services/onboard-api/data/onboard.db`). Schema in [`db/migrations/onboard/`](../db/migrations/onboard/), described in [`db/data-dictionary.md`](../db/data-dictionary.md). | Written through `POST /astronauts`, `POST /readings`, `PUT /sensors/{kind}`. Read by the routers and by `SqliteReadingsProvider`. One connection per request (`get_connection`), WAL mode, foreign keys on. |
 | Schema version | onboard-api | `PRAGMA user_version` in the same file | `apply_migrations` at startup |
 | Protocol cards (16) | Medical workflow | JSON files in [`protocols/`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/protocols/), cached by `load_catalog` | Read-only at runtime. Versioned per card. |
-| Guide index | Ingest CLI | ChromaDB at `ONBOARD_CHROMA_PATH`, collection `medical_guides` | Written by ingest only. Read by `GuideRetriever.search`. The assistant never writes to it. |
+| Guide index | Ingest CLI | ChromaDB at `ONBOARD_CHROMA_PATH`, collection `medical_guides` | Written by ingest only (the CLI, or `prepare_demo.py` in Compose). Read by `GuideRetriever.search`. The assistant never writes to it. |
 | Ship events | onboard-api process | In memory (`StaticEventSource`), loaded once from `ONBOARD_DEMO_EVENTS_PATH` | Read by `select_intent` and `evaluate_alarms`. No API writes them; a restart is needed to change them. |
 | Assistant graph state | One request | LangGraph state dicts `AssistantState` ([`state.py`](../services/onboard-api/src/onboard_api/assistant/state.py)) and `MedicalState` ([`medical/state.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/state.py)) | Discarded after the response. No checkpointer. |
 | Open clarification case | The client | `clarification` object in the response, echoed back in the next request | Server reads it in `case_for` and `interpret_report`. The console stores it with the pending request and echoes it. |
@@ -322,6 +334,8 @@ API contract mirror: [`schemas/`](../services/onboard-api/src/onboard_api/schema
 | Local interpreter fails, times out (8 s) or returns invalid JSON | `understand.read_turn` | Returns `None`; the turn continues with the rule interpretation only. No notice. |
 | Model proposes a symptom not backed by the user's words | `understand.accept` | Observation dropped. |
 | Ollama or ChromaDB down during retrieval | `retrieve_guides` | ChromaDB failure: notice `NOTICE_GUIDES_FAILED` ("... (ChromaDB)."). Query embedding failure (Ollama): `GuideRetriever.search` raises `EmbeddingUnavailable`, notice `NOTICE_EMBEDDING_FAILED`. Reply uses card text. |
+| Guide index empty (ingest not run yet, or `demo-init` still running) | `GuideRetriever.search` ([`chroma.py`](../services/onboard-api/src/onboard_api/assistant/integrations/chroma.py)), `retrieve_guides` | `search` raises `DependencyUnavailable` and clears the cached Chroma client, so the next search reopens the index and sees a later ingest. Notice `NOTICE_GUIDES_FAILED`. Reply uses card text. |
+| `demo-init` fails (Ollama unreachable after 300 s, pull or ingest error) | [`prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py) | Exits non-zero with the reason in `docker compose logs demo-init`. The API keeps running; assistant paths that need models or guides fall back as above. Rerun with `docker compose up demo-init`. |
 | No relevant guide chunk | `retrieve_guides`, `compose_answer` | Notice "No se encontró una guía local pertinente." A case with a decision uses the card summary. An educational question returns `EDUCATIONAL_ABSTAIN` and does not answer. |
 | Ollama chat error or timeout (20 s per call) | `OllamaClient._post` raises `DependencyUnavailable`; `compose_answer` catches it | Notice `NOTICE_LLM_FAILED`. Reply uses card summary or a guide excerpt. |
 | LLM draft cites unknown sources, adds numbers or unsafe claims | `valid_draft` | Draft discarded, notice `NOTICE_DRAFT_REJECTED`, card text shown. |
