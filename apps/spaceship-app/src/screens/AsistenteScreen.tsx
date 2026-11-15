@@ -15,7 +15,7 @@ import {
 } from "../api/types";
 import { sendAssistantMessage } from "../api/assistant";
 import { HttpError, NetworkError, toApiError } from "../api/client";
-import { IncidentPanel } from "../components/IncidentPanel";
+import { EvidenceFlags, IncidentPanel } from "../components/IncidentPanel";
 import { Panel } from "../components/Panel";
 import { StateIcon, type VisualState } from "../components/StatusPill";
 import { useNow } from "../hooks/useNow";
@@ -31,6 +31,7 @@ import {
   explanation,
   mergeSymptoms,
 } from "../lib/assistant";
+import { ruleLabel } from "../lib/incident";
 
 interface Props {
   astronautId: string | null;
@@ -139,6 +140,11 @@ function AssistantReply({ response, at }: { response: AssistantResponse; at: num
               <strong>Tell (nothing is sent automatically):</strong> {response.notify.join(", ")}
             </p>
           ) : null}
+          {urgency === "immediate" && response.matched_rules.length > 0 ? (
+            <p className="triage__procedure">
+              <strong>Matched rules:</strong> {response.matched_rules.map(ruleLabel).join(", ")}
+            </p>
+          ) : null}
           {response.incident?.recorded === false ? (
             <p className="triage__notify">
               <StateIcon state="alert" size={15} />
@@ -177,7 +183,7 @@ function AssistantReply({ response, at }: { response: AssistantResponse; at: num
             {response.findings.map((f, i) => (
               <li key={i}>
                 <span className="msg__tag">{FINDING_LABELS[f.kind]}</span> {f.detail}{" "}
-                <span className="msg__source">({f.source})</span>
+                <span className="msg__source">({f.source})</span> <EvidenceFlags flags={f.evidence_flags} />
               </li>
             ))}
           </ul>
