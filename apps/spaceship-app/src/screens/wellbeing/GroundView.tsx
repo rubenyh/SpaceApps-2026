@@ -365,7 +365,7 @@ export function GroundView({ astronautId, displayName, onBack }: Props) {
                 </ul>
               )}
               <p className="wellbeing__faint">
-                Queued · Withdrawn · Sent — packages never leave the station without {firstName(displayName)}'s
+                Packages never leave the station without {firstName(displayName)}'s
                 confirmation.
               </p>
             </Panel>
@@ -453,7 +453,7 @@ function PackageItem({ pkg, tz, selected, onPreview, onWithdraw }: ItemProps) {
           ? `consent ${pkg.consent_statement_version} recorded ${formatDay(missionDay(tz, new Date(recorded)))} ${formatClock(recorded, tz)}`
           : pkg.status === "withdrawn"
             ? "consent withdrawn"
-            : "sent"}
+            : "left the queue, delivery not confirmed"}
       </span>
       <div className="wb-actions">
         <button type="button" className="btn btn--ghost" aria-pressed={selected} onClick={onPreview}>
