@@ -1,0 +1,54 @@
+{
+  "case_id": "urinary.simulated.001",
+  "version": 1,
+  "family": "urinary_symptoms",
+  "tags": [
+    "simulated_data",
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "La muestra de orina salió de color rojizo pero no tengo síntomas",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [
+    {
+      "astronaut_id": "ast-01",
+      "kind": "urine_color",
+      "unit": "rgb_hex",
+      "quality": "good",
+      "source": "simulated:urine-analyser",
+      "age_seconds": 60,
+      "value_text": "#B04030"
+    }
+  ],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": null,
+    "clarify": false,
+    "required_actions": [
+      "not covered by the cards"
+    ],
+    "prohibited_actions": [
+      "antibiotic",
+      "not an emergency"
+    ],
+    "acceptable_sources": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Urine RGB is a sample property, never a clinical cause."
+  }
+}

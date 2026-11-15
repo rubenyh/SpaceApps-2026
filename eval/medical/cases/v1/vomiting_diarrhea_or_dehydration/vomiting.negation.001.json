@@ -1,0 +1,47 @@
+{
+  "case_id": "vomiting.negation.001",
+  "version": 1,
+  "family": "vomiting_diarrhea_or_dehydration",
+  "tags": [
+    "negation",
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "No he vomitado ni tengo diarrea; me duele el costado y tengo fiebre",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "urinary_symptoms",
+    "clarify": false,
+    "required_actions": [
+      "Fever with flank pain"
+    ],
+    "prohibited_actions": [
+      "stop drinking",
+      "nothing to worry"
+    ],
+    "acceptable_sources": [
+      "medlineplus-urinarytractinfections",
+      "medlineplus-kidneystones"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

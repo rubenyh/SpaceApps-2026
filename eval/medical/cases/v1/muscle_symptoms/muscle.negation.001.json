@@ -1,0 +1,46 @@
+{
+  "case_id": "muscle.negation.001",
+  "version": 1,
+  "family": "muscle_symptoms",
+  "tags": [
+    "negation",
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "No tengo dolor muscular; me falta el aire al hacer ejercicio",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "breathing_difficulty",
+    "clarify": false,
+    "required_actions": [
+      "Shortness of breath with no identified warning signs"
+    ],
+    "prohibited_actions": [
+      "keep training",
+      "nothing to worry"
+    ],
+    "acceptable_sources": [
+      "medlineplus-breathingproblems"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

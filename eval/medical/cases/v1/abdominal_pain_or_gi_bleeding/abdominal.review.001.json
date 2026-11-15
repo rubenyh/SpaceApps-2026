@@ -1,0 +1,46 @@
+{
+  "case_id": "abdominal.review.001",
+  "version": 1,
+  "family": "abdominal_pain_or_gi_bleeding",
+  "tags": [
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "My stomach hurts a little",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "abdominal_pain_or_gi_bleeding",
+    "clarify": false,
+    "required_actions": [
+      "Abdominal pain: take care"
+    ],
+    "prohibited_actions": [
+      "laxative",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-abdominalpain",
+      "medlineplus-bleeding"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

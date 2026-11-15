@@ -1,0 +1,44 @@
+{
+  "case_id": "radiation.dependency_down.001",
+  "version": 1,
+  "family": "radiation_alert",
+  "tags": [
+    "dependency_down",
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "Was I exposed to radiation?",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "down"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "informational",
+    "protocol_id": "radiation_alert",
+    "clarify": false,
+    "required_actions": [
+      "exposure cannot be estimated"
+    ],
+    "prohibited_actions": [
+      "you were not exposed",
+      "no exposure occurred"
+    ],
+    "acceptable_sources": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

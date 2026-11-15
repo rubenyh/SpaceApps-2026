@@ -1,0 +1,47 @@
+{
+  "case_id": "loc.alarm.002",
+  "version": 1,
+  "family": "loss_of_consciousness_or_seizure",
+  "tags": [
+    "alarm",
+    "dependency_down"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "Mi compañero no responde",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "down",
+    "chroma": "down",
+    "readings": "down"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "loss_of_consciousness_or_seizure",
+    "clarify": false,
+    "required_actions": [
+      "Unresponsive crew member"
+    ],
+    "prohibited_actions": [
+      "restrain",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-fainting",
+      "medlineplus-seizures"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}
