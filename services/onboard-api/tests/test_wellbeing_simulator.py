@@ -47,13 +47,21 @@ def test_simulated_crew_tells_the_demo_story(tmp_path) -> None:
         assert r["ast-03"].discrepancy is True, seed
         assert r["ast-03"].onset_date == TODAY - timedelta(days=20 - DISCREPANCY_DAY), seed
         assert r["ast-03"].sustained_sources == ["vision", "physiology", "social"], seed
+        for aid, ev in r.items():  # no gap: activation has data for everyone
+            activation = next(i for i in ev.indicators if i.kind == "activation")
+            assert activation.status in ("ok", "attention"), (seed, aid, activation.status)
+            assert activation.latest_day == TODAY - timedelta(days=1), (seed, aid)
+            assert all(i.status != "no_data" for i in ev.indicators), (seed, aid)
 
     simulate(repo, TODAY)  # rerun replaces, never duplicates
     assert len(repo.list_checkins("ast-01")) == 21
     assert len(repo.list_signals("ast-01")) == 21 * 3
     vision = repo.list_vision_sessions("ast-01")
-    assert len(vision) == 20 and all(v.simulated for v in vision)
+    assert all(v.simulated for v in vision)
     assert max(v.started_at.date() for v in vision) == TODAY - timedelta(days=1)
+    kinds = [v.session_type for v in vision]
+    assert kinds.count("bitacora") == 20 and kinds.count("ambiente") == 20 * 3
+    assert all(v.motion and v.fatigue is None for v in vision if v.session_type == "ambiente")
     conn.close()
 
 
@@ -88,9 +96,9 @@ def test_perclos_range_is_configurable(tmp_path) -> None:
     conn = connect_wellbeing(tmp_path / "wellbeing.db")
     repo = WellbeingRepository(conn)
     simulate(repo, TODAY, perclos=(0.03, 0.06))
-    values = [v.fatigue.perclos for v in repo.list_vision_sessions("ast-01")]
+    values = [v.fatigue.perclos for v in repo.list_vision_sessions("ast-01") if v.fatigue]
     assert all(0.03 <= p <= 0.06 for p in values)
-    altered = [v.fatigue.perclos for v in repo.list_vision_sessions("ast-02")][-3:]
+    altered = [v.fatigue.perclos for v in repo.list_vision_sessions("ast-02") if v.fatigue][-3:]
     assert all(0.16 <= p <= 0.26 for p in altered)
     with pytest.raises(ValueError):
         simulate(repo, TODAY, perclos=(0.2, 0.1))
