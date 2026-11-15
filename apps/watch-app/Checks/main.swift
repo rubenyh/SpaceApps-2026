@@ -40,4 +40,13 @@ assert(Labels.name("unknown_kind") == "unknown_kind")
 let incidents = try Api.decoder().decode([Incident].self, from: Data(#"[{"id":"x","astronaut_id":"ast-01","urgency":"immediate"}]"#.utf8))
 assert(incidents.first?.astronautId == "ast-01")
 
+let at = Labels.date("2026-11-15T18:03:33.105Z")!
+let hrBody = Api.readingBody(astronautID: "ast-01", kind: "heart_rate", value: 71.6, at: at)
+assert(hrBody["value"] as? Double == 72 && hrBody["unit"] as? String == "bpm")
+assert(hrBody["recorded_at"] as? String == "2026-11-15T18:03:33.105Z")
+assert(hrBody["source"] as? String == "watch:healthkit" && hrBody["quality"] as? String == "good")
+let spo2Body = Api.readingBody(astronautID: "ast-01", kind: "spo2", value: 0.97, at: at)
+assert(spo2Body["value"] as? Double == 97 && spo2Body["unit"] as? String == "%")
+assert(JSONSerialization.isValidJSONObject(spo2Body))
+
 print("watch-app checks OK")

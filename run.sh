@@ -4,6 +4,8 @@
 #   ./run.sh --no-apps       only the Docker stack
 #   ./run.sh --watch-device  as the default, but onboard-api also listens on the LAN and the
 #                            watch project opens in Xcode to install on your real watch
+#   ./run.sh --urine-device  also read ast-01's urine pH/salinity/temperature from the ESP32 on USB
+#                            (firmware/serial_bridge.py, own Terminal window; combine with the others)
 #   ./run.sh --down          stop the Docker stack (keeps data, index and models)
 # Needs Docker Desktop running; the consoles need Node.js and Rust; the watch needs Xcode
 # with a watchOS simulator runtime (xcodebuild -downloadPlatform watchOS).
@@ -13,17 +15,23 @@ ROOT=$PWD
 
 no_apps=false
 device=false
+urine=false
 for arg in "$@"; do
   case $arg in
     --down) exec docker compose down ;;
     --no-apps) no_apps=true ;;
     --watch-device) device=true ;;
+    --urine-device) urine=true ;;
     *) echo "unknown option: $arg (see the top of run.sh)" >&2; exit 2 ;;
   esac
 done
 
 # A real watch reaches onboard-api over Wi-Fi, so it must listen on the LAN, not only on 127.0.0.1.
-if $device; then export ONBOARD_API_HOST=0.0.0.0; fi
+# The real watch wears ast-01, so the simulator stops faking ast-01's pulse and SpO2.
+if $device; then export ONBOARD_API_HOST=0.0.0.0 SIMULATOR_ARGS="--real-vitals ast-01"; fi
+# Docker Desktop cannot reach USB serial on macOS, so the ESP32 bridge runs on the host; the simulator
+# stops faking the three urine values the board measures.
+if $urine; then export SIMULATOR_ARGS="${SIMULATOR_ARGS:-} --real-urine ast-01"; fi
 docker compose up --build -d || { echo 'docker compose up failed (is Docker Desktop running?)' >&2; exit 1; }
 
 echo 'Waiting for onboard-api (8000) and ground-api (8001)...'
@@ -35,6 +43,11 @@ for url in http://127.0.0.1:8000/ http://127.0.0.1:8001/; do
   done
   echo "  $url ok"
 done
+
+if $urine; then
+  osascript -e "tell application \"Terminal\" to do script \"cd '$ROOT/services/onboard-api' && uv run --with pyserial python ../../firmware/serial_bridge.py\"" >/dev/null
+  echo 'ESP32 urine bridge: own Terminal window (plug the board in first; it asks for the port if it cannot find it).'
+fi
 
 if ! $no_apps; then
   for app in spaceship-app base-app; do
@@ -49,7 +62,7 @@ if ! $no_apps; then
   elif $device; then
     ip=$(ipconfig getifaddr en0 || ipconfig getifaddr en1 || echo '<Mac IP>')
     open "$watch/WatchApp.xcodeproj"
-    echo "Watch: in Xcode pick your watch and press Run, then enter http://$ip:8000 on the watch."
+    echo "Watch: in Xcode pick your watch and press Run, then enter http://$ip:8000 and pick Demo Uno (ast-01)."
     echo "       Signing and Developer Mode: $watch/README.md"
   else
     echo 'Building the watch app for the simulator...'
