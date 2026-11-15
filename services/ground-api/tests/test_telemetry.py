@@ -15,6 +15,8 @@ from ground_api.telemetry import get_clock
 EXAMPLES_DIR = Path(__file__).resolve().parents[3] / "contracts" / "telemetry" / "examples"
 EXAMPLES = sorted(EXAMPLES_DIR.glob("*.json"))
 BASIC = json.loads((EXAMPLES_DIR / "batch-basic.json").read_text("utf-8"))
+INCIDENT = json.loads((EXAMPLES_DIR / "batch-incident.json").read_text("utf-8"))
+NO_UPDATES = {"incident_updates_accepted": 0, "incident_updates_duplicates": 0}
 # 30 s after the basic batch was sent.
 T0 = datetime(2026, 11, 14, 18, 2, 45, tzinfo=UTC)
 
@@ -76,10 +78,10 @@ def test_health_and_empty_state(client: TestClient) -> None:
 def test_batch_accepted_and_duplicate_batch_stored_once(client: TestClient) -> None:
     response = client.post("/telemetry/v1/batches", json=BASIC)
     assert response.status_code == 202
-    assert response.json() == {"accepted": 2, "duplicates": 0}
+    assert response.json() == {"accepted": 2, "duplicates": 0, **NO_UPDATES}
     again = client.post("/telemetry/v1/batches", json=BASIC)
     assert again.status_code == 202
-    assert again.json() == {"accepted": 0, "duplicates": 2}
+    assert again.json() == {"accepted": 0, "duplicates": 2, **NO_UPDATES}
     link = client.get("/link").json()
     assert link["batches_received"] == 1
     assert link["readings_received"] == 2
@@ -92,7 +94,7 @@ def test_batch_accepted_and_duplicate_batch_stored_once(client: TestClient) -> N
 def test_duplicate_reading_ids_ignored(client: TestClient) -> None:
     client.post("/telemetry/v1/batches", json=BASIC)
     response = client.post("/telemetry/v1/batches", json=batch())
-    assert response.json() == {"accepted": 0, "duplicates": 2}
+    assert response.json() == {"accepted": 0, "duplicates": 2, **NO_UPDATES}
     assert client.get("/link").json()["batches_received"] == 2
     assert len(client.get("/astronauts/ast-02/readings").json()) == 1
     assert len(client.get("/alerts").json()) == 1
@@ -107,6 +109,9 @@ def test_duplicate_reading_ids_ignored(client: TestClient) -> None:
         {**BASIC, "extra": 1},
         {k: v for k, v in BASIC.items() if k != "sensors"},
         {**BASIC, "readings": [{**BASIC["readings"][0], "kind": "blood_sugar"}]},
+        # Incident updates carry only contract fields: no message or report text.
+        {**BASIC, "incident_updates": [{**INCIDENT["incident_updates"][0], "reply": "text"}]},
+        {**BASIC, "incident_updates": [{**INCIDENT["incident_updates"][0], "type": "deleted"}]},
     ],
 )
 def test_invalid_batch_422(client: TestClient, body: dict) -> None:
@@ -152,6 +157,7 @@ def test_heartbeat_keeps_configs_and_crew(client: TestClient) -> None:
     assert client.post("/telemetry/v1/batches", json=heartbeat).json() == {
         "accepted": 0,
         "duplicates": 0,
+        **NO_UPDATES,
     }
     crew = client.get("/crew").json()
     assert [m["astronaut_id"] for m in crew] == ["ast-01", "ast-02"]
@@ -218,3 +224,78 @@ def test_astronaut_readings_filters(client: TestClient) -> None:
 def test_cors_allows_base_app(client: TestClient) -> None:
     response = client.get("/crew", headers={"Origin": "http://localhost:1421"})
     assert response.headers["access-control-allow-origin"] == "http://localhost:1421"
+
+
+INCIDENT_ID = INCIDENT["incident_updates"][0]["incident_id"]
+CREATED, ACKED = INCIDENT["incident_updates"]
+RULES = CREATED["matched_rules"]
+
+
+def test_incident_updates_stored_once_despite_retries(client: TestClient, clock: FakeClock) -> None:
+    clock.now = datetime(2026, 11, 14, 18, 10, 5, tzinfo=UTC)
+    response = client.post("/telemetry/v1/batches", json=INCIDENT)
+    assert response.status_code == 202
+    assert response.json() == {
+        "accepted": 0, "duplicates": 0, "incident_updates_accepted": 2, "incident_updates_duplicates": 0
+    }
+    # Ground stored it but the response was lost: onboard retries the same batch, then
+    # (after a restart) sends the same updates under a new batch_id.
+    clock.now += timedelta(minutes=1)
+    for body in (INCIDENT, {**INCIDENT, "batch_id": str(uuid.uuid4())}):
+        assert client.post("/telemetry/v1/batches", json=body).json()["incident_updates_duplicates"] == 2
+
+    [listed] = client.get("/incidents").json()
+    received = "2026-11-14T18:10:05Z"  # first delivery, stored apart from the onboard time
+    assert listed == client.get(f"/incidents/{INCIDENT_ID}").json() == {
+        "ship_id": "ship-01",
+        "id": INCIDENT_ID,
+        "astronaut_id": "ast-01",
+        "began_at": "2026-11-14T18:05:00Z",
+        "urgency": "immediate",
+        "protocol_id": "respiratory-distress",
+        "protocol_version": "1.0",
+        "matched_rules": RULES,
+        "action": CREATED["action"],
+        "acknowledgments": [
+            {"acknowledged_by": "ast-02", "acknowledged_at": "2026-11-14T18:06:30Z", "received_at": received}
+        ],
+        "updates": [
+            {"id": CREATED["id"], "type": "created", "occurred_at": "2026-11-14T18:05:00Z",
+             "received_at": received, "acknowledged_by": None},
+            {"id": ACKED["id"], "type": "acknowledged", "occurred_at": "2026-11-14T18:06:30Z",
+             "received_at": received, "acknowledged_by": "ast-02"},
+        ],
+    }
+    assert client.get("/incidents/unknown").status_code == 404
+
+
+def test_offline_ack_arrives_later_with_its_onboard_time(client: TestClient, clock: FakeClock) -> None:
+    clock.now = datetime(2026, 11, 14, 18, 5, 1, tzinfo=UTC)
+    client.post("/telemetry/v1/batches", json=batch(readings=[], incident_updates=[CREATED]))
+    clock.now = datetime(2026, 11, 14, 18, 20, 0, tzinfo=UTC)  # link was down for the ack
+    client.post("/telemetry/v1/batches", json=batch(readings=[], incident_updates=[ACKED]))
+    incident = client.get(f"/incidents/{INCIDENT_ID}").json()
+    assert incident["began_at"] == "2026-11-14T18:05:00Z"
+    [ack] = incident["acknowledgments"]
+    assert ack == {
+        "acknowledged_by": "ast-02",
+        "acknowledged_at": "2026-11-14T18:06:30Z",
+        "received_at": "2026-11-14T18:20:00Z",
+    }
+    for update in incident["updates"]:
+        assert update["received_at"] >= update["occurred_at"]
+    assert [u["received_at"] for u in incident["updates"]] == ["2026-11-14T18:05:01Z", "2026-11-14T18:20:00Z"]
+
+
+def test_incidents_newest_first_and_began_at_waits_for_created(client: TestClient, clock: FakeClock) -> None:
+    clock.now = datetime(2026, 11, 14, 19, 0, 0, tzinfo=UTC)
+    later = {**CREATED, "id": str(uuid.uuid4()), "incident_id": "inc-2", "occurred_at": "2026-11-14T18:30:00Z"}
+    orphan_ack = {**ACKED, "id": str(uuid.uuid4()), "incident_id": "inc-3"}
+    client.post("/telemetry/v1/batches", json=batch(readings=[], incident_updates=[CREATED, later, orphan_ack]))
+    listed = client.get("/incidents").json()
+    assert [(i["id"], i["began_at"]) for i in listed] == [
+        ("inc-2", "2026-11-14T18:30:00Z"), (INCIDENT_ID, "2026-11-14T18:05:00Z"), ("inc-3", None)
+    ]
+    created_3 = {**CREATED, "id": str(uuid.uuid4()), "incident_id": "inc-3"}
+    client.post("/telemetry/v1/batches", json=batch(readings=[], incident_updates=[created_3]))
+    assert client.get("/incidents/inc-3").json()["began_at"] == "2026-11-14T18:05:00Z"
