@@ -3,6 +3,7 @@
 Pure functions over in-memory data. Every threshold comes from
 WellbeingSettings and is a PROVISIONAL design parameter, not a clinical one.
 The method is described in docs/wellbeing-contract.md ("Cómo se calcula").
+User-facing texts (support_notes, data_notices) are in English, like the console.
 """
 
 import math
@@ -92,10 +93,10 @@ _CHECKIN_ITEMS = (
 )
 
 SOURCE_LABELS: dict[WellbeingSource, str] = {
-    "checkin": "checklist diario",
-    "vision": "cámara",
-    "physiology": "datos fisiológicos",
-    "social": "interacción social",
+    "checkin": "daily check-in",
+    "vision": "camera",
+    "physiology": "physiological data",
+    "social": "social interaction",
 }
 
 
@@ -538,7 +539,7 @@ def _trend(indicators: Sequence[IndicatorEval], settings: WellbeingSettings) -> 
     return "stable"
 
 
-# --- Texts (Spanish, support language, never clinical labels) ---
+# --- Texts (English, support language, never clinical labels) ---
 
 
 def support_notes(ev: Evaluation, settings: WellbeingSettings) -> list[str]:
@@ -547,36 +548,36 @@ def support_notes(ev: Evaluation, settings: WellbeingSettings) -> list[str]:
     if ev.level == "needs_support":
         labels = ", ".join(SOURCE_LABELS[s] for s in ev.sustained_sources)
         notes.append(
-            f"Varias fuentes ({labels}) muestran cambios sostenidos desde el {onset}. "
-            "Puede ayudar hablarlo con alguien de confianza de la tripulación."
+            f"Several sources ({labels}) have shown a sustained change since {onset}. "
+            "It may help to talk it over with someone you trust on the crew."
         )
         notes.append(
-            "Si quieres, puedes enviar un resumen al psicólogo en Tierra. "
-            "Sólo se envía con tu consentimiento."
+            "If you want, you can send a summary to the psychologist on Earth. "
+            "It is only sent with your consent."
         )
     elif ev.level == "attention":
         labels = ", ".join(SOURCE_LABELS[s] for s in ev.sustained_sources)
         notes.append(
-            f"Una fuente ({labels}) muestra un cambio sostenido desde el {onset}. "
-            "Puede ser útil tomarse un momento para revisar cómo te sientes."
+            f"One source ({labels}) has shown a sustained change since {onset}. "
+            "It may be worth taking a moment to check in with how you feel."
         )
     elif ev.level == "ok":
-        notes.append("Sin cambios sostenidos respecto a tu línea base.")
+        notes.append("No sustained changes compared with your personal baseline.")
     elif ev.level == "baseline_pending":
         missing = max(0, settings.baseline_min_days - ev.checkin_baseline_days)
         notes.append(
-            "Construyendo tu línea base personal: "
-            f"faltan {missing} día(s) de checklist para empezar a comparar."
+            "Building your personal baseline: "
+            f"{missing} more day(s) of check-ins before comparisons start."
         )
     elif ev.level == "stale":
         last = ev.latest_day.isoformat() if ev.latest_day else "-"
-        notes.append(f"No hay datos recientes desde el {last}.")
+        notes.append(f"No recent data since {last}.")
     else:
-        notes.append("Aún no hay datos de bienestar. Empieza con el checklist diario.")
+        notes.append("No wellbeing data yet. Start with the daily check-in.")
     if ev.discrepancy:
         notes.append(
-            "Tu checklist no muestra cambios, pero otras señales sí. "
-            "No significa nada por sí solo: es una invitación a revisar cómo estás."
+            "Your check-in shows no change, but other signals do. "
+            "On its own this means nothing: it is an invitation to check in with yourself."
         )
     return notes
 
@@ -591,11 +592,11 @@ def data_notices(inputs: DailyInputs, as_of: date) -> list[str]:
     counts = origin_counts(inputs, as_of)
     if counts["simulated"] or counts["mixed"]:
         notices.append(
-            f"Días con datos: {counts['live']} en vivo, {counts['simulated']} simulados, "
-            f"{counts['mixed']} mixtos (en vivo + simulados)."
+            f"Days with data: {counts['live']} live, {counts['simulated']} simulated, "
+            f"{counts['mixed']} mixed (live + simulated)."
         )
     if inputs.excluded_suspect:
         notices.append(
-            f"{inputs.excluded_suspect} dato(s) con calidad dudosa excluidos del análisis."
+            f"{inputs.excluded_suspect} low-quality data point(s) left out of the analysis."
         )
     return notices

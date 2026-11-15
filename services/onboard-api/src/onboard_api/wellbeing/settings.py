@@ -7,8 +7,8 @@ from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASIS = (
-    "Parámetros de diseño del equipo, sin validación clínica. "
-    "Se comparan desviaciones contra la línea base personal."
+    "Team design parameters, not clinically validated. "
+    "Deviations are measured against each person's own baseline."
 )
 
 

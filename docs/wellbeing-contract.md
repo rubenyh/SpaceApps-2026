@@ -4,7 +4,7 @@ Estado: **v1, implementado** (rama `agent/hiram/wellbeing-backend`) · Dueño: H
 
 El módulo `onboard_api.wellbeing` detecta **cambios sostenidos de cada astronauta respecto a su propia línea base**. No diagnostica: sus salidas son de apoyo ("necesita apoyo"), nunca etiquetas clínicas.
 
-- Los nombres de campos y valores van en inglés (igual que el resto de la API). Los textos para mostrar (`support_notes`, `data_notices`, preguntas del checklist) ya vienen en español.
+- Los nombres de campos y valores van en inglés, igual que el resto de la API. **Los textos para mostrar también salen en inglés**, como la consola (#16): `support_notes`, `data_notices`, `basis` y las preguntas del checklist. Usan lenguaje de apoyo y nunca clínico. Este documento sigue en español.
 - Todas las fechas-hora son ISO 8601 UTC con `Z`. Un **día** (`day`) es el **día de misión** `YYYY-MM-DD` en la zona `WELLBEING_MISSION_TZ` (nombre IANA; por defecto `UTC`, como la Estación Espacial). Todo lo que se agrupa por día usa esa zona: checklist, señales, visión, co-presencia, línea base, línea de tiempo y `onset_date`. Los timestamps se siguen guardando y devolviendo en UTC. Para la demo en Mexicali: `America/Tijuana`; si no, desde las 16:00 locales los datos caen al día siguiente. La zona en uso sale en `GET /wellbeing/parameters` (`mission_tz`).
 - Errores: `404 {"detail": "..."}` si el astronauta no existe; `422` para validación (mismo formato que FastAPI en el resto de la API).
 - El módulo guarda sus datos en su propia base (`data/wellbeing.db`). Lee la base de Rubén (`astronauts`, `readings` de `heart_rate`) **sólo en modo lectura**.
@@ -34,11 +34,11 @@ El módulo `onboard_api.wellbeing` detecta **cambios sostenidos de cada astronau
 
 **EN VIVO / SIMULADO.** Cada dato de entrada lleva `source`. Es simulado si `source` es `"simulated"`, `"demo"` o empieza por `"simulated:"`; si no, es en vivo. El origen se calcula por valor, no por día, y las respuestas lo traen así (`Origin`):
 
-| `Origin` | Significa | Mostrar como |
+| `Origin` | Significa | Mostrar como (consola en inglés) |
 |---|---|---|
-| `"live"` | Sólo datos reales | **EN VIVO** (resaltado) |
-| `"simulated"` | Sólo datos simulados | SIMULADO |
-| `"mixed"` | Ese día hay de los dos | MIXTO, o EN VIVO + SIMULADO |
+| `"live"` | Sólo datos reales | **LIVE** (resaltado; EN VIVO) |
+| `"simulated"` | Sólo datos simulados | SIMULATED (SIMULADO) |
+| `"mixed"` | Ese día hay de los dos | MIXED, o LIVE + SIMULATED |
 
 - Cada registro de entrada devuelto (`Checkin`, `Signal`, `VisionSession`, `CoPresence`) trae `simulated: boolean`.
 - `ComponentState.latest_origin`: origen del último valor de ese componente. Es el nivel más fino: una bitácora en vivo de hoy sale `"live"` aunque el checklist de hoy sea simulado.
@@ -65,14 +65,14 @@ Se reutiliza la convención física donde aplica (`no_data`, `stale`). `no_range
 
 `SupportLevel` (nivel general de una persona, semáforo):
 
-| Valor | Mostrar como | Cuándo |
+| Valor | Mostrar como (consola en inglés) | Cuándo |
 |---|---|---|
-| `ok` | BIEN | Ninguna fuente muestra un cambio sostenido |
-| `attention` | ATENCIÓN | Una fuente con cambio sostenido, o discrepancia (ver abajo) |
-| `needs_support` | NECESITA APOYO | Dos o más fuentes distintas con cambio sostenido |
-| `baseline_pending` | CALIBRANDO | Aún no hay días suficientes para la línea base |
-| `stale` | SIN DATOS RECIENTES | El último dato es más viejo que `stale_after_days` |
-| `no_data` | SIN DATOS | No hay ningún dato de bienestar |
+| `ok` | OK (BIEN) | Ninguna fuente muestra un cambio sostenido |
+| `attention` | ATTENTION (ATENCIÓN) | Una fuente con cambio sostenido, o discrepancia (ver abajo) |
+| `needs_support` | NEEDS SUPPORT (NECESITA APOYO) | Dos o más fuentes distintas con cambio sostenido |
+| `baseline_pending` | CALIBRATING (CALIBRANDO) | Aún no hay días suficientes para la línea base |
+| `stale` | NO RECENT DATA (SIN DATOS RECIENTES) | El último dato es más viejo que `stale_after_days` |
+| `no_data` | NO DATA (SIN DATOS) | No hay ningún dato de bienestar |
 
 `IndicatorStatus` (por indicador): `ok`, `attention`, `baseline_pending`, `stale`, `no_data`. El nivel `needs_support` sólo existe a nivel persona, porque requiere que coincidan varias fuentes.
 
@@ -101,7 +101,7 @@ Se reutiliza la convención física donde aplica (`no_data`, `stale`). `no_range
 ```json
 {
   "provisional": true,
-  "basis": "Parámetros de diseño del equipo, sin validación clínica. Se comparan desviaciones contra la línea base personal.",
+  "basis": "Team design parameters, not clinically validated. Deviations are measured against each person's own baseline.",
   "mission_tz": "UTC",
   "z_threshold": 1.5,
   "sustain_days": 3,
@@ -130,14 +130,14 @@ Preguntas propias del equipo (no copiadas de cuestionarios). Escala 0–4 salvo 
   "version": "v1",
   "estimated_seconds": 45,
   "items": [
-    {"key": "sleep_hours", "prompt": "¿Cuántas horas dormiste anoche?", "kind": "hours", "min": 0, "max": 24, "step": 0.5, "min_label": "0 h", "max_label": "24 h", "higher_is_better": true},
-    {"key": "sleep_quality", "prompt": "¿Qué tan bien dormiste?", "kind": "scale", "min": 0, "max": 4, "step": 1, "min_label": "Muy mal", "max_label": "Muy bien", "higher_is_better": true},
-    {"key": "energy", "prompt": "¿Cuánta energía tienes hoy?", "kind": "scale", "min": 0, "max": 4, "step": 1, "min_label": "Agotado/a", "max_label": "Mucha energía", "higher_is_better": true},
-    {"key": "mood", "prompt": "¿Cómo está tu ánimo hoy?", "kind": "scale", "min": 0, "max": 4, "step": 1, "min_label": "Muy bajo", "max_label": "Muy bueno", "higher_is_better": true},
-    {"key": "interest", "prompt": "¿Disfrutaste o te interesó lo que hiciste hoy?", "kind": "scale", "min": 0, "max": 4, "step": 1, "min_label": "Nada", "max_label": "Mucho", "higher_is_better": true},
-    {"key": "stress", "prompt": "¿Cuánta tensión o preocupación sentiste hoy?", "kind": "scale", "min": 0, "max": 4, "step": 1, "min_label": "Nada", "max_label": "Mucha", "higher_is_better": false},
-    {"key": "crew_connection", "prompt": "¿Qué tan conectado/a te sentiste con la tripulación?", "kind": "scale", "min": 0, "max": 4, "step": 1, "min_label": "Aislado/a", "max_label": "Muy conectado/a", "higher_is_better": true},
-    {"key": "comment", "prompt": "¿Algo que quieras comentar? (opcional, privado)", "kind": "text", "max_length": 500, "optional": true}
+    {"key": "sleep_hours", "prompt": "How many hours did you sleep last night?", "kind": "hours", "min": 0.0, "max": 24.0, "step": 0.5, "min_label": "0 h", "max_label": "24 h", "higher_is_better": true},
+    {"key": "sleep_quality", "prompt": "How well did you sleep?", "kind": "scale", "min": 0.0, "max": 4.0, "step": 1.0, "min_label": "Very poorly", "max_label": "Very well", "higher_is_better": true},
+    {"key": "energy", "prompt": "How much energy do you have today?", "kind": "scale", "min": 0.0, "max": 4.0, "step": 1.0, "min_label": "Exhausted", "max_label": "Full of energy", "higher_is_better": true},
+    {"key": "mood", "prompt": "How is your mood today?", "kind": "scale", "min": 0.0, "max": 4.0, "step": 1.0, "min_label": "Very low", "max_label": "Very good", "higher_is_better": true},
+    {"key": "interest", "prompt": "Did you enjoy or feel interested in what you did today?", "kind": "scale", "min": 0.0, "max": 4.0, "step": 1.0, "min_label": "Not at all", "max_label": "A lot", "higher_is_better": true},
+    {"key": "stress", "prompt": "How much tension or worry did you feel today?", "kind": "scale", "min": 0.0, "max": 4.0, "step": 1.0, "min_label": "None", "max_label": "A lot", "higher_is_better": false},
+    {"key": "crew_connection", "prompt": "How connected did you feel with the crew?", "kind": "scale", "min": 0.0, "max": 4.0, "step": 1.0, "min_label": "Isolated", "max_label": "Very connected", "higher_is_better": true},
+    {"key": "comment", "prompt": "Anything you want to add? (optional, private)", "kind": "text", "max_length": 500, "optional": true}
   ]
 }
 ```
@@ -380,11 +380,11 @@ Una entrada por astronauta registrado, ordenados por `astronaut_id`. **Sin detal
     }
   ],
   "support_notes": [
-    "Varias fuentes muestran cambios sostenidos desde el 2026-11-07. Puede ayudar hablarlo con alguien de confianza de la tripulación.",
-    "Si quieres, puedes enviar un resumen al psicólogo en Tierra. Sólo se envía con tu consentimiento."
+    "Several sources (daily check-in, physiological data, social interaction) have shown a sustained change since 2026-11-07. It may help to talk it over with someone you trust on the crew.",
+    "If you want, you can send a summary to the psychologist on Earth. It is only sent with your consent."
   ],
   "data_notices": [
-    "Días con datos: 0 en vivo, 20 simulados, 1 mixtos (en vivo + simulados)."
+    "Days with data: 0 live, 20 simulated, 1 mixed (live + simulated)."
   ],
   "latest_origin": "mixed",
   "live_days": 0,
@@ -449,7 +449,7 @@ Una entrada por astronauta registrado, ordenados por `astronaut_id`. **Sin detal
   "period_from": "2026-10-25",
   "period_to": "2026-11-14",
   "include": ["assessment", "timeline", "checkins"],
-  "note": "Revisión sugerida tras una semana de cambios sostenidos."
+  "note": "Suggested review after a week of sustained changes."
 }
 ```
 
@@ -474,7 +474,7 @@ Response `201`:
   "period_from": "2026-10-25",
   "period_to": "2026-11-14",
   "include": ["assessment", "timeline", "checkins"],
-  "note": "Revisión sugerida tras una semana de cambios sostenidos.",
+  "note": "Suggested review after a week of sustained changes.",
   "status": "queued",
   "consent_statement_version": "v1",
   "consent_recorded_at": "2026-11-14T18:10:00.000000Z",
