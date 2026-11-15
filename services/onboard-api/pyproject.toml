@@ -13,6 +13,7 @@ dependencies = [
     "httpx>=0.28.1",
     "langgraph>=1.2.22",
     "pydantic-settings>=2.16.3",
+    "tzdata>=2026.6",
 ]
 
 [project.scripts]

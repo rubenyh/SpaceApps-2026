@@ -5,7 +5,7 @@ Estado: **v1, implementado** (rama `agent/hiram/wellbeing-backend`) · Dueño: H
 El módulo `onboard_api.wellbeing` detecta **cambios sostenidos de cada astronauta respecto a su propia línea base**. No diagnostica: sus salidas son de apoyo ("necesita apoyo"), nunca etiquetas clínicas.
 
 - Los nombres de campos y valores van en inglés (igual que el resto de la API). Los textos para mostrar (`support_notes`, `data_notices`, preguntas del checklist) ya vienen en español.
-- Todas las fechas-hora son ISO 8601 UTC con `Z`. Un **día** (`day`) es la fecha UTC `YYYY-MM-DD` (día de misión).
+- Todas las fechas-hora son ISO 8601 UTC con `Z`. Un **día** (`day`) es el **día de misión** `YYYY-MM-DD` en la zona `WELLBEING_MISSION_TZ` (nombre IANA; por defecto `UTC`, como la Estación Espacial). Todo lo que se agrupa por día usa esa zona: checklist, señales, visión, co-presencia, línea base, línea de tiempo y `onset_date`. Los timestamps se siguen guardando y devolviendo en UTC. Para la demo en Mexicali: `America/Tijuana`; si no, desde las 16:00 locales los datos caen al día siguiente. La zona en uso sale en `GET /wellbeing/parameters` (`mission_tz`).
 - Errores: `404 {"detail": "..."}` si el astronauta no existe; `422` para validación (mismo formato que FastAPI en el resto de la API).
 - El módulo guarda sus datos en su propia base (`data/wellbeing.db`). Lee la base de Rubén (`astronauts`, `readings` de `heart_rate`) **sólo en modo lectura**.
 
@@ -102,6 +102,7 @@ Se reutiliza la convención física donde aplica (`no_data`, `stale`). `no_range
 {
   "provisional": true,
   "basis": "Parámetros de diseño del equipo, sin validación clínica. Se comparan desviaciones contra la línea base personal.",
+  "mission_tz": "UTC",
   "z_threshold": 1.5,
   "sustain_days": 3,
   "baseline_days": 7,
@@ -143,7 +144,7 @@ Preguntas propias del equipo (no copiadas de cuestionarios). Escala 0–4 salvo 
 
 ## 3. `PUT /astronauts/{astronaut_id}/wellbeing/checkins/{day}`
 
-Idempotente: un checklist por astronauta y día. Si se manda otra vez el mismo día, reemplaza al anterior. `day` es `YYYY-MM-DD`; la consola manda el día UTC actual.
+Idempotente: un checklist por astronauta y día. Si se manda otra vez el mismo día, reemplaza al anterior. `day` es `YYYY-MM-DD`; la consola manda el día de misión actual (el de hoy en `mission_tz`). Un día posterior a hoy en esa zona da `422`.
 
 Request:
 
@@ -219,7 +220,7 @@ Response `201`: lo mismo más `"id": 17`, `"received_at": "..."` y `"simulated":
 
 - HRV: `HKQuantityTypeIdentifierHeartRateVariabilitySDNN` en `ms`.
 - FC en reposo: `HKQuantityTypeIdentifierRestingHeartRate` en `count/min`, enviada como `bpm`.
-- Sueño: suma de las fases dormidas de `HKCategoryTypeIdentifierSleepAnalysis` (Core, Deep, REM, Unspecified), sin contar `InBed` ni `Awake`. Los traslapes del reloj y el iPhone cuentan una sola vez, y la noche se asigna al día UTC del despertar.
+- Sueño: suma de las fases dormidas de `HKCategoryTypeIdentifierSleepAnalysis` (Core, Deep, REM, Unspecified), sin contar `InBed` ni `Awake`. Los traslapes del reloj y el iPhone cuentan una sola vez, y la noche se asigna al día de misión del despertar.
 
 Opciones: `--since YYYY-MM-DD`, `--dry-run`, `--base`. `--source` va por defecto en `apple_watch_export`; para el ejemplo sintético `samples/apple_health/export.xml` usa `--source simulated:apple_health_sample`, así se marca como SIMULADO.
 
@@ -456,7 +457,7 @@ Una entrada por astronauta registrado, ordenados por `astronaut_id`. **Sin detal
   - `"self"`: el propio astronauta.
   - `"captain"`: el capitán, con consentimiento del astronauta.
   - `"ground_psychologist"`: un psicólogo al terminar la misión, que revisa y decide si alguien necesita seguimiento, con consentimiento.
-- `period_from` ≤ `period_to` ≤ hoy (UTC). El contenido se evalúa con los datos hasta el final de `period_to`.
+- `period_from` ≤ `period_to` ≤ hoy (día de misión). El contenido se evalúa con los datos hasta el final de `period_to`.
 - `include`: `"assessment"`, `"timeline"`, `"checkins"` o `"comments"`. Los comentarios libres sólo van si se piden explícitamente, y exigen `"checkins"`.
 - `422` si `consent.astronaut_confirmed` no es `true` (o falta `consent`), si el periodo es inválido o está en el futuro, o si `include` está vacío, repite valores o trae `"comments"` sin `"checkins"`. **No existe envío automático.**
 - `404` si el astronauta no existe.
@@ -541,6 +542,8 @@ export interface WellbeingParameters {
   /** Always true in v1: design parameters, not clinical thresholds. */
   provisional: boolean;
   basis: string;
+  /** IANA zone of the mission day every input is grouped by, e.g. "UTC" or "America/Tijuana". */
+  mission_tz: string;
   z_threshold: number;
   sustain_days: number;
   baseline_days: number;
@@ -591,7 +594,7 @@ export interface CheckinUpsert {
 
 export interface Checkin extends Required<Omit<CheckinUpsert, "comment">> {
   astronaut_id: string;
-  /** YYYY-MM-DD (UTC mission day). */
+  /** YYYY-MM-DD, mission day in WellbeingParameters.mission_tz. */
   day: string;
   comment: string | null;
   submitted_at: string;
@@ -831,7 +834,7 @@ export interface GroundPackageContent {
 - **EN VIVO frente a SIMULADO (Cedric):** en la demo el historial es simulado y la bitácora de hoy es real. Resalta como **EN VIVO** todo valor con origen `"live"`, usando `ComponentState.latest_origin` en el detalle y `TimelineDay.origin` en la línea de tiempo, y marca SIMULADO el resto. Nunca etiquetes un día entero como SIMULADO si su origen es `"mixed"`.
 - Flujo sugerido para la pantalla de consentimiento: el astronauta revisa el periodo e `include` → `POST` con `astronaut_confirmed: true` → `GET …/content` para mostrar lo que va en cola → botón "retirar" con `POST …/withdraw`.
 - Simulador de historial: `uv run python scripts/simulate_wellbeing.py` (en `services/onboard-api`). Crea `ast-01`…`ast-04` vía `POST /astronauts` si no existen, y escribe en `wellbeing.db` con `source: "simulated"`: checklists, señales tipo Watch, co-presencia y bitácoras de visión. Las bitácoras simuladas llegan hasta ayer, así que una bitácora en vivo de hoy se evalúa sola contra una línea base ya formada. Los rangos de visión están en `VISION_REST` y `VISION_ALTERED` de `wellbeing/simulator.py`; los medidos y los supuestos están marcados ahí. **Todos son provisionales**: vienen de 3 bitácoras de reposo de la versión nueva de visión y se recalibran cuando lleguen las de la versión corregida. PERCLOS en reposo (0.06–0.19) es amplio a propósito, porque varía con la calibración neutral de cada sesión. Se puede cambiar sin tocar código con `--perclos LOW HIGH`.
-- Configuración (variables de entorno): `WELLBEING_DB_PATH` (por defecto `data/wellbeing.db`), `ONBOARD_DB_PATH` (la base de Rubén, sólo lectura), `WELLBEING_Z_THRESHOLD`, `WELLBEING_SUSTAIN_DAYS`, etc. (ver `onboard_api/wellbeing/settings.py`).
+- Configuración (variables de entorno): `WELLBEING_MISSION_TZ` (zona del día de misión, por defecto `UTC`), `WELLBEING_DB_PATH` (por defecto `data/wellbeing.db`), `ONBOARD_DB_PATH` (la base de Rubén, sólo lectura), `WELLBEING_Z_THRESHOLD`, `WELLBEING_SUSTAIN_DAYS`, etc. (ver `onboard_api/wellbeing/settings.py`).
 
 ## Probarlo en local (PowerShell)
 
@@ -841,7 +844,20 @@ export interface GroundPackageContent {
 uv run python scripts/demo_reset.py
 ```
 
-Respalda `data/wellbeing.db` en `data/backups/` y vacía sus tablas. Luego carga el historial SIMULADO (semilla 7) y el export de ejemplo del Watch para ast-01 (movido para que termine ayer), comprueba que ast-01 tenga su línea base de visión formada y sin bitácora hoy, e imprime el estado de los 4. Es idempotente; acepta `--perclos LOW HIGH` y `--base`. Después se graba la bitácora en vivo de ast-01.
+Respalda `data/wellbeing.db` en `data/backups/` y vacía sus tablas. Luego carga el historial SIMULADO (semilla 7) y el export de ejemplo del Watch para ast-01 (movido para que termine ayer), comprueba que ast-01 tenga su línea base de visión formada y sin bitácora hoy, e imprime el estado de los 4. Es idempotente; acepta `--tz`, `--perclos LOW HIGH` y `--base`. Usa la zona de misión de la API: el historial termina "ayer" en esa zona, así que la bitácora en vivo cae en "hoy" local. Si `--tz` no coincide con la de la API, se detiene y avisa. Después se graba la bitácora en vivo de ast-01.
+
+Demo en Mexicali (zona de misión `America/Tijuana`):
+
+```powershell
+# Terminal 1 (API)
+cd services\onboard-api
+$env:PYTHONUTF8 = "1"
+$env:WELLBEING_MISSION_TZ = "America/Tijuana"
+uv run fastapi dev
+
+# Terminal 2 (misma carpeta)
+uv run python scripts/demo_reset.py --tz America/Tijuana
+```
 
 Paso a paso:
 

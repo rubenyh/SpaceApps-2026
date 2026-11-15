@@ -183,7 +183,7 @@ def build_daily_inputs(
 
     by_kind: dict[str, list[tuple[date, float]]] = defaultdict(list)
     for s in signals:
-        day = s.recorded_at.date()
+        day = settings.day_of(s.recorded_at)
         if usable(s.quality):
             by_kind[s.kind].append((day, s.value))
             inputs.origins[f"signal.{s.kind}"][day].add(_source_kind(s.source))
@@ -192,7 +192,7 @@ def build_daily_inputs(
 
     vision_pairs: dict[str, list[tuple[date, float]]] = defaultdict(list)
     for v in vision:
-        day = v.started_at.date()
+        day = settings.day_of(v.started_at)
         if not usable(v.quality):
             continue
         minutes = (v.ended_at - v.started_at).total_seconds() / 60
@@ -219,7 +219,7 @@ def build_daily_inputs(
 
     accompanied: dict[date, float] = defaultdict(float)
     for window in co_presence:
-        day = window.window_start.date()
+        day = settings.day_of(window.window_start)
         if not any(o.astronaut_id == astronaut_id for o in window.occupants):
             continue
         if not usable(window.quality):
@@ -235,7 +235,7 @@ def build_daily_inputs(
 
     hr_by_day: dict[date, list[float]] = defaultdict(list)
     for r in heart_rates:
-        day = r.recorded_at.date()
+        day = settings.day_of(r.recorded_at)
         if usable(r.quality):
             hr_by_day[day].append(r.value)
             inputs.origins["onboard.heart_rate_low"][day].add(_source_kind(r.source))

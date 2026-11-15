@@ -62,10 +62,13 @@ def put_checkin(
     data: CheckinUpsert,
     repo: RepoDep,
     reader: ReaderDep,
+    settings: SettingsDep,
     clock: ClockDep,
 ) -> Checkin:
     try:
-        return service.upsert_checkin(repo, reader, astronaut_id, day, data, now=clock())
+        return service.upsert_checkin(
+            repo, reader, astronaut_id, day, data, settings, now=clock()
+        )
     except service.AstronautNotFoundError as exc:
         raise _not_found(exc) from exc
     except service.FutureDayError as exc:
@@ -198,10 +201,14 @@ _PACKAGE_ERRORS = {
     responses=_NOT_FOUND,
 )
 def post_ground_package(
-    data: GroundPackageCreate, repo: RepoDep, reader: ReaderDep, clock: ClockDep
+    data: GroundPackageCreate,
+    repo: RepoDep,
+    reader: ReaderDep,
+    settings: SettingsDep,
+    clock: ClockDep,
 ) -> GroundPackage:
     try:
-        return service.create_ground_package(repo, reader, data, now=clock())
+        return service.create_ground_package(repo, reader, data, settings, now=clock())
     except service.AstronautNotFoundError as exc:
         raise _not_found(exc) from exc
     except service.FutureDayError as exc:

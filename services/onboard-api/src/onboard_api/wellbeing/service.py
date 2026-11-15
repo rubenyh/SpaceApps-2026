@@ -1,7 +1,7 @@
 """Glue between storage, the read-only onboard data and the fusion engine."""
 
 import uuid
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 from onboard_api.wellbeing import engine
 from onboard_api.wellbeing.onboard_reader import OnboardReader
@@ -53,6 +53,7 @@ def get_parameters(settings: WellbeingSettings) -> WellbeingParameters:
     return WellbeingParameters(
         provisional=True,
         basis=BASIS,
+        mission_tz=settings.mission_tz,
         z_threshold=settings.z_threshold,
         sustain_days=settings.sustain_days,
         baseline_days=settings.baseline_days,
@@ -85,10 +86,11 @@ def upsert_checkin(
     astronaut_id: str,
     day: date,
     data: CheckinUpsert,
+    settings: WellbeingSettings,
     now: datetime,
 ) -> Checkin:
     _ensure_astronauts(reader, astronaut_id)
-    if day > now.date():
+    if day > settings.day_of(now):
         raise FutureDayError(day)
     return repo.upsert_checkin(astronaut_id, day, data, submitted_at=now)
 
@@ -178,7 +180,7 @@ def get_assessment(
 ) -> WellbeingAssessment:
     _ensure_astronauts(reader, astronaut_id)
     inputs = load_inputs(repo, reader, astronaut_id, settings)
-    today = now.date()
+    today = settings.day_of(now)
     ev = engine.evaluate(inputs, today, settings)
     counts = engine.origin_counts(inputs, today)
     return WellbeingAssessment(
@@ -228,7 +230,7 @@ def get_timeline(
 ) -> WellbeingTimeline:
     _ensure_astronauts(reader, astronaut_id)
     inputs = load_inputs(repo, reader, astronaut_id, settings)
-    today = now.date()
+    today = settings.day_of(now)
     data_days = inputs.data_days
     timeline: list[TimelineDay] = []
     for offset in range(days - 1, -1, -1):
@@ -262,7 +264,7 @@ def get_crew(
     settings: WellbeingSettings,
     now: datetime,
 ) -> CrewWellbeing:
-    today = now.date()
+    today = settings.day_of(now)
     members: list[CrewMemberSummary] = []
     for astronaut in reader.list_astronauts():
         inputs = load_inputs(repo, reader, astronaut.id, settings)
@@ -292,12 +294,16 @@ class PackageStateError(Exception):
 
 
 def create_ground_package(
-    repo: WellbeingRepository, reader: OnboardReader, data: GroundPackageCreate, now: datetime
+    repo: WellbeingRepository,
+    reader: OnboardReader,
+    data: GroundPackageCreate,
+    settings: WellbeingSettings,
+    now: datetime,
 ) -> GroundPackage:
     """Queue a package on board. Consent is validated by GroundPackageCreate."""
     if reader.get_astronaut(data.astronaut_id) is None:
         raise AstronautNotFoundError(data.astronaut_id)
-    if data.period_to > now.date():
+    if data.period_to > settings.day_of(now):
         raise FutureDayError(data.period_to)
     return repo.create_ground_package(str(uuid.uuid4()), data, now)
 
@@ -328,7 +334,7 @@ def get_ground_package_content(
     if package.status == "withdrawn":
         raise PackageStateError("Consent for this package was withdrawn")
     aid, include = package.astronaut_id, package.include
-    as_of = min(now, datetime.combine(package.period_to, time.max, tzinfo=UTC))
+    as_of = min(now, datetime.combine(package.period_to, time.max, tzinfo=settings.tz))
     days = (package.period_to - package.period_from).days + 1
     checkins = None
     if "checkins" in include:

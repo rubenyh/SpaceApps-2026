@@ -10,7 +10,7 @@ import zipfile
 from collections import defaultdict
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, tzinfo
 from pathlib import Path
 from typing import IO
 
@@ -72,11 +72,12 @@ def iter_signals(
     astronaut_id: str,
     since: date | None = None,
     source: str = DEFAULT_SOURCE,
+    tz: tzinfo = UTC,
 ) -> Iterator[SignalCreate]:
     """HRV and resting HR as they stream by; one sleep_hours per wake-up day at the end.
 
-    shortcut: a night belongs to the UTC date of its last asleep segment, fine for
-    crews in the Americas; group by local wake date if a night ever splits.
+    Days (the `since` filter and a night's wake-up day) are mission days in `tz`,
+    the API's WELLBEING_MISSION_TZ.
     """
     sleep: dict[date, list[tuple[datetime, datetime]]] = defaultdict(list)
     root = None
@@ -90,7 +91,7 @@ def iter_signals(
             signal_kind, health_unit, unit = QUANTITIES[kind]
             start = _parse_date(elem.get("startDate", ""))
             if elem.get("unit") == health_unit and (
-                since is None or start.astimezone(UTC).date() >= since
+                since is None or start.astimezone(tz).date() >= since
             ):
                 yield SignalCreate(
                     astronaut_id=astronaut_id,
@@ -104,7 +105,7 @@ def iter_signals(
         elif kind == SLEEP and elem.get("value") in ASLEEP:
             start = _parse_date(elem.get("startDate", ""))
             end = _parse_date(elem.get("endDate", ""))
-            sleep[end.astimezone(UTC).date()].append((start, end))
+            sleep[end.astimezone(tz).date()].append((start, end))
         root.clear()  # drop processed Records so memory stays flat
 
     for wake_day, intervals in sorted(sleep.items()):
