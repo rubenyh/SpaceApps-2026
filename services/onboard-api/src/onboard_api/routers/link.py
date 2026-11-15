@@ -67,7 +67,7 @@ async def resume(request: Request) -> EarthLink:
 
 @router.delete("/demo/incidents", dependencies=DEMO)
 async def reset_incidents(astronaut_id: str, conn: Connection, request: Request) -> dict[str, int]:
-    """Delete one astronaut's incidents and their queued events (idempotent).
+    """Delete one astronaut's incidents, their queued events and case reports (idempotent).
     Readings stay: they are history, and ground already has them.
 
     Waits for a telemetry send in flight to finish first, so no batch with the
@@ -92,6 +92,7 @@ def _delete_incidents(conn: sqlite3.Connection, astronaut_id: str) -> int:
             (astronaut_id,),
         )
         deleted = conn.execute("DELETE FROM incidents WHERE astronaut_id = ?", (astronaut_id,)).rowcount
+        conn.execute("DELETE FROM case_reports WHERE astronaut_id = ?", (astronaut_id,))
         conn.execute("COMMIT")
     except Exception:
         conn.execute("ROLLBACK")
