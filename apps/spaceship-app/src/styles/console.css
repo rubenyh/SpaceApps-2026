@@ -3306,3 +3306,19 @@ textarea {
     gap: var(--space-3);
   }
 }
+
+/* Wellbeing #49: provisional label next to each indicator status, exact package JSON. */
+.wb-ind__status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.wb-preview__json {
+  max-height: 320px;
+  overflow: auto;
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

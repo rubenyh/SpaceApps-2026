@@ -1,10 +1,12 @@
 import type { IndicatorState } from "../api/types";
 import {
+  baselineDays,
   componentLabel,
   formatDay,
   formatValue,
   formatZ,
   INDICATOR_LABELS,
+  indicatorScored,
   SOURCE_LABELS,
   sourcesText,
 } from "../lib/wellbeing";
@@ -14,24 +16,29 @@ import { ZTrack } from "./ZTrack";
 interface Props {
   indicator: IndicatorState;
   threshold: number;
+  /** WellbeingParameters.baseline_min_days: below it the indicator gets no score. */
+  minDays: number;
   expanded: boolean;
   onToggle: () => void;
 }
 
 /** One indicator vs. the person's own usual, with its components on demand. */
-export function IndicatorRow({ indicator, threshold, expanded, onToggle }: Props) {
-  const { kind, status, z, components } = indicator;
+export function IndicatorRow({ indicator, threshold, minDays, expanded, onToggle }: Props) {
+  const { kind, status, components } = indicator;
+  const scored = indicatorScored(indicator, minDays);
+  const z = scored ? indicator.z : null;
   const detailId = `wb-ind-${kind}`;
-  const base = components.find((c) => c.baseline_ready);
+  const base = components.find((c) => c.baseline_ready && c.baseline_days >= minDays);
+  const have = baselineDays(indicator);
   const caption = [
-    indicator.deviant_since ? `Deviating since ${formatDay(indicator.deviant_since)}` : "",
     base
-      ? `baseline from ${base.baseline_days} days${
+      ? `Baseline from ${base.baseline_days} days${
           base.baseline_from && base.baseline_to
             ? `, ${formatDay(base.baseline_from)} – ${formatDay(base.baseline_to)}`
             : ""
         }`
-      : "",
+      : `Baseline pending: ${Math.min(have, minDays)} of ${minDays} days`,
+    scored ? (indicator.deviant_since ? `Changed since ${formatDay(indicator.deviant_since)}` : "No sustained change") : "",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -40,7 +47,11 @@ export function IndicatorRow({ indicator, threshold, expanded, onToggle }: Props
     <div className={`wb-ind${expanded ? " wb-ind--open" : ""}`}>
       <div className="wb-ind__row">
         <strong>{INDICATOR_LABELS[kind]}</strong>
-        <WellbeingPill level={status} kind="indicator" size="sm" />
+        <span className="wb-ind__status">
+          <WellbeingPill level={status} kind="indicator" size="sm" />
+          {scored ? null : <span className="sr-only"> (no score)</span>}
+          <span className="prov">Provisional</span>
+        </span>
         <ZTrack z={z} threshold={threshold} stale={status === "stale"} />
         <span className={`wb-ind__z wb-mono${z === null ? " wb-ind__z--none" : ""}`}>{formatZ(z)}</span>
         <span className="wb-ind__sources">{sourcesText(indicator.sources)}</span>
@@ -58,11 +69,10 @@ export function IndicatorRow({ indicator, threshold, expanded, onToggle }: Props
           <Arrow d={expanded ? CHEVRON.up : CHEVRON.down} />
         </button>
       </div>
-      {indicator.sources.length === 0 ? (
-        <p className="wb-ind__hint">No source has data for this indicator.</p>
-      ) : null}
+      <p className="wb-ind__hint">
+        {indicator.sources.length === 0 ? "No source has data for this indicator." : caption}
+      </p>
       <div id={detailId} className="wb-ind__detail" hidden={!expanded}>
-        {caption ? <p className="wellbeing__faint">{caption}</p> : null}
         <table className="wb-comp">
           <thead>
             <tr>
@@ -80,8 +90,14 @@ export function IndicatorRow({ indicator, threshold, expanded, onToggle }: Props
                 <td>{componentLabel(c.component)}</td>
                 <td className="wb-comp__muted">{SOURCE_LABELS[c.source]}</td>
                 <td className="wb-comp__num wb-mono">{formatValue(c.latest_value, c.unit)}</td>
-                <td className="wb-comp__num wb-mono wb-comp__muted">{formatValue(c.baseline_median, c.unit)}</td>
-                <td className="wb-comp__num wb-mono">{formatZ(c.z)}</td>
+                <td className="wb-comp__num wb-mono wb-comp__muted">
+                  {c.baseline_ready && c.baseline_days >= minDays
+                    ? formatValue(c.baseline_median, c.unit)
+                    : `Pending ${Math.min(c.baseline_days, minDays)}/${minDays} d`}
+                </td>
+                <td className="wb-comp__num wb-mono">
+                  {c.baseline_ready && c.baseline_days >= minDays && scored ? formatZ(c.z) : "---"}
+                </td>
                 <td>
                   <span className="wb-comp__day">
                     <span className="wb-mono">{c.latest_day ? formatDay(c.latest_day) : "---"}</span>

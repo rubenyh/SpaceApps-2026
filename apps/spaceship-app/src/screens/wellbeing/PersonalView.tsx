@@ -1,12 +1,20 @@
 import { useState, type ReactNode } from "react";
-import type { IndicatorKind, WellbeingAssessment, WellbeingTimeline as Timeline } from "../../api/types";
+import type { IndicatorKind, WellbeingAssessment } from "../../api/types";
 import { getWellbeing, getWellbeingParameters, getWellbeingTimeline, listCheckins } from "../../api/wellbeing";
 import { IndicatorRow } from "../../components/IndicatorRow";
 import { Panel } from "../../components/Panel";
 import { ConfidenceMeter, OriginMark, TrendMark, WellbeingIcon, WellbeingPill } from "../../components/WellbeingMarks";
 import { WellbeingTimeline } from "../../components/WellbeingTimeline";
 import { usePolling } from "../../hooks/usePolling";
-import { formatClock, formatDay, formatDayLong, missionDay, sourcesText, TIMELINE_DAYS } from "../../lib/wellbeing";
+import {
+  baselineDays,
+  formatClock,
+  formatDay,
+  formatDayLong,
+  missionDay,
+  sourcesText,
+  TIMELINE_DAYS,
+} from "../../lib/wellbeing";
 
 interface Props {
   toggle: ReactNode;
@@ -50,7 +58,9 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
     assessment.refresh();
     timeline.refresh();
   };
-  const empty = a?.level === "no_data" && !t?.days.some((d) => d.has_data);
+  const minDays = params.data?.baseline_min_days ?? null;
+  // no_data: no wellbeing input at all, so there is no baseline and no score to show.
+  const empty = a?.level === "no_data";
 
   return (
     <div className="screen">
@@ -103,7 +113,7 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
         </div>
       ) : null}
 
-      {!a || threshold === null ? (
+      {!a || threshold === null || minDays === null ? (
         error ? null : (
           <div className="banner" role="status">
             <div className="banner__text">
@@ -114,8 +124,11 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
       ) : empty ? (
         <section className="empty wb-empty">
           <WellbeingIcon kind="no_data" size={32} />
-          <h2>No wellbeing data yet</h2>
-          <p>Data will appear after the first daily check-in or video log.</p>
+          <h2>Insufficient data</h2>
+          <p>
+            No baseline and no score yet. Your baseline needs at least {minDays} days of data; it starts with the
+            first daily check-in or video log.
+          </p>
           <button type="button" className="btn" onClick={onCheckin}>
             Start today's check-in
           </button>
@@ -123,7 +136,7 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
       ) : (
         <div className={`wb-stack${error ? " wellbeing--stale" : ""}`}>
           {a.level === "baseline_pending" ? (
-            <Calibrating a={a} timeline={t} minDays={params.data?.baseline_min_days ?? null} />
+            <Calibrating a={a} minDays={minDays} />
           ) : (
             <Summary a={a} />
           )}
@@ -148,11 +161,29 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
                   key={ind.kind}
                   indicator={ind}
                   threshold={threshold}
+                  minDays={minDays}
                   expanded={open[ind.kind] ?? false}
                   onToggle={() => setOpen((o) => ({ ...o, [ind.kind]: !o[ind.kind] }))}
                 />
               ))}
             </div>
+          </Panel>
+
+          <Panel title="Data quality">
+            <p className="wellbeing__faint">
+              Latest data {a.latest_day ? formatDay(a.latest_day) : "---"} · days with data: {a.live_days} live,{" "}
+              {a.simulated_days} simulated, {a.mixed_days} mixed · baseline needs {minDays} days
+            </p>
+            {a.data_notices.length > 0 ? (
+              a.data_notices.map((n) => (
+                <p key={n} className="wb-notice" role="note">
+                  <WellbeingIcon kind="info" size={16} />
+                  {n}
+                </p>
+              ))
+            ) : (
+              <p className="wellbeing__note">No data quality notices.</p>
+            )}
           </Panel>
 
           {t ? <WellbeingTimeline timeline={t} /> : null}
@@ -213,7 +244,7 @@ function Summary({ a }: { a: WellbeingAssessment }) {
         </h2>
         <div className="wb-summary__marks">
           <WellbeingPill level={a.level} size="lg" />
-          <span className="prov">PROV.</span>
+          <span className="prov">Provisional</span>
           <OriginMark origin={a.latest_origin} />
         </div>
         <Sentence a={a} />
@@ -250,12 +281,6 @@ function Summary({ a }: { a: WellbeingAssessment }) {
             </ul>
           </div>
         ) : null}
-        {a.data_notices.map((n) => (
-          <p key={n} className="wb-notice" role="note">
-            <WellbeingIcon kind="info" size={16} />
-            {n}
-          </p>
-        ))}
       </div>
     </section>
   );
@@ -263,14 +288,12 @@ function Summary({ a }: { a: WellbeingAssessment }) {
 
 interface CalibratingProps {
   a: WellbeingAssessment;
-  timeline: Timeline | null;
-  minDays: number | null;
+  minDays: number;
 }
 
-function Calibrating({ a, timeline, minDays }: CalibratingProps) {
-  // shortcut: baseline progress approximated from days with data; ask backend for min_baseline_days per person
-  const have = timeline?.days.filter((d) => d.has_data).length ?? 0;
-  const n = minDays === null ? have : Math.min(have, minDays);
+function Calibrating({ a, minDays }: CalibratingProps) {
+  // Furthest component baseline across indicators: the person's progress towards baseline_min_days.
+  const n = Math.min(Math.max(0, ...a.indicators.map(baselineDays)), minDays);
   return (
     <section className="wb-summary wb-summary--baseline_pending wb-calib" aria-labelledby="wb-sum-h">
       <h2 id="wb-sum-h" className="wb-summary__h">
@@ -278,13 +301,14 @@ function Calibrating({ a, timeline, minDays }: CalibratingProps) {
       </h2>
       <div className="wb-summary__marks">
         <WellbeingPill level="baseline_pending" size="lg" />
-        <span className="prov">PROV.</span>
+        <span className="prov">Provisional</span>
         <OriginMark origin={a.latest_origin} />
       </div>
       <p className="wb-summary__sentence">
-        Building your personal baseline. Changes will be shown once we know your usual.
+        Baseline pending: insufficient data to compare with your usual. No score is shown until the baseline is
+        ready.
       </p>
-      {minDays !== null ? (
+      {minDays > 0 ? (
         <>
           <div className="wb-calib__bar" role="img" aria-label={`${n} of ${minDays} baseline days`}>
             {Array.from({ length: minDays }, (_, i) => (
