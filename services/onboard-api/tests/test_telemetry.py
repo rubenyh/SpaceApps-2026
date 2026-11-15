@@ -53,6 +53,9 @@ class FakeGround:
             raise httpx.ConnectError("link down", request=request)
         if request.url.path == "/telemetry/v1/cursor":
             return httpx.Response(200, json={"last_reading_id": self.cursor})
+        if request.url.path == "/case-reports/v1":  # reports go to base automatically
+            rid = json.loads(request.content)["report_id"]
+            return httpx.Response(200, json={"report_id": rid, "received_at": "2026-11-14T12:00:01Z"})
         self.batches.append(json.loads(request.content))
         return httpx.Response(self.status, json={"accepted": 0, "duplicates": 0})
 
@@ -331,6 +334,9 @@ def test_demo_reset_waits_for_send_in_flight(client: TestClient, astronaut: str,
     async def slow_ground(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/telemetry/v1/cursor":
             return httpx.Response(200, json={"last_reading_id": None})
+        if request.url.path == "/case-reports/v1":  # reports go to base automatically
+            rid = json.loads(request.content)["report_id"]
+            return httpx.Response(200, json={"report_id": rid, "received_at": "2026-11-14T12:00:01Z"})
         arrived.set()
         await release.wait()
         ground.append(json.loads(request.content))

@@ -86,7 +86,7 @@ def test_sample_captured_during_interpretation_is_current_and_simulated(
         ],
     }
     report = body["report"]
-    assert report["transmission"] == "draft" and report["id"]
+    assert report["transmission"] == "queued" and report["id"]
     assert [r["kind"] for r in report["readings"]] == ["heart_rate"]
     assert "Generated: 2026-11-14T12:00:12Z" in report["text"]
     assert "not_sent" not in report["text"]

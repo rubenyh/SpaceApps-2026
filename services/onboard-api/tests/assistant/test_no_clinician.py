@@ -40,7 +40,7 @@ def actionable(body: dict) -> None:
     source_ids = {s["id"] for s in body["sources"]}
     for step in body["steps"]:
         assert step["source_ids"] and set(step["source_ids"]) <= source_ids, step
-    assert body["report"]["transmission"] == "draft"
+    assert body["report"]["transmission"] == "queued"  # sent to base automatically
     no_clinician(body)
 
 
@@ -174,7 +174,7 @@ def test_out_of_coverage_gives_actions_without_a_clinician(ask) -> None:
     body = ask("me duele el oído", llm=FailingLLM(), retriever=FailingRetriever())
     assert body["urgency"] == "review_required" and body["action"] == prompts.OUT_OF_COVERAGE_ACTION
     assert body["missing_guidance"] == [prompts.OUT_OF_COVERAGE_MISSING]
-    assert body["report"]["transmission"] == "draft"
+    assert body["report"]["transmission"] == "queued"  # sent to base automatically
     no_clinician(body)
 
 

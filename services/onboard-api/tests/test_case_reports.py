@@ -93,16 +93,18 @@ def status(client: TestClient, report_id: str) -> dict:
     return client.get(f"/case-reports/{report_id}").json()
 
 
-def test_draft_stored_then_send_is_idempotent(client: TestClient, astronaut: str, clock) -> None:
+def test_report_is_queued_for_base_automatically_and_send_is_idempotent(
+    client: TestClient, astronaut: str, clock
+) -> None:
     body = draft(client)
     report_id = body["report"]["id"]
-    assert body["report"]["transmission"] == "draft"
-    assert status(client, report_id) == {
-        "id": report_id, "status": "draft", "created_at": "2026-11-14T12:00:00Z",
-        "queued_at": None, "received_at": None, "error": None,
+    assert body["report"]["transmission"] == "queued"
+    sent = status(client, report_id)
+    assert sent == {
+        "id": report_id, "status": "queued", "created_at": "2026-11-14T12:00:00Z",
+        "queued_at": "2026-11-14T12:00:00Z", "received_at": None, "error": None,
     }
-    sent = client.post(f"/case-reports/{report_id}/send", json={"sent_by": "ana"}).json()
-    assert (sent["status"], sent["queued_at"]) == ("queued", "2026-11-14T12:00:00Z")
+    assert client.post(f"/case-reports/{report_id}/send", json={"sent_by": "ana"}).json() == sent
     clock.now = T0 + timedelta(minutes=1)
     assert client.post(f"/case-reports/{report_id}/send", json={}).json() == sent
     assert client.post("/case-reports/nope/send", json={}).status_code == 404
@@ -221,4 +223,4 @@ def test_demo_reset_deletes_case_reports(client: TestClient, astronaut: str) -> 
     client.app.state.settings.demo_controls_enabled = True
     assert client.delete("/demo/incidents", params={"astronaut_id": "ana"}).status_code == 200
     assert client.get(f"/case-reports/{mine}").status_code == 404
-    assert status(client, theirs)["status"] == "draft"
+    assert status(client, theirs)["status"] == "queued"
