@@ -120,7 +120,9 @@ def test_non_blocking_failures(tmp_path: Path) -> None:
                                     workflow="unsupported", required_actions=["evacuate"],
                                     acceptable_sources=["medlineplus-fever"])
 
-    code, _, result, _ = evaluate(tmp_path, copy_fixtures(tmp_path, edit))
+    up = fake_up()
+    code, _, result, _ = evaluate(tmp_path, copy_fixtures(tmp_path, edit), up=up)
+    assert up.retriever.calls  # the shared client itself is used, not a copy
     case = by_id(result)["fever.dependency_down.001"]
     assert codes(case) == {"urgency_regression", "wrong_protocol", "clarify_mismatch", "workflow_mismatch",
                            "missing_required_action", "unsupported_citation"}

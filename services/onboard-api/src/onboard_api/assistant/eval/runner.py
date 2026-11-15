@@ -123,7 +123,8 @@ def replay(case: dict, up: Up, tmp: Path) -> tuple[dict | None, int, list[dict]]
     now = datetime.now(UTC)
     app = create_app(Settings(db_path=db_path, telemetry_enabled=False))
     app.dependency_overrides[get_clock] = lambda: lambda: now
-    app.dependency_overrides[get_assistant_deps] = lambda deps=_deps(case, up, db_path): deps
+    deps = _deps(case, up, db_path)  # no lambda default: FastAPI would deep-copy it as a query param
+    app.dependency_overrides[get_assistant_deps] = lambda: deps
     errors = []
     with TestClient(app) as client:
         people = {r["astronaut_id"] for r in case.get("readings", [])}
