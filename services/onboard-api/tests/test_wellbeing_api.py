@@ -88,6 +88,9 @@ def test_vision_session_round_trip_and_unknown_person(wb_client: TestClient) -> 
     assert unknown.status_code == 201
     missing = wb_client.post("/wellbeing/vision-sessions", json={**VISION, "astronaut_id": "ast-09"})
     assert missing.status_code == 404
+    no_lip = {**VISION, "tension": {"brow_lower_delta": 0.02, "lip_press_delta": None,
+                                    "brow_lower_peak_1s": 0.1, "lip_press_peak_1s": None}}
+    assert wb_client.post("/wellbeing/vision-sessions", json=no_lip).status_code == 201
     empty = {**VISION, "fatigue": None, "tension": None}
     assert wb_client.post("/wellbeing/vision-sessions", json=empty).status_code == 422
 

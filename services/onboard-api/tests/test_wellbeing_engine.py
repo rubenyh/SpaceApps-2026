@@ -247,3 +247,15 @@ def test_tension_peaks_are_dropped_without_a_neutral() -> None:
         "ast-01", [], [], [bitacora(0, 0.03, 0.02, 0.5, 0.5, neutral_ok=False)], [], [], SETTINGS
     )
     assert not any(k.startswith("vision.") for k in inputs.values)
+
+
+def test_lip_press_is_stored_but_not_scored() -> None:
+    # Talking alone drives lip peaks to 0.41-0.49, so a lip-only change must not alert.
+    sessions = [
+        bitacora(i, 0.02, 0.4 if i >= DERAIL else 0.05, 0.08, 0.49 if i >= DERAIL else 0.1)
+        for i in range(DAYS)
+    ]
+    inputs = build_daily_inputs("ast-01", [], [], sessions, [], [], SETTINGS)
+    assert not any(k.startswith("vision.lip_press") for k in inputs.values)
+    ev = evaluate(inputs, TODAY, SETTINGS)
+    assert ev.level == "ok"

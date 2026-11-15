@@ -268,9 +268,9 @@ En modo ambiente (`"session_type": "ambiente"`), `motion` lleva:
 | `fatigue.yawn_count` | entero \| null | ≥0 | fatigue ↑ (por minuto de sesión) |
 | `fatigue.nod_count` | entero \| null | ≥0 | fatigue ↑ (por minuto de sesión) |
 | `tension.brow_lower_delta` | número \| null | 0–1 | stress ↑ |
-| `tension.lip_press_delta` | número \| null | 0–1 | stress ↑ |
+| `tension.lip_press_delta` | número \| null | 0–1 | se guarda; **no entra en la fusión por ahora** (ver nota) |
 | `tension.brow_lower_peak_1s` | número \| null, **opcional** | 0–1 | stress ↑. Nivel más alto sostenido ≥ 1 s; `null` si nunca hubo 1 s seguido con la cara visible |
-| `tension.lip_press_peak_1s` | número \| null, **opcional** | 0–1 | stress ↑. Igual que el anterior, para labios apretados |
+| `tension.lip_press_peak_1s` | número \| null, **opcional** | 0–1 | se guarda; **no entra en la fusión por ahora** (ver nota) |
 | `motion.speed` | número \| null | ≥0 (aprox., anchos de hombro/s) | activation ↕ |
 | `motion.stationary_ratio` | número \| null | 0–1 | activation ↕ |
 | `motion.fidget_index` | número \| null | ≥0 | activation ↑ |
@@ -278,7 +278,8 @@ En modo ambiente (`"session_type": "ambiente"`), `motion` lleva:
 | `provisional` | boolean | | se guarda; las salidas siempre son provisionales en v1 |
 
 - `fatigue`, `tension` y `motion` pueden ser `null`, pero debe venir al menos uno.
-- Los picos (`*_peak_1s`) son opcionales: un envío sin ellos sigue siendo válido. Entran a la fusión como componentes propios del indicador `stress`, porque una mueca de 1–2 s casi no mueve el promedio de una bitácora de 90 s pero sí el pico.
+- Los picos (`*_peak_1s`) son opcionales: un envío sin ellos sigue siendo válido. `brow_lower_peak_1s` entra a la fusión como componente propio del indicador `stress`, porque una mueca de 1–2 s casi no mueve el promedio de una bitácora de 90 s pero sí el pico.
+- **Labios apretados fuera de la fusión (provisional).** En bitácoras reales de reposo (60 s, hablando y leyendo normal), `lip_press_peak_1s` dio 0.41–0.49 sólo por hablar, más que apretando los labios a propósito. Así no distingue tensión de habla. `lip_press_delta` y `lip_press_peak_1s` se siguen aceptando (también `null`) y guardando, pero no puntúan hasta que visión filtre el habla. El ceño sí separa: pico de 0.05–0.13 en reposo frente a 0.66 actuado.
 - El día de la sesión es el de `started_at`. Varias sesiones del mismo día se promedian.
 - `astronaut_id` puede ser `"unknown-<track>"` (persona no identificada). Se acepta y se guarda, pero **nunca entra en ninguna línea base** ni en la fusión.
 
