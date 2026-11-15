@@ -1,60 +1,60 @@
 [8.4 s] reset: Reset: Earth link up; scn-01 incidents deleted onboard (1) and on ground (1). Readings are kept.
-[13.3 s] PASS beat 1: spaceship header shows Earth link: up
-[13.4 s] screenshot 1-ship-vitals-reading.png
-[13.4 s] screenshot 1-ground-link-up.png
-[13.5 s] PASS beat 1: Records shows source simulated:scenario
-[13.6 s] screenshot 1-ship-records-simulated-source.png
-[17.8 s] PASS beat 2: incident card shows Next action
-[17.8 s] PASS beat 2: Ground delivery: queued, not delivered
-[18.0 s] screenshot 2-ship-incident-link-down.png
-[28.5 s] PASS beat 2: ground shows 'Batch late: N s without data'
-[28.6 s] screenshot 2-ground-batch-late.png
-[28.9 s] PASS beat 2: Simulated evidence tag visible
-[28.9 s] PASS beat 2: matched rule with protocol@version visible
-[29.0 s] screenshot 2-ship-evidence-and-rules.png
-[30.0 s] PASS beat 3: UI Acknowledge click stored (card shows Acknowledged onboard by …)
-[36.0 s] PASS beat 3: delivery stays queued after acknowledge (6 s later)
-[36.0 s] PASS beat 3: ground has no scn-01 incident while link is down (found 0)
-[36.1 s] screenshot 3-ship-acknowledged-still-queued.png
-[36.1 s] screenshot 3-ground-nothing-yet.png
-[40.2 s] demo script:         created      onboard 2026-11-15T13:06:46.787241Z  received on ground 2026-11-15T13:07:07.332680Z |         acknowledged onboard 2026-11-15T13:06:58.180570Z  received on ground 2026-11-15T13:07:07.332680Z | [ 29.2 s] Done: ground shows incident a5701b97 once, created + acknowledged.
-[40.2 s] PASS beat 4: spaceship card shows Delivered to ground
-[40.3 s] PASS beat 4: ground API has exactly 1 scn-01 incident (found 1)
-[40.3 s] PASS beat 4: ground updates in order created,acknowledged
-[40.3 s] PASS beat 4: received_at >= occurred_at for each update
-[40.3 s] PASS beat 4: ground Incidents tab lists Incident began before Acknowledged onboard
-[40.3 s] PASS beat 4: ground Incidents tab shows the incident once
-[40.3 s] PASS beat 4: Onboard time / Received on ground labels
-[40.3 s] PASS beat 4: ground incident id matches the onboard incident
-[40.4 s] screenshot 4-ship-delivered.png
-[40.4 s] screenshot 4-ground-incident-timeline.png
-[41.4 s] PASS reload: spaceship shows same incident, acknowledgment and Delivered to ground
-[41.5 s] PASS reload: ground shows the same single incident with both events
-[41.6 s] screenshot 5-ship-after-reload.png
-[41.6 s] screenshot 5-ground-after-reload.png
-[42.9 s] PASS English only on spaceship Status
-[44.2 s] PASS English only on spaceship Vital signs
-[45.4 s] PASS English only on spaceship Muscle
-[46.7 s] PASS English only on spaceship Urine
-[47.9 s] PASS English only on spaceship Assistant
-[49.2 s] PASS English only on spaceship Records
-[50.4 s] PASS English only on spaceship Wellbeing
-[51.7 s] PASS English only on ground Crew
-[51.7 s] screenshot 6-ground-crew.png
-[53.0 s] PASS English only on ground Astronaut
-[53.1 s] screenshot 6-ground-astronaut.png
-[54.5 s] PASS English only on ground Alerts
-[54.8 s] screenshot 6-ground-alerts.png
-[56.1 s] PASS English only on ground Incidents
-[56.1 s] screenshot 6-ground-incidents.png
-[57.4 s] PASS English only on ground Link
-[57.4 s] screenshot 6-ground-link.png
-[58.9 s] PASS wellbeing scn-01: shows Insufficient data / Baseline pending
-[59.0 s] screenshot 7-wellbeing-scn-01.png
-[61.0 s] PASS wellbeing ast-01: indicators labeled Provisional (or insufficient data)
-[61.0 s] wellbeing ast-01 excerpt: Demo data: history is SIMULATED; today's video log is LIVE. Thresholds are provisional and not clinically validated. | Baseline pending | Baseline pending | Insufficient data | Baseline pending | Insufficient data | LIVE · SIMULATED · MIXED · PROV. = provisional
-[61.1 s] screenshot 7-wellbeing-ast-01.png
-[62.4 s] screenshot 7-wellbeing-ast-01-personal.png
-[63.8 s] screenshot 7-wellbeing-ast-01-crew.png
-[63.8 s] console errors: spaceship: Failed to load resource: the server responded with a status of 404 (Not Found) || base: Failed to load resource: the server responded with a status of 404 (Not Found)
-[63.8 s] RESULT: all checks passed
+[13.5 s] PASS beat 1: spaceship header shows Earth link: up
+[13.6 s] screenshot 1-ship-vitals-reading.png
+[13.6 s] screenshot 1-ground-link-up.png
+[13.7 s] PASS beat 1: Records shows source simulated:scenario
+[13.8 s] screenshot 1-ship-records-simulated-source.png
+[18.0 s] PASS beat 2: incident card shows Next action
+[18.0 s] PASS beat 2: Ground delivery: queued, not delivered
+[18.2 s] screenshot 2-ship-incident-link-down.png
+[28.7 s] PASS beat 2: ground shows 'Batch late: N s without data'
+[28.7 s] screenshot 2-ground-batch-late.png
+[29.1 s] PASS beat 2: Simulated evidence tag visible
+[29.1 s] PASS beat 2: matched rule with protocol@version visible
+[29.1 s] screenshot 2-ship-evidence-and-rules.png
+[30.2 s] PASS beat 3: UI Acknowledge click stored (card shows Acknowledged onboard by …)
+[36.2 s] PASS beat 3: delivery stays queued after acknowledge (6 s later)
+[36.3 s] PASS beat 3: ground has no scn-01 incident while link is down (found 0)
+[36.3 s] screenshot 3-ship-acknowledged-still-queued.png
+[36.4 s] screenshot 3-ground-nothing-yet.png
+[40.5 s] demo script:         created      onboard 2026-11-15T13:10:56.905322Z  received on ground 2026-11-15T13:11:17.477979Z |         acknowledged onboard 2026-11-15T13:11:08.189510Z  received on ground 2026-11-15T13:11:17.477979Z | [ 29.3 s] Done: ground shows incident eb94a9dc once, created + acknowledged.
+[40.5 s] PASS beat 4: spaceship card shows Delivered to ground
+[40.6 s] PASS beat 4: ground API has exactly 1 scn-01 incident (found 1)
+[40.6 s] PASS beat 4: ground updates in order created,acknowledged
+[40.6 s] PASS beat 4: received_at >= occurred_at for each update
+[40.6 s] PASS beat 4: ground Incidents tab lists Incident began before Acknowledged onboard
+[40.6 s] PASS beat 4: ground Incidents tab shows the incident once
+[40.6 s] PASS beat 4: Onboard time / Received on ground labels
+[40.6 s] PASS beat 4: ground incident id matches the onboard incident
+[40.6 s] screenshot 4-ship-delivered.png
+[40.7 s] screenshot 4-ground-incident-timeline.png
+[41.6 s] PASS reload: spaceship shows same incident, acknowledgment and Delivered to ground
+[41.7 s] PASS reload: ground shows the same single incident with both events
+[41.8 s] screenshot 5-ship-after-reload.png
+[41.8 s] screenshot 5-ground-after-reload.png
+[43.1 s] PASS English only on spaceship Status
+[44.3 s] PASS English only on spaceship Vital signs
+[45.6 s] PASS English only on spaceship Muscle
+[46.9 s] PASS English only on spaceship Urine
+[48.2 s] PASS English only on spaceship Assistant
+[49.4 s] PASS English only on spaceship Records
+[50.6 s] PASS English only on spaceship Wellbeing
+[51.9 s] PASS English only on ground Crew
+[51.9 s] screenshot 6-ground-crew.png
+[53.2 s] PASS English only on ground Astronaut
+[53.3 s] screenshot 6-ground-astronaut.png
+[54.8 s] PASS English only on ground Alerts
+[55.2 s] screenshot 6-ground-alerts.png
+[56.5 s] PASS English only on ground Incidents
+[56.6 s] screenshot 6-ground-incidents.png
+[57.8 s] PASS English only on ground Link
+[57.9 s] screenshot 6-ground-link.png
+[59.4 s] PASS wellbeing scn-01: shows Insufficient data / Baseline pending
+[59.5 s] screenshot 7-wellbeing-scn-01.png
+[61.5 s] PASS wellbeing ast-01: indicators labeled Provisional (or insufficient data)
+[61.5 s] wellbeing ast-01 excerpt: Demo data: history is SIMULATED; today's video log is LIVE. Thresholds are provisional and not clinically validated. | Baseline pending | Baseline pending | Insufficient data | Baseline pending | Insufficient data | LIVE · SIMULATED · MIXED · PROV. = provisional
+[61.6 s] screenshot 7-wellbeing-ast-01.png
+[63.0 s] screenshot 7-wellbeing-ast-01-personal.png
+[64.3 s] screenshot 7-wellbeing-ast-01-crew.png
+[64.3 s] console errors: spaceship: Failed to load resource: the server responded with a status of 404 (Not Found) || base: Failed to load resource: the server responded with a status of 404 (Not Found)
+[64.3 s] RESULT: all checks passed
