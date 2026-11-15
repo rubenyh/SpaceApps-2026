@@ -259,3 +259,23 @@ def test_lip_press_is_stored_but_not_scored() -> None:
     assert not any(k.startswith("vision.lip_press") for k in inputs.values)
     ev = evaluate(inputs, TODAY, SETTINGS)
     assert ev.level == "ok"
+
+
+def test_brow_peak_floor_matches_real_rest_spread() -> None:
+    # Rest peaks from 3 real logs (0.046, 0.129, 0.094) form the baseline.
+    rest = [0.046, 0.129, 0.094]
+
+    def brow_peak_z(today_peak: float, low_baseline: bool = False) -> float:
+        sessions = [
+            bitacora(i, 0.02, None, 0.046 if low_baseline else rest[i % 3], None)
+            for i in range(DAYS - 1)
+        ] + [bitacora(DAYS - 1, 0.02, None, today_peak, None)]
+        inputs = build_daily_inputs("ast-01", [], [], sessions, [], [], SETTINGS)
+        ev = evaluate(inputs, TODAY, SETTINGS)
+        stress = next(i for i in ev.indicators if i.kind == "stress")
+        return next(c.latest_z for c in stress.components
+                    if c.definition.component == "vision.brow_lower_peak_1s")
+
+    assert brow_peak_z(0.129) < 0.5  # S2 rest log
+    assert brow_peak_z(0.129, low_baseline=True) < 1.1  # worst case: lowest rest baseline
+    assert brow_peak_z(0.663) >= 5.0  # acted frown: clearly flagged (z is capped at 5)

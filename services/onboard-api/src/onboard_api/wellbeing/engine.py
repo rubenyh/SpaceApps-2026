@@ -64,8 +64,9 @@ COMPONENTS: tuple[ComponentDef, ...] = (
     ComponentDef("signal.resting_heart_rate", "physiology", "stress", "high", 2.0, "bpm"),
     ComponentDef("onboard.heart_rate_low", "physiology", "stress", "high", 2.0, "bpm"),
     ComponentDef("vision.brow_lower_delta", "vision", "stress", "high", 0.03, "0-1"),
-    # Peaks keep brief grimaces that the session mean dilutes.
-    ComponentDef("vision.brow_lower_peak_1s", "vision", "stress", "high", 0.05, "0-1"),
+    # Peaks keep brief grimaces that the session mean dilutes. Floor 0.08 ~ the
+    # spread of real rest peaks (0.046-0.129, 3 logs): PROVISIONAL.
+    ComponentDef("vision.brow_lower_peak_1s", "vision", "stress", "high", 0.08, "0-1"),
     # lip_press_* is stored but not scored: talking peaks at 0.41-0.49 at rest,
     # above deliberate lip pressing (real logs, 2026-11-15). Re-add once vision
     # filters speech.
