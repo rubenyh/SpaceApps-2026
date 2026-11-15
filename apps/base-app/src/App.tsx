@@ -9,18 +9,20 @@ import { addToLedger, LINK_HEADLINES, liveAge, linkState, type LedgerEntry } fro
 import { formatAge, formatDuration, utcSeconds } from "./lib/format";
 import { Alertas } from "./screens/Alertas";
 import { Astronauta } from "./screens/Astronauta";
+import { CaseReports } from "./screens/CaseReports";
 import { Enlace } from "./screens/Enlace";
 import { Incidents } from "./screens/Incidents";
 import { MedicalEval } from "./screens/MedicalEval";
 import { Tripulacion } from "./screens/Tripulacion";
 
-type Tab = "crew" | "astro" | "alerts" | "incidents" | "eval" | "link";
+type Tab = "crew" | "astro" | "alerts" | "incidents" | "reports" | "eval" | "link";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "crew", label: "Crew" },
   { key: "astro", label: "Astronaut" },
   { key: "alerts", label: "Alerts" },
   { key: "incidents", label: "Incidents" },
+  { key: "reports", label: "Reports" },
   { key: "eval", label: "Eval" },
   { key: "link", label: "Link" },
 ];
@@ -33,6 +35,8 @@ const ALERTS_LIMIT = 200;
 export default function App() {
   const [tab, setTab] = useState<Tab>("crew");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [reportId, setReportId] = useState<string | null>(null);
+  const [focusIncidentId, setFocusIncidentId] = useState<string | null>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const now = useNow(1000);
 
@@ -74,6 +78,21 @@ export default function App() {
     setTab("astro");
   };
 
+  const openReport = (id: string) => {
+    setReportId(id);
+    setTab("reports");
+  };
+
+  const openIncident = (id: string) => {
+    setFocusIncidentId(id);
+    setTab("incidents");
+  };
+
+  const selectTab = (key: Tab) => {
+    setFocusIncidentId(null);
+    setTab(key);
+  };
+
   const onTabKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const idx = TABS.findIndex((t) => t.key === tab);
     let next = -1;
@@ -83,7 +102,7 @@ export default function App() {
     else if (e.key === "End") next = TABS.length - 1;
     if (next < 0) return;
     e.preventDefault();
-    setTab(TABS[next].key);
+    selectTab(TABS[next].key);
     tabRefs.current[next]?.focus();
   };
 
@@ -107,7 +126,7 @@ export default function App() {
               aria-controls="panel"
               tabIndex={tab === t.key ? 0 : -1}
               className="tab"
-              onClick={() => setTab(t.key)}
+              onClick={() => selectTab(t.key)}
             >
               {t.label}
             </button>
@@ -178,7 +197,9 @@ export default function App() {
         ) : tab === "alerts" ? (
           <Alertas alerts={alerts.data} limit={ALERTS_LIMIT} crew={crew.data} offline={offline} />
         ) : tab === "incidents" ? (
-          <Incidents />
+          <Incidents focusId={focusIncidentId} onOpenReport={openReport} />
+        ) : tab === "reports" ? (
+          <CaseReports crew={crew.data} selectedId={reportId} onSelect={setReportId} onOpenIncident={openIncident} />
         ) : tab === "eval" ? (
           <MedicalEval />
         ) : (

@@ -6,15 +6,15 @@ NASA Space Apps 2026 monorepo. An astronaut console (Tauri) talks to an onboard 
 
 | Path | What | Status |
 |---|---|---|
-| `apps/spaceship-app/` | Astronaut console. Tauri 2 + React 19 + Vite 8 + TypeScript 6. Rust crate `spaceship_app_lib`. Vite port 1420. Shares one visual identity with base-app (tokens: `src/styles/tokens.css`). | Status, vitals, muscle, urine, assistant, records, wellbeing |
-| `apps/base-app/` | Ground console, same stack and visual identity. Talks only to ground-api. Vite port 1421. | Crew, astronaut, alerts, incidents, medical eval, link |
+| `apps/spaceship-app/` | Astronaut console. Tauri 2 + React 19 + Vite 8 + TypeScript 6. Rust crate `spaceship_app_lib`. Vite port 1420. Shares one visual identity with base-app (tokens: `src/styles/tokens.css`). | Status, vitals, muscle, urine, assistant (assessment card, review and send case reports), records, wellbeing |
+| `apps/base-app/` | Ground console, same stack and visual identity. Talks only to ground-api. Vite port 1421. | Crew, astronaut, alerts, incidents, case reports, medical eval, link |
 | `apps/watch-app/` | Apple Watch app, watchOS 10+ SwiftUI, watch-only (no iPhone app). Polls onboard-api status and open incidents; 2 s hold sends SOS to `POST /assistant/messages`. Replaces ARCHeR (no live API). Setup: `apps/watch-app/README.md`. | Readings, SOS, incident alert |
-| `services/onboard-api/` | FastAPI 0.163, Python 3.12, uv. Package `onboard_api` in `src/`. App `onboard_api.main:app`. | Readings API, SQLite repository, `POST /assistant/messages` (LangGraph medical workflow, Ollama, ChromaDB), incidents, wellbeing, telemetry publisher, knowledge gate, eval runner, pytest |
-| `services/ground-api/` | FastAPI 0.163, Python 3.12, uv. Package `ground_api` in `src/`. App `ground_api.main:app`. | Telemetry receiver, ground read API, medical-eval review, pytest |
+| `services/onboard-api/` | FastAPI 0.163, Python 3.12, uv. Package `onboard_api` in `src/`. App `onboard_api.main:app`. | Readings API, SQLite repository, `POST /assistant/messages` (LangGraph medical workflow, Ollama, ChromaDB), incidents, case-report drafts and queue (`/case-reports`), `status` quick-question workflow, wellbeing, telemetry publisher, knowledge gate, eval runner, pytest |
+| `services/ground-api/` | FastAPI 0.163, Python 3.12, uv. Package `ground_api` in `src/`. App `ground_api.main:app`. | Telemetry receiver, case-report receiver, ground read API, medical-eval review, pytest |
 | `services/wellbeing-vision/` | Camera collector for the wellbeing module. Python 3.12, uv, OpenCV + MediaPipe. Own process, CLI `wellbeing-vision`. Sends derived metrics only (never frames) to onboard-api `POST /wellbeing/vision-sessions` and `/wellbeing/co-presence`. | Daily video log, face identity, two-camera ambient mode |
 | `firmware/` | `simulator.py`: software stand-in for the biomonitor device (pulse-ox, urine analyser, muscle scanner). Posts to onboard-api `/readings` with source `simulated:*`; buffers while the API is down. Stdlib only. | Simulated until real hardware exists |
 | `db/` | SQLite migrations (`db/migrations/onboard/` applied at onboard-api startup, `db/migrations/wellbeing/` on first wellbeing use) and `db/data-dictionary.md`. ground-api creates its own tables in code. | |
-| `contracts/`, `eval/medical/` | Telemetry v1 and medical-eval contracts; synthetic medical eval cases (all `draft`). | |
+| `contracts/`, `eval/medical/` | Telemetry v1, case-report v1 and medical-eval contracts; synthetic medical eval cases (all `draft`). | |
 | `.claude/agents/`, `.claude/skills/` | Claude Code subagents and skills. | |
 
 Planned, not in the repo yet: hardware collectors for real sensors (pySerial, OpenCV, MediaPipe pose).
@@ -36,7 +36,7 @@ Planned, not in the repo yet: hardware collectors for real sensors (pySerial, Op
 | `services/onboard-api` | `uv run fastapi dev` | Uses `[tool.fastapi] entrypoint`. Default port 8000. `GET /` returns `{"status":"ok"}`. |
 | `services/ground-api` | `uv sync --locked` then `uv run fastapi dev --port 8001` | Use a different port than onboard. |
 | `services/*` | `uv add <pkg>` / `uv add --dev <pkg>` | Always commit `uv.lock` together with `pyproject.toml`. |
-| repo root | `python3 firmware/simulator.py` | Live device feed for the console (needs onboard-api running). `--urine-every 120` for faster samples. Self-check: `cd firmware && python3 test_simulator.py`. |
+| repo root | `python3 firmware/simulator.py` | Live device feed for the console (needs onboard-api running). `--urine-every 120` for faster samples. Self-check: `cd firmware && python3 test_simulator.py`. On Windows use `python` if `python3` is older than 3.11. |
 | repo root | `python firmware/muscle_live.py` | Phone-slider demo feed for the Muscle screen's live graph (port 8765, prints LAN URL). Memory only, never posts to onboard-api. Self-check: `--check`. |
 | `apps/spaceship-app` | `npm run build` | `tsc && vite build`. |
 | `apps/spaceship-app/src-tauri` | `cargo check` | On Git Bash, cargo is at `~/.cargo/bin/cargo.exe` (not on PATH). |

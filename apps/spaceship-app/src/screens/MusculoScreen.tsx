@@ -82,7 +82,7 @@ export function MusculoScreen({ astronautId }: Props) {
 
   const hasRange = sensor !== null && rangeText(sensor.config) !== null;
   const ttl = sensor?.config.stale_after_seconds ?? null;
-  const fresh = sensor !== null && sensor.status !== "stale" && sensor.status !== "no_data";
+  const fresh = sensor !== null && sensor.status !== "stale" && sensor.status !== "future" && sensor.status !== "no_data";
 
   return (
     <div className="screen">

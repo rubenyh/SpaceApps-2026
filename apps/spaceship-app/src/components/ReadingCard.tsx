@@ -71,7 +71,7 @@ export function ReadingCard({
         </div>
         <div className="card__meta">
           <span className="card__age">
-            {status === "stale" ? <StateIcon state="stale" size={15} /> : null}
+            {status === "stale" || status === "future" ? <StateIcon state={status} size={15} /> : null}
             {noData || !age ? "Never measured" : age.charAt(0).toUpperCase() + age.slice(1)}
           </span>
           {!noData && quality ? (

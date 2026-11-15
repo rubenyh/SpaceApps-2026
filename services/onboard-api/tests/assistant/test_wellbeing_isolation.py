@@ -70,4 +70,6 @@ def test_wellbeing_data_does_not_change_triage(
     assert client.post("/wellbeing/signals", json=SIGNAL).status_code == 201
 
     after, *_ = post(client, db_path, request)
+    for body in (before, after):
+        body["report"].pop("id")  # a new report id per response
     assert after == before

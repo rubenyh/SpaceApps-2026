@@ -110,7 +110,7 @@ def get_assistant_responder(
     clock: Annotated[Clock, Depends(get_clock)],
 ) -> AssistantResponder:
     graph = build_assistant_graph(deps)  # cached per deps object
-    return lambda request: respond(graph, request, clock())
+    return lambda request: respond(graph, request, clock(), clock)
 
 
 ClockDep = Annotated[Clock, Depends(get_clock)]
