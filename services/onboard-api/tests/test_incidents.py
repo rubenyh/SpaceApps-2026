@@ -9,16 +9,20 @@ from fastapi.testclient import TestClient
 from assistant.fakes import FailingLLM, FailingRetriever, Forbidden
 from assistant.medical_cases import _event
 from assistant.test_post_cases import post
-from conftest import T0
+from conftest import T0, reading_payload
 from onboard_api.dependencies import get_incident_recorder
 from onboard_api.repositories.database import connect
-from onboard_api.repositories.incidents import IncidentRepository
+from onboard_api.assistant.workflows.medical.prompts import SOS_FINDINGS
+from onboard_api.repositories.incidents import IncidentRepository, trigger_key
+from onboard_api.schemas.assistant import AssistantResponse, Finding
 
 OFFLINE = {"llm": Forbidden("llm"), "retriever": Forbidden("retriever")}
 
 
-def ask(client, db_path, message, astronaut_id="ana", **kw):
+def ask(client, db_path, message, astronaut_id="ana", source=None, **kw):
     request = {"astronaut_id": astronaut_id, "message": message, "reported_by": "ben"}
+    if source:
+        request["source"] = source
     return post(client, db_path, request, **{**OFFLINE, **kw})[0]
 
 
@@ -202,3 +206,43 @@ def test_close_route_then_same_trigger_opens_new_incident(crew, db_path, clock) 
     assert late_ack.status_code == 409
     assert ask(crew, db_path, "SOS")["incident"]["id"] != first
     assert count(db_path) == 2
+
+
+def test_watch_sos_records_origin_and_console_sos_reuses_it(crew, db_path) -> None:
+    readings = [
+        reading_payload(recorded_at="2026-11-14T11:50:00Z", value=70),  # older heart_rate
+        reading_payload(value=118),
+        reading_payload(kind="spo2", value=91, unit="%"),
+    ]
+    watch = ask(crew, db_path, "SOS", source="watch", readings=readings)["incident"]["id"]
+    conn = sqlite3.connect(db_path)
+    latest = sorted(r[0] for r in conn.execute(
+        "SELECT id FROM readings WHERE value IN (118, 91)"))
+    conn.close()
+
+    incident = crew.get(f"/incidents/{watch}").json()
+    assert incident["reported_via"] == "watch"
+    assert sorted(incident["reading_ids"]) == latest and len(latest) == 2
+
+    console = ask(crew, db_path, "SOS", source="console")["incident"]["id"]
+    assert console == watch and count(db_path) == 1  # reuse keeps the watch origin
+    [listed] = crew.get("/incidents").json()
+    assert listed["reported_via"] == "watch" and sorted(listed["reading_ids"]) == latest
+
+    repo = IncidentRepository(connect(db_path), telemetry_enabled=True)
+    [queued] = repo.undelivered_events(500)
+    assert queued.reported_via == "watch" and sorted(queued.reading_ids) == latest
+
+
+def test_default_source_is_console_and_no_readings_is_empty(crew, db_path) -> None:
+    incident_id = ask(crew, db_path, "SOS")["incident"]["id"]
+    incident = crew.get(f"/incidents/{incident_id}").json()
+    assert incident["reported_via"] == "console" and incident["reading_ids"] == []
+
+
+def test_trigger_key_dedupes_console_and_watch_sos_texts() -> None:
+    def key(detail: str) -> str:
+        finding = Finding(kind="event", detail=detail, source="report")
+        return trigger_key(AssistantResponse.model_construct(matched_rules=[], findings=[finding]), "ana")
+
+    assert key(SOS_FINDINGS["watch"]) == key(SOS_FINDINGS["console"]) == "ana|sos|"

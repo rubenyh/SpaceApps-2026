@@ -14,7 +14,8 @@ from onboard_api.repositories.database import (
 
 BASELINE = MIGRATIONS_DIR / "0001_baseline.sql"
 INCIDENTS = MIGRATIONS_DIR / "0002_incidents.sql"
-LATEST = 2
+ORIGIN = MIGRATIONS_DIR / "0003_incident_origin.sql"
+LATEST = 3
 REPO_ROOT = MIGRATIONS_DIR.parents[2]
 # Last main commit before the move to db/migrations.
 OLD_SCHEMA_REF = "2d157f7:services/onboard-api/src/onboard_api/repositories/schema.sql"
@@ -86,7 +87,7 @@ def test_fresh_db_gets_baseline(tmp_path: Path) -> None:
         (k, u, s, mn, mx, role, src) for k, u, s, mn, mx, role, src in OLD_SEED
     ]
     assert all(r["provisional"] == 1 and len(r["updated_at"]) == 27 for r in rows)
-    assert _schema(conn) == schema_of(LEGACY_DDL + INCIDENTS.read_text("utf-8"))
+    assert _schema(conn) == schema_of(LEGACY_DDL + INCIDENTS.read_text("utf-8") + ORIGIN.read_text("utf-8"))
     assert conn.execute("SELECT count(*) FROM incidents").fetchone()[0] == 0
     conn.close()
 
@@ -128,7 +129,7 @@ def test_version_1_db_gets_0002_and_keeps_data(tmp_path: Path) -> None:
     assert set(before) <= set(dump(db))  # every existing row and table kept
     assert incident_tables(db) == {"incidents", "incident_events"}
     conn = connect(db)
-    assert _schema(conn) == schema_of(LEGACY_DDL + INCIDENTS.read_text("utf-8"))
+    assert _schema(conn) == schema_of(LEGACY_DDL + INCIDENTS.read_text("utf-8") + ORIGIN.read_text("utf-8"))
     conn.close()
 
 
@@ -166,6 +167,7 @@ def migrations(tmp_path: Path, **extra: str) -> Path:
     folder.mkdir()
     shutil.copy(BASELINE, folder)
     shutil.copy(INCIDENTS, folder)
+    shutil.copy(ORIGIN, folder)
     for name, sql in extra.items():
         (folder / f"{name}.sql").write_text(sql, "utf-8")
     return folder
@@ -177,7 +179,7 @@ def test_failing_migration_rolls_back(tmp_path: Path) -> None:
     before = dump(db)
     folder = migrations(
         tmp_path,
-        **{"0003_broken": "CREATE TABLE extra (id INTEGER);\nINSERT INTO nope VALUES (1);"},
+        **{"0004_broken": "CREATE TABLE extra (id INTEGER);\nINSERT INTO nope VALUES (1);"},
     )
     for _ in range(2):  # next run fails cleanly too
         with pytest.raises(sqlite3.OperationalError):
@@ -188,9 +190,9 @@ def test_failing_migration_rolls_back(tmp_path: Path) -> None:
 def test_successful_migration_applied_with_version(tmp_path: Path) -> None:
     db = tmp_path / "onboard.db"
     init_db(db)
-    folder = migrations(tmp_path, **{"0003_add_note": "ALTER TABLE readings ADD COLUMN note TEXT;"})
+    folder = migrations(tmp_path, **{"0004_add_note": "ALTER TABLE readings ADD COLUMN note TEXT;"})
     init_db(db, migrations_dir=folder)
-    assert version(db) == 3
+    assert version(db) == 4
     conn = connect(db)
     assert "note" in [r["name"] for r in conn.execute("PRAGMA table_info(readings)")]
     conn.close()
@@ -211,7 +213,7 @@ def test_newer_db_than_code_fails(tmp_path: Path) -> None:
 def test_gap_or_missing_dir_fails(tmp_path: Path) -> None:
     with pytest.raises(RuntimeError, match="not found"):
         init_db(tmp_path / "a.db", migrations_dir=tmp_path / "missing")
-    folder = migrations(tmp_path, **{"0004_gap": "SELECT 1;"})
+    folder = migrations(tmp_path, **{"0005_gap": "SELECT 1;"})
     with pytest.raises(RuntimeError, match="1..N"):
         init_db(tmp_path / "b.db", migrations_dir=folder)
 
@@ -229,3 +231,29 @@ def test_foreign_key_violation_fails(tmp_path: Path) -> None:
     conn.close()
     with pytest.raises(RuntimeError, match="readings: 1"):
         init_db(db)
+
+
+def test_version_2_incident_gets_origin_defaults(tmp_path: Path) -> None:
+    db = tmp_path / "onboard.db"
+    folder = tmp_path / "v2"
+    folder.mkdir()
+    shutil.copy(BASELINE, folder)
+    shutil.copy(INCIDENTS, folder)
+    init_db(db, migrations_dir=folder)
+    conn = sqlite3.connect(db)
+    conn.execute(
+        "INSERT INTO incidents (id, trigger_key, began_at, urgency, steps_json,"
+        " matched_rules_json, findings_json, data_notices_json, mission_procedures_json,"
+        " missing_guidance_json) VALUES ('old', 'k', '2026-01-01T00:00:00.000000Z',"
+        " 'immediate', '[]', '[]', '[]', '[]', '[]', '[]')"
+    )
+    conn.commit()
+    conn.close()
+    init_db(db)
+    assert version(db) == LATEST
+    conn = connect(db)
+    row = conn.execute("SELECT reported_via, reading_ids_json FROM incidents").fetchone()
+    assert tuple(row) == (None, "[]")
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute("UPDATE incidents SET reported_via = 'pager'")
+    conn.close()

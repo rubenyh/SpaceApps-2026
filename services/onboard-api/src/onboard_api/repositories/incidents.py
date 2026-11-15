@@ -7,9 +7,14 @@ closed, the same key opens a new incident.
 
 - Rule ids: `matched_rules[].rule_id`, plus `sos` when the response came from the SOS
   path. The SOS path is detected by the finding the medical workflow adds for it
-  (`nodes._with_sos`): kind `event`, source `report`, detail `prompts.SOS_FINDING`.
+  (`nodes._with_sos`): kind `event`, source `report`, detail one of
+  `prompts.SOS_FINDINGS` (console or watch text), so a watch SOS and a console SOS
+  for the same astronaut share one open incident.
   Card rules matched in the same turn stay in the key next to `sos`.
 - Event ids: findings whose source is `event:<id>`.
+
+`reported_via` and `reading_ids` are stored when the incident is created; a reuse keeps
+the original values.
 """
 
 import json
@@ -21,7 +26,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from onboard_api.assistant.workflows.medical.prompts import SOS_FINDING
+from onboard_api.assistant.workflows.medical.prompts import SOS_FINDINGS
 from onboard_api.repositories.database import from_db_timestamp, to_db_timestamp
 from onboard_api.schemas.assistant import AssistantResponse, MatchedRule, Urgency
 from onboard_api.schemas.incidents import (
@@ -38,7 +43,7 @@ SOS_RULE_ID = "sos"
 def trigger_key(response: AssistantResponse, astronaut_id: str | None) -> str:
     rule_ids = {rule.rule_id for rule in response.matched_rules}
     if any(
-        f.kind == "event" and f.source == "report" and f.detail == SOS_FINDING
+        f.kind == "event" and f.source == "report" and f.detail in SOS_FINDINGS.values()
         for f in response.findings
     ):
         rule_ids.add(SOS_RULE_ID)
@@ -61,6 +66,8 @@ class QueuedIncidentEvent:
     matched_rules: list[MatchedRule]
     action: str | None
     acknowledged_by: str | None
+    reported_via: str | None
+    reading_ids: list[int]
 
 
 def _dump(items: Iterable[BaseModel]) -> str:
@@ -82,9 +89,12 @@ class IncidentRepository:
         astronaut_id: str | None,
         reported_by: str | None,
         began_at: datetime,
+        reported_via: str | None = None,
+        reading_ids: list[int] | None = None,
     ) -> str:
         """Id of the open incident for this trigger, inserting it and its `created`
-        event in one transaction when there is none."""
+        event in one transaction when there is none. `reported_via` and `reading_ids`
+        are stored on insert only."""
         key = trigger_key(response, astronaut_id)
         self._conn.execute("BEGIN IMMEDIATE")
         try:
@@ -99,8 +109,9 @@ class IncidentRepository:
                 self._conn.execute(
                     "INSERT INTO incidents (id, trigger_key, astronaut_id, reported_by, began_at,"
                     " urgency, action, protocol_id, steps_json, matched_rules_json, findings_json,"
-                    " data_notices_json, mission_procedures_json, missing_guidance_json)"
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    " data_notices_json, mission_procedures_json, missing_guidance_json,"
+                    " reported_via, reading_ids_json)"
+                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (
                         incident_id, key, astronaut_id, reported_by, at,
                         response.urgency, response.action, response.protocol_id,
@@ -108,6 +119,7 @@ class IncidentRepository:
                         _dump(response.findings), json.dumps(response.data_notices, ensure_ascii=False),
                         _dump(response.mission_procedures),
                         json.dumps(response.missing_guidance, ensure_ascii=False),
+                        reported_via, json.dumps(reading_ids or []),
                     ),
                 )
                 self._add_event(incident_id, "created", at)
@@ -170,7 +182,8 @@ class IncidentRepository:
         """Events not yet accepted by ground, oldest first (occurred_at, then rowid)."""
         rows = self._conn.execute(
             "SELECT e.id, e.incident_id, e.type, e.occurred_at, e.acknowledged_by,"
-            " i.astronaut_id, i.urgency, i.protocol_id, i.matched_rules_json, i.action"
+            " i.astronaut_id, i.urgency, i.protocol_id, i.matched_rules_json, i.action,"
+            " i.reported_via, i.reading_ids_json"
             " FROM incident_events e JOIN incidents i ON i.id = e.incident_id"
             " WHERE e.delivered_at IS NULL ORDER BY e.occurred_at, e.rowid LIMIT ?",
             (limit,),
@@ -194,6 +207,8 @@ class IncidentRepository:
                     matched_rules=rules,
                     action=row["action"],
                     acknowledged_by=row["acknowledged_by"],
+                    reported_via=row["reported_via"],
+                    reading_ids=json.loads(row["reading_ids_json"]),
                 )
             )
         return events
@@ -245,6 +260,8 @@ class IncidentRepository:
             data_notices=json.loads(row["data_notices_json"]),
             mission_procedures=json.loads(row["mission_procedures_json"]),
             missing_guidance=json.loads(row["missing_guidance_json"]),
+            reported_via=row["reported_via"],
+            reading_ids=json.loads(row["reading_ids_json"]),
             acknowledgments=[
                 Acknowledgment(acknowledged_by=e.acknowledged_by, acknowledged_at=e.occurred_at)
                 for e in events

@@ -14,6 +14,7 @@ from fastapi import Depends, Request
 
 from onboard_api.assistant.graph import build_assistant_graph, respond
 from onboard_api.assistant.state import AssistantDeps
+from onboard_api.assistant.workflows.medical.context import SqliteReadingsProvider
 from onboard_api.config import Settings
 from onboard_api.repositories.astronauts import AstronautRepository
 from onboard_api.repositories.database import connect
@@ -24,8 +25,8 @@ from onboard_api.schemas.assistant import AssistantResponse
 from onboard_api.services.assistant import AssistantResponder
 
 Clock = Callable[[], datetime]
-# (response, astronaut_id, reported_by, began_at) -> incident id.
-IncidentRecorder = Callable[[AssistantResponse, str | None, str | None, datetime], str]
+# (response, astronaut_id, reported_by, began_at, reported_via) -> incident id.
+IncidentRecorder = Callable[[AssistantResponse, str | None, str | None, datetime, str | None], str]
 
 
 def utc_now() -> datetime:
@@ -76,14 +77,23 @@ def get_incident_recorder(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> IncidentRecorder:
     """Opens its connection only when called, so a broken database cannot fail the
-    assistant request before the urgent action is returned."""
+    assistant request before the urgent action is returned. The reading ids are the
+    same latest readings the medical workflow shows (the provider never raises)."""
 
     def record(
-        response: AssistantResponse, astronaut_id: str | None, reported_by: str | None, at: datetime
+        response: AssistantResponse,
+        astronaut_id: str | None,
+        reported_by: str | None,
+        at: datetime,
+        reported_via: str | None,
     ) -> str:
+        latest = SqliteReadingsProvider(settings.db_path).load(astronaut_id, at).latest
+        reading_ids = [r.id for r in latest.values()]
         conn = connect(settings.db_path)
         try:
-            return IncidentRepository(conn).create_or_reuse(response, astronaut_id, reported_by, at)
+            return IncidentRepository(conn).create_or_reuse(
+                response, astronaut_id, reported_by, at, reported_via, reading_ids
+            )
         finally:
             conn.close()
 
