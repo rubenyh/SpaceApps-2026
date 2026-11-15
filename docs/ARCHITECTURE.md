@@ -65,6 +65,12 @@ The live connections are HTTP calls into onboard-api: from the console (reads an
 
 All commands were run on Windows 11 with Git Bash on 2026-11-14.
 
+### Docker Compose demo
+
+`docker compose up --build` from the repo root runs the onboard stack: `onboard-api` (port 8000), `ollama`, the one-shot `demo-init` (model pull and guide ingest via [`scripts/prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py)) and `simulator`. The API does not depend on Ollama or `demo-init`. The console stays native. Steps, logs and volumes: [README](../README.md#run-the-demo-docker-compose--tauri). The sections below describe the native setup.
+
+`GuideRetriever.search` treats an empty collection as unavailable and drops its Chroma client, because a client opened on an empty index does not see an index that another process (the `demo-init` ingest) builds later.
+
 ### onboard-api
 
 Working directory: `services/onboard-api`.

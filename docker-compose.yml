@@ -1,0 +1,62 @@
+# Onboard demo stack. From the repo root: docker compose up --build
+# The Tauri console runs on the host and talks to http://127.0.0.1:8000.
+
+x-onboard-env: &onboard-env
+  ONBOARD_DB_PATH: /data/sqlite/onboard.db
+  ONBOARD_CHROMA_PATH: /data/chroma
+  ONBOARD_OLLAMA_BASE_URL: http://ollama:11434
+  ONBOARD_OLLAMA_CHAT_MODEL: ${ONBOARD_OLLAMA_CHAT_MODEL:-qwen2.5:0.5b}
+  ONBOARD_OLLAMA_EMBED_MODEL: ${ONBOARD_OLLAMA_EMBED_MODEL:-bge-m3}
+
+services:
+  onboard-api:
+    build: &onboard-build
+      context: .
+      dockerfile: services/onboard-api/Dockerfile
+    image: space-apps/onboard-api
+    environment: *onboard-env
+    ports:
+      - "127.0.0.1:${ONBOARD_API_PORT:-8000}:8000"
+    volumes:
+      - sqlite:/data/sqlite
+      - chroma:/data/chroma
+    restart: unless-stopped
+    # No depends_on ollama: alarm and SOS replies must work while models are down.
+
+  ollama:
+    image: ollama/ollama:0.40.16
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  demo-init:
+    build: *onboard-build  # same image; cached after the first build
+    image: space-apps/onboard-api
+    command: ["python", "scripts/prepare_demo.py"]
+    environment: *onboard-env
+    volumes:
+      - chroma:/data/chroma
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+
+  simulator:
+    image: python:3.12-slim-bookworm
+    command: ["python", "-u", "/firmware/simulator.py", "--url", "http://onboard-api:8000"]
+    volumes:
+      - ./firmware:/firmware:ro
+    depends_on:
+      onboard-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  sqlite:
+  chroma:
+  ollama:
