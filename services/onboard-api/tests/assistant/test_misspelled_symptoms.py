@@ -86,6 +86,20 @@ def test_lookalikes_stay_unsupported(ask, message: str) -> None:
     assert send(ask, message)["workflow"] == "unsupported"
 
 
+@pytest.mark.parametrize(
+    ("contracted", "spelled"),
+    [
+        ("I didn't faint", "I did not faint"),
+        ("I haven't had any dyziness", "I have not had any dizziness"),
+        ("she isn't unconsious", "she is not unconscious"),
+    ],
+)
+def test_contracted_negation_reads_like_not(ask, contracted: str, spelled: str) -> None:
+    got, want = send(ask, contracted), send(ask, spelled)
+    assert want["urgency"] != "immediate", want
+    assert decision(got) == decision(want)
+
+
 def test_hypothetical_is_not_a_current_report(ask) -> None:
     body = send(ask, "what should I do if I get dyziness")
     assert body["urgency"] in (None, "informational"), body

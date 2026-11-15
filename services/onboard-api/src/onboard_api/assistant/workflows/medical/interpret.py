@@ -142,7 +142,7 @@ _P += [
 ]
 _PATTERNS = [(code, re.compile(rx), extra) for code, rx, extra in _P]
 
-_NEGATOR = re.compile(r"\b(no|sin|ni|nunca|tampoco|jamas|niego|nada de|not|without|never|don'?t|dont|deny|denies)\b")
+_NEGATOR = re.compile(r"\b(no|sin|ni|nunca|tampoco|jamas|niego|nada de|not|without|never|don'?t|dont|didn'?t|doesn'?t|haven'?t|hasn'?t|isn'?t|wasn'?t|deny|denies)\b")
 # "no" that does not negate the symptom that follows.
 _NEUTRAL_NO = re.compile(
     r"\bno (se|sabe|sabemos) (que|por que|como|cuando|donde|cual)\b"
