@@ -22,19 +22,19 @@ No se publica en la App Store. Se instala desde Xcode con un Apple ID personal.
    ./run.sh --watch-device
    # o sin Docker:
    cd services/onboard-api && uv run fastapi dev --host 0.0.0.0
-   python3 firmware/simulator.py --real-vitals ast-01   # desde la raíz, en otra terminal
+   python3 firmware/simulator.py   # desde la raíz, en otra terminal
    ```
 
 6. En Xcode elige el reloj como destino y pulsa Run.
-7. En el reloj, acepta el permiso de Salud (activa pulso y oxígeno), escribe `http://<IP del Mac>:8000`, pulsa "Cargar astronautas" y elige **Demo Uno** (`ast-01`). La primera vez watchOS pide permiso de red local: acéptalo.
-8. Arriba en la pantalla de lecturas verás "Midiendo · NN lpm". En las consolas, el pulso de Demo Uno tiene fuente `watch:healthkit`.
+7. En el reloj, acepta el permiso de Salud (activa pulso y oxígeno), escribe `http://<IP del Mac>:8000`, pulsa "Cargar astronautas" y elige `ast-01`. La primera vez watchOS pide permiso de red local: acéptalo.
+8. Arriba en la pantalla de lecturas verás "Midiendo · NN lpm". En las consolas, el pulso de `ast-01` tiene fuente `watch:healthkit`.
 
 ## Límites
 
 - La firma con un Apple ID gratuito caduca a los 7 días: vuelve a pulsar Run para reinstalar.
 - Las alertas en otros relojes solo llegan con la app abierta. Un push real necesitaría APNs y un servicio en la nube.
 - La sesión de medición gasta batería y muestra el icono de entrenamiento mientras la app está abierta.
-- Si eliges un astronauta que el simulador sigue alimentando, su gráfica mezcla pulso real y simulado. Usa `--real-vitals <id>` para ese astronauta.
+- El simulador siempre envía pulso y SpO₂ simulados de `ast-01`, así que con el reloj su gráfica mezcla pulso real (`watch:healthkit`) y simulado (`simulated:pulse-ox`).
 - HTTP sin cifrar, permitido solo en la red local (`NSAllowsLocalNetworking`).
 
 ## Comprobaciones

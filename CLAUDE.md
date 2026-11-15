@@ -36,7 +36,7 @@ Planned, not in the repo yet: hardware collectors for real sensors (pySerial, Op
 | `services/onboard-api` | `uv run fastapi dev` | Uses `[tool.fastapi] entrypoint`. Default port 8000. `GET /` returns `{"status":"ok"}`. |
 | `services/ground-api` | `uv sync --locked` then `uv run fastapi dev --port 8001` | Use a different port than onboard. |
 | `services/*` | `uv add <pkg>` / `uv add --dev <pkg>` | Always commit `uv.lock` together with `pyproject.toml`. |
-| repo root | `python3 firmware/simulator.py` | Live device feed for the console (needs onboard-api running). `--urine-every 120` for faster samples, `--real-vitals ast-01` when a real watch sends that pulse, `--real-urine ast-01` when the ESP32 sends that urine. Self-check: `cd firmware && python3 test_simulator.py`. On Windows use `python` if `python3` is older than 3.11. |
+| repo root | `python3 firmware/simulator.py` | Live device feed for the console (needs onboard-api running). `--urine-every 120` for faster samples, `--real-urine ast-01` when the ESP32 sends that urine. Self-check: `cd firmware && python3 test_simulator.py`. On Windows use `python` if `python3` is older than 3.11. |
 | `services/onboard-api` | `uv run --with pyserial python ../../firmware/serial_bridge.py` | ESP32 urine analyser → `/readings` (`--astronaut`, default `ast-01`; `--port` to skip auto-detect). Run the simulator with `--real-urine` alongside. |
 | repo root | `python firmware/muscle_live.py` | Phone-slider demo feed for the Muscle screen's live graph (port 8765, prints LAN URL). Memory only, never posts to onboard-api. Self-check: `--check`. |
 | `apps/spaceship-app` | `npm run build` | `tsc && vite build`. |

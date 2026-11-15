@@ -27,8 +27,8 @@ for arg in "$@"; do
 done
 
 # A real watch reaches onboard-api over Wi-Fi, so it must listen on the LAN, not only on 127.0.0.1.
-# The real watch wears ast-01, so the simulator stops faking ast-01's pulse and SpO2.
-if $device; then export ONBOARD_API_HOST=0.0.0.0 SIMULATOR_ARGS="--real-vitals ast-01"; fi
+# The simulator keeps sending ast-01's simulated pulse and SpO2, so the graph mixes both sources.
+if $device; then export ONBOARD_API_HOST=0.0.0.0; fi
 # Docker Desktop cannot reach USB serial on macOS, so the ESP32 bridge runs on the host; the simulator
 # stops faking the three urine values the board measures.
 if $urine; then export SIMULATOR_ARGS="${SIMULATOR_ARGS:-} --real-urine ast-01"; fi
@@ -62,7 +62,7 @@ if ! $no_apps; then
   elif $device; then
     ip=$(ipconfig getifaddr en0 || ipconfig getifaddr en1 || echo '<Mac IP>')
     open "$watch/WatchApp.xcodeproj"
-    echo "Watch: in Xcode pick your watch and press Run, then enter http://$ip:8000 and pick Demo Uno (ast-01)."
+    echo "Watch: in Xcode pick your watch and press Run, then enter http://$ip:8000 and pick ast-01."
     echo "       Signing and Developer Mode: $watch/README.md"
   else
     echo 'Building the watch app for the simulator...'

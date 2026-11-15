@@ -43,7 +43,7 @@ For the Docker Compose stack, see the [root README](../../README.md#quickstart-d
 ## Demo data
 
 ```sh
-# repo root: simulated biomonitor, registers ast-01 and ast-02 and posts live readings
+# repo root: simulated biomonitor, registers ast-01 and posts live readings
 python firmware/simulator.py
 
 # services/onboard-api: one-shot fake readings (source "demo"), --live keeps vitals fresh
