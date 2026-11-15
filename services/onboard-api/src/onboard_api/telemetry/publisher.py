@@ -1,7 +1,9 @@
 """Ship to ground telemetry publisher (contracts/telemetry/README.md, v1).
 
 SQLite is the queue: the publisher sends readings with id > cursor, so a lost
-link loses nothing and holds no memory. It runs as one background task, reads
+link loses nothing and holds no memory. Incident updates are queued in
+`incident_events` (`delivered_at IS NULL`) and marked delivered only after ground
+answers 2xx for the batch carrying them. It runs as one background task, reads
 through the monitoring repositories and never raises into the app.
 """
 
@@ -18,14 +20,18 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from onboard_api.repositories.astronauts import AstronautRepository
 from onboard_api.repositories.database import connect
+from onboard_api.repositories.incidents import IncidentRepository, QueuedIncidentEvent
 from onboard_api.repositories.readings import ReadingRepository
 from onboard_api.repositories.sensors import SensorConfigRepository
+from onboard_api.schemas.assistant import Urgency
+from onboard_api.schemas.incidents import IncidentEventType
 from onboard_api.schemas.readings import Reading
 from onboard_api.schemas.sensors import SensorConfig
 
 logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 500
+INCIDENT_BATCH_SIZE = 500
 MAX_BACKOFF_SECONDS = 60.0
 
 
@@ -34,6 +40,51 @@ class TelemetryAstronaut(BaseModel):
 
     id: str
     display_name: str
+
+
+class IncidentRule(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    rule_id: str
+    protocol_id: str
+    protocol_version: str
+
+
+class IncidentUpdate(BaseModel):
+    """One incident event. Only these fields: never message, reply or report text."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1, max_length=64)
+    incident_id: str = Field(min_length=1, max_length=64)
+    astronaut_id: str | None
+    type: IncidentEventType
+    occurred_at: AwareDatetime
+    urgency: Urgency
+    protocol_id: str | None
+    protocol_version: str | None
+    matched_rules: list[IncidentRule]
+    action: str | None
+    acknowledged_by: str | None
+
+    @classmethod
+    def from_event(cls, e: QueuedIncidentEvent) -> "IncidentUpdate":
+        return cls(
+            id=e.id,
+            incident_id=e.incident_id,
+            astronaut_id=e.astronaut_id,
+            type=e.type,
+            occurred_at=e.occurred_at,
+            urgency=e.urgency,
+            protocol_id=e.protocol_id,
+            protocol_version=e.protocol_version,
+            matched_rules=[
+                IncidentRule(rule_id=r.rule_id, protocol_id=r.protocol_id, protocol_version=r.protocol_version)
+                for r in e.matched_rules
+            ],
+            action=e.action,
+            acknowledged_by=e.acknowledged_by,
+        )
 
 
 class TelemetryBatch(BaseModel):
@@ -48,6 +99,7 @@ class TelemetryBatch(BaseModel):
     astronauts: list[TelemetryAstronaut]
     sensors: list[SensorConfig]
     readings: list[Reading] = Field(max_length=1000)
+    incident_updates: list[IncidentUpdate] = Field(default=[], max_length=INCIDENT_BATCH_SIZE)
 
 
 class TelemetryPublisher:
@@ -76,6 +128,7 @@ class TelemetryPublisher:
             astronauts = AstronautRepository(conn).list_all()
             sensors = SensorConfigRepository(conn).list_all()
             readings = ReadingRepository(conn).after_id(self.cursor, BATCH_SIZE)
+            events = IncidentRepository(conn).undelivered_events(INCIDENT_BATCH_SIZE)
         finally:
             conn.close()
         return TelemetryBatch(
@@ -85,7 +138,15 @@ class TelemetryPublisher:
             astronauts=[TelemetryAstronaut(id=a.id, display_name=a.display_name) for a in astronauts],
             sensors=sensors,
             readings=readings,
+            incident_updates=[IncidentUpdate.from_event(e) for e in events],
         )
+
+    def _mark_delivered(self, event_ids: list[str]) -> None:
+        conn = connect(self._db_path)
+        try:
+            IncidentRepository(conn).mark_delivered(event_ids, self._clock())
+        finally:
+            conn.close()
 
     async def step(self) -> bool:
         """One attempt: fetch the cursor if unknown, then send one batch.
@@ -105,9 +166,18 @@ class TelemetryPublisher:
             "/telemetry/v1/batches", json=self.pending.model_dump(mode="json")
         )
         response.raise_for_status()
+        # Only after ground confirmed. If this fails the batch stays pending and is
+        # resent; ground dedups it by batch_id.
+        if self.pending.incident_updates:
+            await asyncio.to_thread(
+                self._mark_delivered, [u.id for u in self.pending.incident_updates]
+            )
         if self.pending.readings:
             self.cursor = self.pending.readings[-1].id
-        full = len(self.pending.readings) >= BATCH_SIZE
+        full = (
+            len(self.pending.readings) >= BATCH_SIZE
+            or len(self.pending.incident_updates) >= INCIDENT_BATCH_SIZE
+        )
         self.pending = None
         self.batches_sent += 1
         return full
