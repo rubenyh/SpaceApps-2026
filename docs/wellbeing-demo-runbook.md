@@ -92,10 +92,11 @@ Consola: detalle de ast-02 y línea de tiempo con el inicio marcado.
 $a = Invoke-RestMethod "$B/astronauts/ast-02/wellbeing"
 $a | Format-List level, confidence, onset_date, sustained_days, sustained_sources
 $a.support_notes
+$a.indicators | Format-Table kind, status, z, deviant_since, latest_origin
 (Invoke-RestMethod "$B/astronauts/ast-02/wellbeing/timeline?days=21").days | Format-Table day, level, origin
 ```
 
-Mensaje: se compara contra su propia línea base. La alerta llega al **tercer** día seguido, no por un día aislado, y `onset_date` dice desde cuándo (lo que pidió la psicóloga). Coinciden 4 fuentes, por eso la confianza es alta.
+Mensaje: se compara contra su propia línea base. La alerta llega al **tercer** día seguido, no por un día aislado, y `onset_date` dice desde cuándo (lo que pidió la psicóloga). Coinciden 4 fuentes, por eso la confianza es alta. Los 6 indicadores tienen datos. `activation` sale en `attention` desde el día 14: en las cámaras de ambiente se mueve menos y pasa más tiempo quieto (movimiento simulado; aún no hay mediciones reales del modo ambiente).
 
 ### 2.3 ast-03: discrepancia
 
@@ -150,6 +151,8 @@ try { Invoke-RestMethod "$B/wellbeing/ground-packages/$($p.id)/content" } catch 
 ```
 
 Mensaje: nada sale de la nave sin acción explícita y consentimiento. Lo puede iniciar el propio astronauta, el capitán o un psicólogo al final de la misión, siempre con consentimiento. El envío es asíncrono, por el retraso de comunicación.
+
+**Dilo así:** el paquete queda en cola a bordo (`queued`). La transmisión a Tierra todavía no está conectada: falta el receptor en `ground-api`, que se está coordinando con telemetría. No digas que llegó a Tierra.
 
 ## 3. Plan B
 
