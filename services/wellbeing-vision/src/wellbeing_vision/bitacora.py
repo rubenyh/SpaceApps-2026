@@ -22,7 +22,7 @@ from wellbeing_vision.face import (
     face_frame, neutral_of, neutral_problem,
 )
 from wellbeing_vision.facecrop import CROP_PX, FaceCrop
-from wellbeing_vision.overlay import AMBER, WHITE, Notice, Row, render, severity
+from wellbeing_vision.overlay import AMBER, MUTED, WHITE, Notice, Row, render, severity
 from wellbeing_vision.schemas import Identity, VisionSession
 from wellbeing_vision.sink import Sink
 
@@ -42,7 +42,8 @@ FOOTER = "Umbrales provisionales · no se guarda video"
 EYES_MARK = 0.6
 PERCLOS_MARK = 0.15
 TENSION_MARK = 0.20
-TRACE_FIELDS = ("t", "face_px", "usable", "ear", "ear_ratio", "eye_blink", "jaw_delta", "brow_delta", "lip_delta")
+TRACE_FIELDS = ("t", "face_px", "usable", "ear", "ear_ratio", "eye_blink", "jaw_delta", "brow_delta", "lip_delta",
+                "speaking")
 
 
 def quality_of(valid_frame_ratio: float) -> str:
@@ -75,7 +76,8 @@ def live_sections(m: SessionMetrics, live: dict[str, float]) -> list[tuple[str, 
     ]
     tension = [
         row("Cejo fruncido", "brow", pct, TENSION_MARK, 0.40),
-        row("Labios apretados", "lip", pct, TENSION_MARK, 0.40),
+        Row("Labios apretados", "hablando", MUTED) if live.get("speaking")
+        else row("Labios apretados", "lip", pct, TENSION_MARK, 0.40),
     ]
     return [("FATIGA", fatigue), ("TENSIÓN", tension)]
 
@@ -185,13 +187,16 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
                     live["pitch"] = _ema(live.get("pitch"), usable.pitch - n.pitch, 0.3)
                     live["mouth"] = _ema(live.get("mouth"), max(0.0, usable.jaw_open - n.jaw_open), 0.3)
                     live["brow"] = _ema(live.get("brow"), max(0.0, usable.brow_down - n.brow_down), 0.2)
-                    live["lip"] = _ema(live.get("lip"), max(0.0, usable.lip_press - n.lip_press), 0.2)
+                    if not metrics.speaking:
+                        live["lip"] = _ema(live.get("lip"), max(0.0, usable.lip_press - n.lip_press), 0.2)
+                live["speaking"] = metrics.speaking
                 if metrics.valid_s >= MIN_VALID_S:  # same rule as the summary: too short is not measurable
                     live["perclos"] = metrics.closed_s / metrics.valid_s
                 if tracer and ff:
                     tracer.writerow([f"{t:.3f}", f"{ff.face_px:.0f}", int(usable is not None), f"{ff.ear:.4f}",
                                      f"{ff.ear / n.ear:.3f}", f"{ff.eye_blink:.3f}", f"{ff.jaw_open - n.jaw_open:.3f}",
-                                     f"{ff.brow_down - n.brow_down:.3f}", f"{ff.lip_press - n.lip_press:.3f}"])
+                                     f"{ff.brow_down - n.brow_down:.3f}", f"{ff.lip_press - n.lip_press:.3f}",
+                                     int(metrics.speaking)])
                 left = max(0.0, seconds - (t - rec_t0))
                 status = f"GRABANDO · {int(left) // 60}:{int(left) % 60:02d} restante"
                 canvas = render(frame, title, status, live_sections(metrics, live), FOOTER, notice, points)
@@ -231,6 +236,8 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
     )
     sink.send("/wellbeing/vision-sessions", session)
     save_neutral(anchor_path, day_neutral)
+    talk = 1 - metrics.quiet_s / metrics.valid_s if metrics.valid_s else 0.0
+    print(f"Talking {talk:.0%} of valid time (excluded from lip press; null below {MIN_VALID_S:.0f} s quiet)")
     ref = "anchor (today's neutral was off twice)" if used_anchor else "today's neutral"
     print(f"Eye reference: {ref}; anchor from {anchor_n} past neutrals"
           f"{'' if anchor else ' (needs 3)'}; neutral eyeBlink {day_neutral.eye_blink:.2f}, EAR {day_neutral.ear:.3f}")

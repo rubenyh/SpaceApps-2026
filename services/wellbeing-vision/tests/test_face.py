@@ -149,3 +149,22 @@ def test_yawn_at_new_threshold_and_face_width():
              "eyeBlinkLeft", "eyeBlinkRight"]
     ff = face_frame(0.0, xy, [NS(category_name=n, score=0.1) for n in names], np.eye(4))
     assert ff.face_px == 200.0 and ff.eye_blink == 0.1
+
+
+def _talking(t):
+    # 4 syllables/s: jaw opens and closes, and the lips press on the closed phase (m/b/p).
+    closed = (t * 4) % 1 < 0.5
+    return {"jaw_open": 0.05 if closed else 0.30, "lip_press": 0.6 if closed else 0.10}
+
+
+def test_talking_is_not_lip_press_but_a_silent_press_is():
+    m = _run(lambda t: _frame(t, **_talking(t)) if t < 8 else _frame(t, lip_press=0.4 if 12 <= t < 14 else 0.10))
+    assert m.tension().lip_press_peak_1s == 0.3
+    # Mean over 12 quiet s: the 2 s press alone gives 0.05; only the first syllable before the jaw moves leaks.
+    assert abs(m.tension().lip_press_delta - 0.05) < 0.015
+
+
+def test_mostly_talking_reports_lip_press_as_null():
+    m = _run(lambda t: _frame(t, **_talking(t)) if t < 15 else _frame(t))
+    assert m.tension().lip_press_delta is None and m.tension().lip_press_peak_1s is None
+    assert m.tension().brow_lower_delta == 0.0

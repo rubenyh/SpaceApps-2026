@@ -4,6 +4,7 @@ Pure functions: landmarks/blendshapes in, numbers out. No camera here.
 All thresholds are PROVISIONAL (no clinical source); they are relative to the person's own neutral.
 """
 
+import itertools
 import math
 import statistics
 from collections import deque
@@ -29,6 +30,9 @@ YAWN_MIN_S = 1.0  # PROVISIONAL: talking opens the jaw briefly; a yawn holds it
 NOD_PITCH_DEG = 15.0  # PROVISIONAL: head dropped forward vs neutral
 NOD_MIN_S = 0.3
 TENSION_HOLD_S = 1.0  # a grimace must be held this long to count as a peak
+# Talking presses the lips on every m/b/p, so lip press is measured only while the jaw is still.
+SPEECH_JAW_TRAVEL = 0.15  # PROVISIONAL: jawOpen travel in 1 s; still face <= 0.035 in the trace, yawns ~0.5
+SPEECH_HANGOVER_S = 0.5  # lips close between words: keep excluding a moment after the jaw stops
 MIN_VALID_S = 10.0  # below this, rates are not measurable -> None
 MAX_DT_S = 0.2  # cap frame gaps so a stalled camera does not inflate durations
 
@@ -163,6 +167,25 @@ class _SustainedPeak:
 
 
 @dataclass
+class _Speech:
+    """Talking moves the jaw fast and repeatedly: total jawOpen travel over the last second."""
+
+    window: deque = field(default_factory=deque)
+    until: float = -math.inf
+
+    def update(self, jaw: float | None, t: float) -> bool:
+        if jaw is None:
+            self.window.clear()
+            return False
+        self.window.append((t, jaw))
+        while self.window[0][0] < t - 1.0:
+            self.window.popleft()
+        if sum(abs(b - a) for (_, a), (_, b) in itertools.pairwise(self.window)) > SPEECH_JAW_TRAVEL:
+            self.until = t + SPEECH_HANGOVER_S
+        return t <= self.until
+
+
+@dataclass
 class SessionMetrics:
     neutral: FaceFrame
     frames_total: int = 0
@@ -172,11 +195,15 @@ class SessionMetrics:
     ear_ratio_sum: float = 0.0
     brow_delta_sum: float = 0.0
     lip_delta_sum: float = 0.0
+    lip_frames: int = 0
+    quiet_s: float = 0.0  # valid time without talking: the only time lip press is measured
+    speaking: bool = False
     blinks: _Episode = field(default_factory=lambda: _Episode(0.0))
     yawns: _Episode = field(default_factory=lambda: _Episode(YAWN_MIN_S))
     nods: _Episode = field(default_factory=lambda: _Episode(NOD_MIN_S))
     brow_peak: _SustainedPeak = field(default_factory=lambda: _SustainedPeak(TENSION_HOLD_S))
     lip_peak: _SustainedPeak = field(default_factory=lambda: _SustainedPeak(TENSION_HOLD_S))
+    speech: _Speech = field(default_factory=_Speech)
     eyes_closed: bool = False
     _last_t: float | None = None
 
@@ -187,6 +214,7 @@ class SessionMetrics:
         if frame is None:
             self.brow_peak.update(None, t)
             self.lip_peak.update(None, t)
+            self.speaking = self.speech.update(None, t)
             return
         n = self.neutral
         dt = min(t - last, MAX_DT_S) if last is not None else 0.0
@@ -199,9 +227,13 @@ class SessionMetrics:
         # Only increases over the neutral count as tension (contract range 0-1).
         brow, lip = max(0.0, frame.brow_down - n.brow_down), max(0.0, frame.lip_press - n.lip_press)
         self.brow_delta_sum += brow
-        self.lip_delta_sum += lip
         self.brow_peak.update(brow, t)
-        self.lip_peak.update(lip, t)
+        self.speaking = self.speech.update(frame.jaw_open, t)
+        self.lip_peak.update(None if self.speaking else lip, t)
+        if not self.speaking:
+            self.lip_delta_sum += lip
+            self.lip_frames += 1
+            self.quiet_s += dt
         self.blinks.update(closed, t)
         self.yawns.update(frame.jaw_open - n.jaw_open > YAWN_JAW_DELTA, t)
         self.nods.update(frame.pitch - n.pitch > NOD_PITCH_DEG, t)
@@ -227,9 +259,10 @@ class SessionMetrics:
         if self.frames_valid == 0:
             return Tension(brow_lower_delta=None, lip_press_delta=None)
         r = lambda v: None if v is None else round(v, 3)  # noqa: E731
+        lip_ok = self.quiet_s >= MIN_VALID_S  # mostly talking: lip press is not measurable
         return Tension(
             brow_lower_delta=round(self.brow_delta_sum / self.frames_valid, 3),
-            lip_press_delta=round(self.lip_delta_sum / self.frames_valid, 3),
+            lip_press_delta=round(self.lip_delta_sum / self.lip_frames, 3) if lip_ok else None,
             brow_lower_peak_1s=r(self.brow_peak.peak),
-            lip_press_peak_1s=r(self.lip_peak.peak),
+            lip_press_peak_1s=r(self.lip_peak.peak) if lip_ok else None,
         )

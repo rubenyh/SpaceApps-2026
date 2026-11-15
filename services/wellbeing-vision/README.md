@@ -35,8 +35,20 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
 - Frames where the face is narrower than `WELLBEING_VISION_MIN_FACE_PX` (default 160 px cheek to cheek, about
   80 cm on a 720p webcam) show "Acércate a la cámara" and are not usable: they add nothing to blinks, PERCLOS or
   tension and lower `valid_frame_ratio` (below 0.8 the session is `suspect`, below 0.5 `bad`).
-- `--trace t.csv` writes per-frame derived numbers (face px, EAR ratio, eyeBlink, jaw/brow/lip deltas) to tune
-  thresholds. No images.
+- Neutral calibration needs 3 s in a row with the face close, still and relaxed. A blink, a head move over 5°
+  or talking restarts it, and the hint on screen says why. The neutral is then rejected if the eyes are not
+  plausibly open (eyeBlink median over 0.25).
+- Long-term anchor: each accepted neutral is appended (numbers only) to `data/neutrals/<astronaut>.jsonl`.
+  The anchor is the median of the last 7 neutrals (from 3 on). If today's neutral EAR is more than 15 % off
+  the anchor, calibration is asked once more. If it is off again, the eyes are measured against the anchor.
+  The anchor moves slowly, so it follows a gradual change (a puffy face in microgravity) but not one bad day.
+- Eye closure (blinks, PERCLOS) uses the eyeBlink blendshape over `max(0.4, neutral + 0.25)`, not EAR. EAR of
+  open eyes doubles when the face moves back, so it needs the day's neutral. `eye_openness_vs_neutral` is
+  still the EAR ratio.
+- Lip press is measured only while not talking (jaw travel under 0.15 in 1 s, plus 0.5 s after). With less
+  than 10 s of quiet time, `lip_press_delta` and `lip_press_peak_1s` are `null`.
+- `--trace t.csv` writes per-frame derived numbers (face px, EAR and its ratio, eyeBlink, jaw/brow/lip deltas,
+  talking flag) to tune thresholds. No images.
 
 ## Settings (env vars)
 
@@ -50,5 +62,5 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
 
 ## Thresholds
 
-All thresholds (eye closed, yawn, nod) are PROVISIONAL, relative to the astronaut's own neutral of the day,
-and not clinically validated. Every payload carries `"provisional": true`.
+All thresholds (eye closed, yawn, nod, calibration, anchor, talking) are PROVISIONAL, tuned on one person's
+traces, and not clinically validated. Every payload carries `"provisional": true`.
