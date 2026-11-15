@@ -136,7 +136,7 @@ def test_case_through_post(ask, case: dict) -> None:
         assert body["action"] and body["notify"]
         assert prompts.ALARM_NOTICE in body["data_notices"]
         assert kinds(body) == {"protocol"}
-        assert readings.calls == 0 and llm.calls == [] and retriever.calls == []
+        assert readings.calls <= 1 and llm.calls == [] and retriever.calls == []
     elif route == "clarify":
         question = body["clarifying_question"]
         assert question and question.count("?") == 1 and question in body["reply"]

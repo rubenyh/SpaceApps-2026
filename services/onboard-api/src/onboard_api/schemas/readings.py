@@ -31,3 +31,8 @@ class ReadingCreate(BaseModel):
 class Reading(ReadingCreate):
     id: int
     received_at: AwareDatetime
+
+
+def is_simulated_source(source: str) -> bool:
+    """`simulated`, `demo` or `simulated:*` mark simulated data (db/data-dictionary.md)."""
+    return source in ("simulated", "demo") or source.startswith("simulated:")

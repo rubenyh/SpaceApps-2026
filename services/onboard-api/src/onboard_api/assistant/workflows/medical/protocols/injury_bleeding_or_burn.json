@@ -1,23 +1,155 @@
 {
   "id": "injury_bleeding_or_burn",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Lesión, sangrado o quemadura",
   "priority": 80,
-  "summary": "Golpe, lesión, sangrado o quemadura reportados. Separar mecanismo, estado de conciencia y si el sangrado continúa. Contusión o conmoción son hipótesis que requieren evidencia del evento y síntomas pertinentes. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Golpe, lesión, sangrado o quemadura reportados. Separar mecanismo, estado de conciencia y si el sangrado continúa. Contusión o conmoción son hipótesis que requieren evidencia del evento y síntomas pertinentes. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
-    "immediate": {
+    "heavy_bleeding": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo: sangrado abundante que continúa, quemadura grave o señales de alarma tras un golpe en la cabeza. Seguir la ficha de atención de emergencia de la misión.",
+      "text": "Sangrado abundante que continúa: emergencia. Presiona la herida ahora.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Presiona directamente la herida con un apósito estéril, un paño limpio o ropa (o la mano) y mantén la presión hasta que pare.",
+          "source_ids": [
+            "medlineplus_bleeding_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Si la sangre empapa el apósito, no lo quites: pon otro encima y sigue presionando.",
+          "source_ids": [
+            "medlineplus_bleeding_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "No retires objetos clavados en la herida.",
+          "source_ids": [
+            "medlineplus_bleeding_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Túmbate y eleva los pies unos 30 cm si no hay lesión de cabeza, cuello, espalda o pierna.",
+          "source_ids": [
+            "medlineplus_bleeding_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "source_ids": [
+            "medlineplus_bleeding_first_aid"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de emergencia médica de la misión"
+    },
+    "severe_burn": {
+      "urgency": "immediate",
+      "text": "Quemadura grave: emergencia.",
+      "notify": [
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Aléjate de lo que arde o echa humo.",
+          "source_ids": [
+            "medlineplus_burns_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Cubre la quemadura con un apósito seco estéril o un paño limpio y elévala por encima del corazón si puedes.",
+          "source_ids": [
+            "medlineplus_burns_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "No apliques pomadas, hielo ni agua fría en una quemadura grave, no rompas ampollas y no quites ropa pegada a la piel.",
+          "source_ids": [
+            "medlineplus_burns_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "source_ids": [
+            "medlineplus_burns_first_aid"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Otro tripulante: comprueba que respira; inicia RCP si hace falta. Si pudo ser eléctrica, no toques a la persona directamente.",
+          "source_ids": [
+            "medlineplus_burns_first_aid"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de emergencia médica de la misión"
+    },
+    "head_injury_red_flags": {
+      "urgency": "immediate",
+      "text": "Golpe en la cabeza con señales de peligro: emergencia.",
+      "notify": [
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "source_ids": [
+            "cdc_heads_up_signs"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Otro tripulante: quédate con la persona y vigila su estado de conciencia.",
+          "source_ids": [
+            "cdc_heads_up_signs"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de emergencia médica de la misión"
     },
     "review": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo por la lesión. Avisar de inmediato si el sangrado no se detiene o, tras un golpe en la cabeza, aparecen vómitos repetidos o confusión que empeora.",
+      "text": "Lesión sin señales de alarma: atiéndela y vigila. Si el sangrado no se detiene o, tras un golpe en la cabeza, aparecen vómitos repetidos o confusión que empeora, es una emergencia.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Herida superficial: lávala con agua y jabón, sécala y presiona con un paño limpio si sangra.",
+          "source_ids": [
+            "medlineplus_bleeding_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Quemadura leve con la piel intacta: enfríala con agua fresca (no helada) de 5 a 30 minutos y cúbrela con un apósito seco.",
+          "source_ids": [
+            "medlineplus_burns_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Tras un golpe en la cabeza, vigila durante horas: vómitos repetidos, confusión creciente, somnolencia, habla arrastrada o dolor de cabeza que empeora son una emergencia.",
+          "source_ids": [
+            "cdc_heads_up_signs"
+          ]
+        }
       ]
     }
   },
@@ -58,6 +190,18 @@
       "title": "MedlinePlus: Burns",
       "section": "Resumen",
       "url": "https://medlineplus.gov/burns.html"
+    },
+    {
+      "id": "medlineplus_bleeding_first_aid",
+      "title": "MedlinePlus: Bleeding (first aid)",
+      "section": "Primeros auxilios",
+      "url": "https://medlineplus.gov/ency/article/000045.htm"
+    },
+    {
+      "id": "medlineplus_burns_first_aid",
+      "title": "MedlinePlus: Burns (first aid)",
+      "section": "Primeros auxilios",
+      "url": "https://medlineplus.gov/ency/article/000030.htm"
     }
   ],
   "guide_topics": [

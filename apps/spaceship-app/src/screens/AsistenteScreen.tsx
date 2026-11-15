@@ -6,6 +6,7 @@ import {
   type AssistantResponse,
   type Astronaut,
   type AstronautStatus,
+  type CaseReport,
   type Finding,
   type ReadingStatus,
   type ReportedSymptom,
@@ -21,10 +22,12 @@ import { formatAge, formatUtcTime } from "../lib/format";
 import { URINE_KINDS, aggregateUrine, findSensor, liveAge } from "../lib/sensors";
 import {
   CAUSE_STATUS_LABELS,
+  STEP_GROUPS,
   SYMPTOM_LABELS,
   SYMPTOM_STATUS_LABELS,
   URGENCY_LABELS,
   buildRequest,
+  explanation,
   mergeSymptoms,
 } from "../lib/assistant";
 
@@ -65,10 +68,38 @@ function symptomText(s: ReportedSymptom): string {
   return `${SYMPTOM_LABELS[s.symptom]}: ${SYMPTOM_STATUS_LABELS[s.status ?? "present"]}`;
 }
 
-/** Fields in the order of docs/assistant-frontend-integration.md ("Qué mostrar y en qué orden"). */
+/** Copyable case report. "not_sent" until a real delivery mechanism confirms transmission. */
+function CaseReportBox({ report }: { report: CaseReport }) {
+  const [copied, setCopied] = useState<"idle" | "copied" | "failed">("idle");
+  const copy = () =>
+    navigator.clipboard.writeText(report.text).then(
+      () => setCopied("copied"),
+      () => setCopied("failed"),
+    );
+  return (
+    <section className="report">
+      <div className="report__head">
+        <strong>Report to copy</strong>
+        <span className="msg__tag report__status">Not sent</span>
+        <button type="button" className="btn btn--ghost" onClick={() => void copy()}>
+          {copied === "copied" ? "Copied" : "Copy report"}
+        </button>
+      </div>
+      {copied === "failed" ? <p className="caption">Copy failed: select the text and copy it by hand.</p> : null}
+      <pre className="report__text">{report.text}</pre>
+    </section>
+  );
+}
+
+/** Action first, copyable report second, then explanation, evidence and sources. Each once. */
 function AssistantReply({ response, at }: { response: AssistantResponse; at: number }) {
   const clarification = response.needs_clarification;
   const urgency = response.urgency;
+  const steps = response.steps ?? [];
+  const procedures = response.mission_procedures ?? [];
+  const missing = response.missing_guidance ?? [];
+  const text = explanation(response);
+  const sourceIndex = (id: string) => String(response.sources.findIndex((s) => s.id === id) + 1 || "?");
   return (
     <article className={clarification ? "msg msg--clarification" : "msg msg--answer"}>
       <span className="msg__who">
@@ -81,16 +112,48 @@ function AssistantReply({ response, at }: { response: AssistantResponse; at: num
             {URGENCY_LABELS[urgency]}
           </strong>
           {response.action ? <p className="triage__action">{response.action}</p> : null}
+          {procedures.map((p) => (
+            <p key={p.title} className="triage__procedure">
+              <strong>Mission procedure:</strong> {p.title}
+              {p.loaded ? null : " — not loaded in the assistant: use the mission's own copy."}
+            </p>
+          ))}
+          {STEP_GROUPS.map(({ who, label }) => {
+            const group = steps.filter((s) => s.who === who);
+            return group.length > 0 ? (
+              <div key={who} className="triage__steps">
+                <strong>{label}</strong>
+                <ol>
+                  {group.map((s) => (
+                    <li key={s.text}>
+                      {s.text} <span className="msg__source">[{s.source_ids.map(sourceIndex).join(", ")}]</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ) : null;
+          })}
           {response.notify.length > 0 ? (
             <p className="triage__notify">
-              <strong>Notify:</strong> {response.notify.join(", ")}
+              <strong>Tell (nothing is sent automatically):</strong> {response.notify.join(", ")}
             </p>
           ) : null}
         </div>
       ) : null}
-      <p className="msg__text">{response.reply}</p>
       {clarification && response.clarifying_question ? (
         <p className="msg__question">{response.clarifying_question}</p>
+      ) : null}
+      {response.report ? <CaseReportBox report={response.report} /> : null}
+      {text ? <p className="msg__text">{text}</p> : null}
+      {missing.length > 0 ? (
+        <section className="msg__section">
+          <h4>Missing guidance</h4>
+          <ul>
+            {missing.map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
+        </section>
       ) : null}
       {response.protocol_id ? (
         <p className="msg__meta">
@@ -140,7 +203,7 @@ function AssistantReply({ response, at }: { response: AssistantResponse; at: num
       {response.sources.length > 0 ? (
         <section className="msg__sources">
           <strong>Sources:</strong>
-          <ul>
+          <ol>
             {response.sources.map((s) => (
               <li key={s.id}>
                 <span className="msg__tag">{s.kind === "protocol" ? "Reviewed protocol" : "Guide"}</span>{" "}
@@ -154,7 +217,7 @@ function AssistantReply({ response, at }: { response: AssistantResponse; at: num
                 {s.section ? ` · ${s.section}` : null}
               </li>
             ))}
-          </ul>
+          </ol>
         </section>
       ) : null}
       {response.matched_rules.length > 0 ? (

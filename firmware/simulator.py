@@ -3,7 +3,7 @@
 Behaves like the device firmware would once it exists: one wearable per
 astronaut (pulse oximeter: heart rate + SpO2), a shared urine analyser and a
 muscle scanner. Each sensor follows a simple physiological model, measurements
-go to onboard-api `POST /readings` with source "device:<sensor>", and the
+go to onboard-api `POST /readings` with source "simulated:<sensor>" (marked simulated, see db/data-dictionary.md), and the
 console reads them from the API as it would with the real device.
 
 On boot the device uploads its flash log (recent history), then measures live.
@@ -66,8 +66,8 @@ class Astronaut:
             hr += rng.gauss(0, 15)
             spo2 -= abs(rng.gauss(0, 3))
         return [
-            reading(self.id, "heart_rate", "bpm", when, value=max(30, round(hr)), quality=quality, source="device:pulse-ox"),
-            reading(self.id, "spo2", "%", when, value=min(100, max(70, round(spo2))), quality=quality, source="device:pulse-ox"),
+            reading(self.id, "heart_rate", "bpm", when, value=max(30, round(hr)), quality=quality, source="simulated:pulse-ox"),
+            reading(self.id, "spo2", "%", when, value=min(100, max(70, round(spo2))), quality=quality, source="simulated:pulse-ox"),
         ]
 
     def urine(self, when: datetime) -> list[dict]:
@@ -78,7 +78,7 @@ class Astronaut:
         ph = round(6.2 + rng.gauss(0, 0.4), 1)
         temperature = round(36.0 - rng.uniform(0, 2.5) - (6 if rng.random() < 0.05 else 0), 1)
         temp_quality = "good" if 32 <= temperature <= 38 else "suspect"  # sample_validity range
-        source = "device:urine-analyser"
+        source = "simulated:urine-analyser"
         return [
             reading(self.id, "urine_ph", "pH", when, value=ph, source=source),
             reading(self.id, "urine_salinity", "mS/cm", when, value=salinity, source=source),
@@ -91,7 +91,7 @@ class Astronaut:
         days = (when - boot).total_seconds() / 86400
         value = round(self.profile["muscle"] - MUSCLE_LOSS_PER_DAY * days + self.rng.gauss(0, 0.15), 2)
         # Unit is a placeholder until the scanner's real unit is defined.
-        return [reading(self.id, "muscle_density", "u.a.", when, value=value, source="device:muscle-scanner")]
+        return [reading(self.id, "muscle_density", "u.a.", when, value=value, source="simulated:muscle-scanner")]
 
 
 def urine_color(dry: float) -> str:

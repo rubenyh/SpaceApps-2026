@@ -11,9 +11,10 @@ from pydantic import AwareDatetime, BaseModel, Field
 
 AssistantWorkflow = Literal["medical", "clarify", "unsupported"]
 
-# immediate: alert on board now. review_required: ask the crew medical officer
-# for a review (priority is stated in `action`). undetermined: a decisive datum
-# is missing. informational: general information only.
+# No clinician is on board and the ground link may be down. immediate: emergency,
+# act now with the steps and the mission emergency procedure. review_required: act
+# with the steps and keep monitoring; send the report when a link exists.
+# undetermined: a decisive datum is missing. informational: general information only.
 Urgency = Literal["immediate", "review_required", "undetermined", "informational"]
 SymptomStatus = Literal["present", "absent", "unknown"]
 CandidateStatus = Literal["compatible", "rule_out", "insufficient_evidence"]
@@ -173,6 +174,33 @@ class PossibleCause(BaseModel):
     source_ids: list[str] = []
 
 
+class ActionStep(BaseModel):
+    """One cited checklist step from a versioned protocol card."""
+
+    text: str
+    # self: one awake astronaut alone. crew: needs another crew member. equipment: needs a device or kit.
+    who: Literal["self", "crew", "equipment"]
+    # GuideSource ids ("<protocol_id>@<version>#<source_id>") in `sources`.
+    source_ids: list[str] = []
+
+
+class MissionProcedure(BaseModel):
+    """Mission procedure an action points to. `loaded=False`: its text is not in the
+    assistant, so the console names it and the crew uses the mission's own copy."""
+
+    title: str
+    loaded: bool = False
+
+
+class CaseReport(BaseModel):
+    """Plain-text report built deterministically from the case, for the astronaut to copy."""
+
+    text: str
+    # Nothing transmits it yet. Only a real delivery mechanism that confirms
+    # transmission may set another value.
+    transmission: Literal["not_sent"] = "not_sent"
+
+
 class AssistantResponse(BaseModel):
     """Same shape for every workflow. New workflows add a `workflow` value."""
 
@@ -184,8 +212,14 @@ class AssistantResponse(BaseModel):
     disclaimer: str | None = None
     urgency: Urgency | None = None
     action: str | None = None
-    # Who to notify, e.g. "responsable médico a bordo". Nothing is transmitted.
+    # Who to tell, e.g. "tripulación". Nothing is transmitted.
     notify: list[str] = []
+    # Cited checklist of the action, in order. Separate self / crew / equipment.
+    steps: list[ActionStep] = []
+    mission_procedures: list[MissionProcedure] = []
+    # Guidance the cards cannot give, stated explicitly.
+    missing_guidance: list[str] = []
+    report: CaseReport | None = None
     protocol_id: str | None = None
     additional_protocol_ids: list[str] = []
     matched_rules: list[MatchedRule] = []

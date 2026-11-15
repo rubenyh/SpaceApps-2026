@@ -50,7 +50,7 @@ from onboard_api.schemas.readings import ReadingCreate
 from onboard_api.services.assistant import DISCLAIMER
 
 NOW = datetime(2026, 11, 14, 12, 0, tzinfo=UTC)
-ACTION = "Pide una valoración al responsable médico a bordo."
+ACTION = "Sigue los pasos de la ficha y vigila."
 CARD = Protocol(
     id="breathing_difficulty",
     version="1",
@@ -74,7 +74,7 @@ def decision(urgency="review_required", question=None) -> Decision:
         protocol_id=CARD.id,
         additional_protocol_ids=[],
         action=ACTION,
-        notify=["responsable médico a bordo"],
+        notify=["control de misión (si hay enlace)"],
         matched_rules=[MatchedRule(rule_id="breathing_difficulty.r", protocol_id=CARD.id, protocol_version="1", urgency=urgency)],
         findings=[Finding(kind="symptom", detail="Falta de aire reportada", source="report")],
         possible_causes=[],
@@ -130,7 +130,7 @@ def assert_medical(r) -> None:
 # --- Alarm branch ---
 
 
-def test_alarm_never_calls_readings_retriever_or_llm(triage: Triage) -> None:
+def test_alarm_never_calls_retriever_or_llm_and_survives_readings_failure(triage: Triage) -> None:
     triage.alarm_hits = [hit("immediate")]
     triage.decision = decision("immediate")
     llm, retriever, readings = Forbidden("llm"), Forbidden("retriever"), Forbidden("readings")
@@ -141,7 +141,8 @@ def test_alarm_never_calls_readings_retriever_or_llm(triage: Triage) -> None:
     assert r.sources == [CARD_SOURCE]
     assert r.protocol_id == CARD.id
     assert prompts.ALARM_NOTICE in r.data_notices
-    assert llm.calls == retriever.calls == readings.calls == []
+    assert llm.calls == retriever.calls == []
+    assert len(readings.calls) <= 1  # local evidence for the report only
 
 
 def test_real_rules_alarm_with_all_dependencies_failing() -> None:

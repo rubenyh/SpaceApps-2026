@@ -1,23 +1,73 @@
 {
   "id": "dizziness_or_space_motion_sickness",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Mareo o cinetosis espacial",
   "priority": 160,
-  "summary": "Mareo o sensación de giro. Importan el inicio, la ingesta, las pérdidas de líquidos, el movimiento y la fase de la misión. La cinetosis espacial se considera solo si el contexto la sustenta (adaptación, movimientos de cabeza); la deshidratación, si hay pérdidas o baja ingesta. Debilidad de un lado o alteración del habla activan la ficha neurológica. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Mareo o sensación de giro. Importan el inicio, la ingesta, las pérdidas de líquidos, el movimiento y la fase de la misión. La cinetosis espacial se considera solo si el contexto la sustenta (adaptación, movimientos de cabeza); la deshidratación, si hay pérdidas o baja ingesta. Debilidad de un lado o alteración del habla activan la ficha neurológica. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
     "with_neurologic_signs": {
       "urgency": "immediate",
-      "text": "El mareo se acompaña de signos neurológicos: se aplica la ficha de señales neurológicas de alarma (aviso inmediato).",
+      "text": "El mareo se acompaña de signos neurológicos: se aplica la ficha de señales neurológicas de alarma (emergencia).",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "source_ids": [
+            "cdc_stroke_signs"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Anota la hora en que empezaron los primeros síntomas.",
+          "source_ids": [
+            "cdc_stroke_signs"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento neurológico de la misión"
     },
     "assessment": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo si el mareo persiste, interfiere con las actividades o el contexto es insuficiente.",
+      "text": "Mareo sin signos neurológicos: limita los movimientos y vigila.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Limita los movimientos de cabeza; concentrarte en una tarea o cerrar los ojos puede atenuarlo.",
+          "source_ids": [
+            "nasa_space_adaptation_sickness"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Mantén la hidratación.",
+          "source_ids": [
+            "nasa_space_adaptation_sickness"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Aumenta la circulación de aire si es posible.",
+          "source_ids": [
+            "nasa_space_adaptation_sickness"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Si aparecen debilidad de un lado, alteración del habla o pérdida de visión, trátalo como emergencia.",
+          "source_ids": [
+            "cdc_stroke_signs"
+          ]
+        }
+      ],
+      "missing_guidance": [
+        "La medicación para la cinetosis la decide la misión con su cirujano de vuelo: procedimiento no cargado en el asistente."
       ]
     }
   },
@@ -52,6 +102,12 @@
       "title": "MedlinePlus: Mareos y vértigo",
       "section": "Resumen",
       "url": "https://medlineplus.gov/spanish/dizzinessandvertigo.html"
+    },
+    {
+      "id": "cdc_stroke_signs",
+      "title": "CDC: Signs and Symptoms of Stroke",
+      "section": "Señales de ictus",
+      "url": "https://www.cdc.gov/stroke/signs-symptoms/"
     }
   ],
   "guide_topics": [

@@ -1,36 +1,139 @@
 {
   "id": "breathing_difficulty",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Dificultad para respirar",
   "priority": 20,
-  "summary": "Falta de aire real: importan el inicio, la intensidad, la progresión y el contexto. Una SpO₂ baja es un hallazgo, no una causa. Una lectura normal (por ejemplo 97 %), vieja o ausente no cancela una falta de aire intensa o repentina. El oxímetro estima la saturación y su lectura puede alterarse por movimiento, mala colocación o señal pobre. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Falta de aire real: importan el inicio, la intensidad, la progresión y el contexto. Una SpO₂ baja es un hallazgo, no una causa. Una lectura normal (por ejemplo 97 %), vieja o ausente no cancela una falta de aire intensa o repentina. El oxímetro estima la saturación y su lectura puede alterarse por movimiento, mala colocación o señal pobre. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo y seguir la ficha de emergencia respiratoria de la misión. Una SpO₂ normal, vieja o ausente no cancela este aviso.",
+      "text": "Emergencia respiratoria: actúa ahora. Una SpO₂ normal, vieja, simulada o ausente no cancela esta alarma.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Afloja la ropa ajustada.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Si tienes medicación u oxígeno prescritos para ti en el botiquín, úsalos según su prescripción.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "No comas ni bebas mientras te falte el aire.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Mantén el oxímetro puesto y vigila pulso y SpO₂; una cifra normal no significa que estés mejorando.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid",
+            "fda_pulse_oximeters"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Otro tripulante: comprueba vía aérea, respiración y pulso; inicia RCP si hace falta, y sigue vigilando la respiración.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de emergencia respiratoria de la misión"
     },
     "new_no_red_flags": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo por falta de aire nueva sin señales de alarma identificadas. Avisar de inmediato si empeora, aparece de repente o se vuelve intensa.",
+      "text": "Falta de aire sin señales de alarma identificadas: sigue estos pasos y vigila. Si se vuelve intensa, aparece de repente o empeora, trátala como emergencia.",
       "notify": [
-        "responsable médico a bordo"
-      ]
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Afloja la ropa ajustada.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Repite la medición de SpO₂ en reposo, siguiendo las instrucciones del oxímetro; no dependas solo de la cifra.",
+          "source_ids": [
+            "fda_pulse_oximeters"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Si tienes medicación prescrita para ti (por ejemplo, un inhalador) en el botiquín, úsala según su prescripción.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Vigila tus síntomas: si empeoran, son graves o la falta de aire no te deja dormir, trátalo como emergencia.",
+          "source_ids": [
+            "fda_pulse_oximeters",
+            "medlineplus_breathing_first_aid"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento médico de la misión para falta de aire"
     },
     "reading_check": {
       "urgency": "undetermined",
-      "text": "Lectura aislada sin síntomas conocidos: confirmar síntomas y repetir la medición antes de interpretarla.",
+      "text": "Lectura aislada sin síntomas conocidos: confirma síntomas y repite la medición antes de interpretarla.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "equipment",
+          "text": "Repite la medición en reposo, con el sensor bien colocado según las instrucciones del oxímetro.",
+          "source_ids": [
+            "fda_pulse_oximeters"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Fíjate en cómo te sientes: la cifra sola no confirma ni descarta nada.",
+          "source_ids": [
+            "fda_pulse_oximeters"
+          ]
+        }
       ]
     },
     "reading_reference": {
       "urgency": "informational",
-      "text": "La lectura está dentro de la referencia visual; si aparecen síntomas, comentarlos con el responsable médico a bordo.",
-      "notify": []
+      "text": "La lectura está dentro de la referencia visual. Si aparecen síntomas, descríbelos aquí.",
+      "notify": [],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Vigila tus síntomas además de la cifra.",
+          "source_ids": [
+            "fda_pulse_oximeters"
+          ]
+        }
+      ]
     }
   },
   "questions": {

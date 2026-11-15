@@ -1,23 +1,56 @@
 {
   "id": "chest_pain",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Dolor torácico",
   "priority": 70,
-  "summary": "Dolor, presión o molestia torácica nueva o inexplicada. Si el patrón es preocupante (presión, dolor intenso, persistente o que reaparece, o acompañado de falta de aire, sudor frío o mareo), el síndrome coronario agudo es una causa prioritaria que requiere descarte; eso no significa que sea la causa más probable. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Dolor, presión o molestia torácica nueva o inexplicada. Si el patrón es preocupante (presión, dolor intenso, persistente o que reaparece, o acompañado de falta de aire, sudor frío o mareo), el síndrome coronario agudo es una causa prioritaria que requiere descarte; eso no significa que sea la causa más probable. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo y seguir la ficha de dolor torácico de la misión.",
+      "text": "Posible emergencia cardíaca: pide ayuda ahora; no esperes a ver si los síntomas desaparecen.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "source_ids": [
+            "cdc_heart_attack"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Tripulante formado en RCP o desfibrilador: prepáralo y úsalo si hace falta hasta que haya más ayuda.",
+          "source_ids": [
+            "cdc_heart_attack"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de dolor torácico de la misión",
+      "missing_guidance": [
+        "Las fuentes de la ficha no indican medicación para el dolor torácico: depende del procedimiento de la misión."
       ]
     },
     "new_pain": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo por dolor torácico nuevo. Avisar de inmediato si persiste, reaparece o se acompaña de falta de aire, sudor frío o mareo.",
+      "text": "Dolor torácico nuevo sin el patrón de alarma: vigila y trátalo como emergencia si cambia.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Si el dolor persiste, reaparece o se acompaña de falta de aire, sudor frío, mareo, o dolor en mandíbula, cuello, espalda o brazos, trátalo como emergencia.",
+          "source_ids": [
+            "cdc_heart_attack"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de dolor torácico de la misión",
+      "missing_guidance": [
+        "Las fuentes de la ficha no dan pasos de autocuidado para el dolor torácico sin señales de alarma."
       ]
     }
   },

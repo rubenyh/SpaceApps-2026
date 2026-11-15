@@ -22,13 +22,16 @@ from onboard_api.assistant.workflows.medical.state import (
     VitalReading,
 )
 from onboard_api.schemas.assistant import (
+    ActionStep,
     Finding,
     GuideSource,
     MatchedRule,
+    MissionProcedure,
     OperationalEvent,
     PossibleCause,
     Urgency,
 )
+from onboard_api.schemas.readings import is_simulated_source
 
 BR = "breathing_difficulty"
 CHEST = "chest_pain"
@@ -276,14 +279,14 @@ def evaluate_alarms(
 
     # 8. Injury, bleeding, burn.
     if o := g("heavy_bleeding"):
-        add(INJ, "heavy_bleeding", "immediate", [o])
+        add(INJ, "heavy_bleeding", "heavy_bleeding", [o])
     burn = g("severe_burn") or ((b := g("burn")) and b.severity == "severe" and b)
     if burn:
-        add(INJ, "severe_burn", "immediate", [burn])
+        add(INJ, "severe_burn", "severe_burn", [burn])
     head = g("head_injury", True)
     head_flags = _any(interp, "repeated_vomiting", "confusion", "unresponsive", "seizure", "fainting", resolved=True)
     if head and head_flags:
-        add(INJ, "head_injury_red_flags", "immediate", [head, *head_flags],
+        add(INJ, "head_injury_red_flags", "head_injury_red_flags", [head, *head_flags],
             candidates=[_cand("concussion", "rule_out", [head, *head_flags])])
 
     # 9. Abdominal pain / GI bleeding.
@@ -580,6 +583,8 @@ def _reading_detail(r: VitalReading, pids: list[str]) -> str:
         f"fuente {r.source}",
         f"hace {r.age_seconds} s",
     ]
+    if is_simulated_source(r.source):
+        parts.append("SIMULADA: no es una medición real")
     if r.stale:
         parts.append("VIEJA, no vigente: no confirma ni descarta nada")
     elif _out_of_range(r):
@@ -623,11 +628,24 @@ def decide(hits: list[RuleHit], catalog: dict[str, Protocol], readings: Readings
 
     actions: list[str] = []
     notify: list[str] = []
+    steps: list[ActionStep] = []
+    procedures: list[MissionProcedure] = []
+    missing: list[str] = []
     for h in lead:
-        act = catalog[h.protocol_id].actions[h.action_key]
+        card = catalog[h.protocol_id]
+        act = card.actions[h.action_key]
         if act.text not in actions:
             actions.append(act.text)
         notify += [n for n in act.notify if n not in notify]
+        for st in act.steps:
+            if all(st.text != x.text for x in steps):
+                steps.append(ActionStep(text=st.text, who=st.who, source_ids=[
+                    f"{h.protocol_id}@{card.version}#{sid}" for sid in st.source_ids]))
+        # ponytail: no mission procedure is loaded yet, so every one is loaded=False;
+        # look them up in a procedures store once the mission provides one.
+        if act.mission_procedure and all(p.title != act.mission_procedure for p in procedures):
+            procedures.append(MissionProcedure(title=act.mission_procedure))
+        missing += [m for m in act.missing_guidance if m not in missing]
 
     matched: dict[str, MatchedRule] = {}
     findings: list[Finding] = []
@@ -682,4 +700,7 @@ def decide(hits: list[RuleHit], catalog: dict[str, Protocol], readings: Readings
         protocol_sources=sources,
         summary=summary,
         question_id=question_id,
+        steps=steps,
+        mission_procedures=procedures,
+        missing_guidance=missing,
     )
