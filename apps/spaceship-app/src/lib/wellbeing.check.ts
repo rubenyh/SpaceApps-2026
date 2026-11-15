@@ -11,6 +11,7 @@ import {
   formatValue,
   formatZ,
   missionDay,
+  snapToStep,
   supportSuggestion,
   videoLogZ,
   zPercent,
@@ -48,6 +49,11 @@ eq(validPeriod("2026-10-25", "2026-11-14", "2026-11-14"), true, "period ok");
 eq(validPeriod("2026-11-15", "2026-11-14", "2026-11-20"), false, "from after to");
 eq(validPeriod("2026-11-01", "2026-11-15", "2026-11-14"), false, "period in the future");
 eq(validPeriod("", "2026-11-14", "2026-11-14"), false, "empty from");
+eq(snapToStep(7.3, 0, 24, 0.5), 7.5, "snap up to half hour");
+eq(snapToStep(7.2, 0, 24, 0.5), 7, "snap down to half hour");
+eq(snapToStep(30, 0, 24, 0.5), 24, "clamp high");
+eq(snapToStep(-1, 0, 24, 0.5), 0, "clamp low");
+eq(snapToStep(0.1 + 0.2 + 0.5, 0, 24, 0.1), 0.8, "no float noise");
 
 const member = (level: CrewMemberSummary["level"]): CrewMemberSummary => ({
   astronaut_id: "a",

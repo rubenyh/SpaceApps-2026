@@ -1,12 +1,12 @@
 import { useState, type ReactNode } from "react";
 import type { IndicatorKind, WellbeingAssessment, WellbeingTimeline as Timeline } from "../../api/types";
-import { getWellbeing, getWellbeingParameters, getWellbeingTimeline } from "../../api/wellbeing";
+import { getWellbeing, getWellbeingParameters, getWellbeingTimeline, listCheckins } from "../../api/wellbeing";
 import { IndicatorRow } from "../../components/IndicatorRow";
 import { Panel } from "../../components/Panel";
 import { ConfidenceMeter, OriginMark, TrendMark, WellbeingIcon, WellbeingPill } from "../../components/WellbeingMarks";
 import { WellbeingTimeline } from "../../components/WellbeingTimeline";
 import { usePolling } from "../../hooks/usePolling";
-import { formatClock, formatDay, formatDayLong, sourcesText, TIMELINE_DAYS } from "../../lib/wellbeing";
+import { formatClock, formatDay, formatDayLong, missionDay, sourcesText, TIMELINE_DAYS } from "../../lib/wellbeing";
 
 interface Props {
   toggle: ReactNode;
@@ -31,6 +31,14 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
     POLL_MS,
   );
   const params = usePolling("wb-params", getWellbeingParameters, PARAMS_POLL_MS);
+  const tz = params.data?.mission_tz;
+  const today = tz ? missionDay(tz) : undefined;
+  const checkin = usePolling(
+    today ? `wb-checkin:${astronautId}:${today}` : null,
+    (s) => listCheckins(astronautId, { since: today, until: today }, s),
+    POLL_MS,
+  );
+  const todayCheckin = checkin.data?.[0] ?? null;
   const [open, setOpen] = useState<Partial<Record<IndicatorKind, boolean>>>({});
 
   const a = assessment.data;
@@ -54,8 +62,17 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
           <span className="wb-private__who">· signed in as {displayName}</span>
         </span>
         <span className="wellbeing__spacer" />
-        <button type="button" className="btn btn--ghost" onClick={onCheckin}>
-          Daily check-in
+        <button type="button" className="btn btn--ghost wb-checkin-btn" onClick={onCheckin}>
+          {todayCheckin ? (
+            <>
+              <WellbeingIcon kind="ok" size={18} />
+              Check-in done {formatClock(todayCheckin.submitted_at, tz)} · Edit
+            </>
+          ) : checkin.data ? (
+            "Start today's check-in"
+          ) : (
+            "Daily check-in"
+          )}
         </button>
         <button type="button" className="btn btn--ghost wb-share" onClick={onShare}>
           Share with ground psychologist…

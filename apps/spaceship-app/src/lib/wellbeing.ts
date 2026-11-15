@@ -119,6 +119,12 @@ export function dayCount(from: string, to: string): number {
 export const validPeriod = (from: string, to: string, today: string) =>
   from !== "" && to !== "" && from <= to && to <= today;
 
+/** Clamp to [min, max] and snap to the nearest step from min: snapToStep(7.3, 0, 24, 0.5) → 7.5. */
+export function snapToStep(v: number, min: number, max: number, step: number): number {
+  const snapped = min + Math.round((v - min) / step) * step;
+  return Number(Math.min(max, Math.max(min, snapped)).toFixed(6));
+}
+
 /** "HH:MM" of an ISO timestamp in the mission time zone. */
 export function formatClock(iso: string, timeZone = "UTC"): string {
   return new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit" }).format(
