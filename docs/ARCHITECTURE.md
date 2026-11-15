@@ -135,7 +135,7 @@ Runtime configuration (all prefixed `ONBOARD_`):
 | `TELEMETRY_INTERVAL_SECONDS` | `5.0` | Wait between batches, and base of the retry backoff |
 | `SHIP_ID` | `ship-01` | `ship_id` in every batch and in the cursor query |
 
-Wellbeing settings use the `WELLBEING_` prefix ([`wellbeing/settings.py`](../services/onboard-api/src/onboard_api/wellbeing/settings.py)). `WELLBEING_DB_PATH` (default `data/wellbeing.db`) is the module's own database. The onboard database is opened read-only from `ONBOARD_DB_PATH` (or `WELLBEING_ONBOARD_DB_PATH`). The other `WELLBEING_*` values are provisional thresholds and baseline windows, not clinical cut-offs; `GET /wellbeing/parameters` returns the baseline and threshold values. Endpoints and data shapes: [`wellbeing-contract.md`](wellbeing-contract.md).
+Wellbeing settings use the `WELLBEING_` prefix ([`wellbeing/settings.py`](../services/onboard-api/src/onboard_api/wellbeing/settings.py)). `WELLBEING_DB_PATH` (default `data/wellbeing.db`) is the module's own database. `WELLBEING_MISSION_TZ` (IANA zone, default `UTC`) sets the mission day that every wellbeing input is grouped by; timestamps stay in UTC. The onboard database is opened read-only from `ONBOARD_DB_PATH` (or `WELLBEING_ONBOARD_DB_PATH`). The other `WELLBEING_*` values are provisional thresholds and baseline windows, not clinical cut-offs; `GET /wellbeing/parameters` returns the baseline and threshold values. Endpoints and data shapes: [`wellbeing-contract.md`](wellbeing-contract.md).
 
 Demo data, with the service running (pick one):
 
