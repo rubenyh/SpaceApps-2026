@@ -96,4 +96,10 @@ eq(
 );
 eq(tabFlags(null), { vitales: null, musculo: null, orina: null }, "no status flags");
 
+// A reading captured ahead of the onboard clock is never current evidence: flagged like stale, kept offline.
+const ahead = sensor("heart_rate", "future", 72, 50, 100);
+eq(tabFlags({ ...status, sensors: [ahead] }).vitales, "stale", "future tab");
+eq(shownStatus(ahead, true), "future", "offline keeps future");
+eq(explain(ahead, false), "Captured ahead of the onboard clock: check the clock", "explain future");
+
 console.log("estado.check: ok");

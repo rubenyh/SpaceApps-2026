@@ -29,7 +29,8 @@ export const URINE_KINDS: SensorKind[] = [
 ];
 
 const URINE_RANK: Record<ReadingStatus, number> = {
-  alert: 4,
+  alert: 5,
+  future: 4,
   stale: 3,
   normal: 2,
   no_range: 1,
@@ -38,7 +39,7 @@ const URINE_RANK: Record<ReadingStatus, number> = {
 
 /**
  * Most relevant status across the urine measurements (radiation excluded).
- * Precedence: alert > stale > normal > no_range > no_data, so a missing
+ * Precedence: alert > future > stale > normal > no_range > no_data, so a missing
  * measurement never hides a present one (missing ones are listed separately).
  * A urine temperature "alert" is about sample validity, not health, so it
  * never raises the aggregate to alert.
@@ -52,4 +53,9 @@ export function aggregateUrine(sensors: (SensorStatus | null)[]): ReadingStatus 
     if (URINE_RANK[st] > URINE_RANK[best]) best = st;
   }
   return best;
+}
+
+/** True for simulated or demo data: "simulated", "demo" or a "simulated:*" source. */
+export function isSimulatedSource(source: string | null | undefined): boolean {
+  return source === "simulated" || source === "demo" || (source?.startsWith("simulated:") ?? false);
 }
