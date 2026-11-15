@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 from onboard_api.config import Settings
 from onboard_api.dependencies import ClockDep, IncidentRecorderDep, Responder, get_settings
 from onboard_api.knowledge import active_version
+from onboard_api.routers.case_reports import DraftStoreDep
 from onboard_api.schemas.assistant import AssistantRequest, AssistantResponse, IncidentRef
 
 router = APIRouter(prefix="/assistant", tags=["assistant"])
@@ -18,6 +19,7 @@ def post_message(
     responder: Responder,
     record_incident: IncidentRecorderDep,
     clock: ClockDep,
+    store_draft: DraftStoreDep,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> AssistantResponse:
     # The responder comes from dependencies.get_assistant_responder. The
@@ -42,4 +44,13 @@ def post_message(
             response.incident = IncidentRef(
                 recorded=False, error=f"onboard database error ({type(exc).__name__}: {exc})"
             )
+    if response.report is not None and response.report.id:
+        # After the incident step so the draft carries incident_id. A storage
+        # failure keeps the reply; the report stays "draft" (sending it gives 404).
+        try:
+            response.report.transmission = store_draft(
+                response, request.astronaut_id, request.reported_by, clock()
+            )
+        except Exception:
+            logger.exception("case report draft not stored")
     return response

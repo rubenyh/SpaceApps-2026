@@ -7,6 +7,7 @@ export const STATE_LABELS: Record<VisualState, string> = {
   alert: "Alert",
   normal: "Normal",
   stale: "Old data",
+  future: "Clock ahead",
   no_data: "No data",
   no_range: "No range",
   doubtful: "Doubtful sample",
@@ -37,6 +38,15 @@ function shape(state: VisualState) {
         <>
           <circle cx="8" cy="8" r="6.6" {...LINE} />
           <path d="M8 4.2 V8 L10.8 9.8" {...LINE} />
+        </>
+      );
+    case "future":
+      // Clock with a forward arrow: captured ahead of the onboard clock.
+      return (
+        <>
+          <path d="M12.44 11.73 A5.8 5.8 0 1 1 13.8 8" {...LINE} />
+          <path d="M11.9 6.3 L13.8 8.3 L15.7 6.3" {...LINE} strokeLinejoin="round" />
+          <path d="M8 4.6 V8 L10.2 9.4" {...LINE} />
         </>
       );
     case "no_data":

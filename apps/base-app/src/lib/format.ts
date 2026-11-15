@@ -27,7 +27,7 @@ export function formatNumber(value: number, maxDecimals = 2): string {
 }
 
 /** Value of a reading as text, without unit. Never invents a value. */
-export function readingValueText(r: GroundReading | null | undefined): string {
+export function readingValueText(r: Pick<GroundReading, "value" | "value_text"> | null | undefined): string {
   if (!r) return "--";
   if (r.value_text !== null && r.value_text !== undefined) return r.value_text;
   if (r.value !== null && r.value !== undefined) return formatNumber(r.value, 1);

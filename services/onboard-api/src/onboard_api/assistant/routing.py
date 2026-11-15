@@ -1,4 +1,4 @@
-"""Parent routing: medical / clarify / unsupported, plus the parent's nodes.
+"""Parent routing: medical / status / clarify / unsupported, plus the parent's nodes.
 
 Deterministic (no LLM) so that an alarm message is never delayed by a classifier.
 Psychological support is not an approved workflow: it routes to `unsupported`.
@@ -8,6 +8,7 @@ import re
 import unicodedata
 
 from onboard_api.assistant.state import AssistantState
+from onboard_api.assistant.status import status_question
 from onboard_api.assistant.workflows.medical.interpret import interpret, is_sos
 from onboard_api.assistant.workflows.medical.understand import case_for
 from onboard_api.assistant.workflows.medical.state import EventSource
@@ -65,6 +66,9 @@ def select_intent(state: AssistantState, events: EventSource) -> dict:
     # SOS, ship events and recognised symptoms go first to the medical alarm rules.
     if is_sos(request.message) or _relevant(active, request.astronaut_id) or interp.observations:
         return {**out, "intent": "medical"}
+    # Quick questions about the person's own readings, even during a pending follow-up.
+    if question := status_question(text):
+        return {**out, "intent": "status", "status_question": question}
     if any(w in text for w in _PSYCH):
         return {**out, "intent": "unsupported"}
     if case_for(request):  # answer to a pending question: the same case continues
@@ -105,7 +109,8 @@ def respond_unsupported(state: AssistantState) -> dict:
 
 def run_medical(state: AssistantState, medical_graph) -> dict:
     """Map parent state to the medical subgraph state and back, explicitly."""
-    out = medical_graph.invoke(
-        {"request": state["request"], "now": state["now"], "events": state["events"]}
-    )
+    sub = {"request": state["request"], "now": state["now"], "events": state["events"]}
+    if "clock" in state:
+        sub["clock"] = state["clock"]
+    out = medical_graph.invoke(sub)
     return {"response": out["response"]}

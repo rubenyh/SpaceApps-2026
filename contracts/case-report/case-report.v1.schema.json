@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "case-report.v1.schema.json",
+  "title": "Case report v1 (ship to ground, POST /case-reports/v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_id", "ship_id", "astronaut_id", "reported_by", "sent_by", "urgency", "protocol_id", "action", "assessed_at", "created_at", "sent_at", "incident_id", "text", "readings", "knowledge_version"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "report_id": { "type": "string", "format": "uuid" },
+    "ship_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "astronaut_id": { "type": ["string", "null"] },
+    "reported_by": { "type": ["string", "null"] },
+    "sent_by": { "type": ["string", "null"] },
+    "urgency": { "enum": ["immediate", "review_required", "undetermined", "informational"] },
+    "protocol_id": { "type": ["string", "null"] },
+    "action": { "type": ["string", "null"] },
+    "assessed_at": { "type": "string", "format": "date-time" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "sent_at": { "type": "string", "format": "date-time" },
+    "incident_id": { "type": ["string", "null"] },
+    "text": { "type": "string" },
+    "readings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "value", "value_text", "unit", "recorded_at", "received_at", "quality", "source", "simulated", "freshness", "age_seconds"],
+        "properties": {
+          "id": { "type": "integer" },
+          "kind": { "type": "string" },
+          "value": { "type": ["number", "null"] },
+          "value_text": { "type": ["string", "null"] },
+          "unit": { "type": "string" },
+          "recorded_at": { "type": "string", "format": "date-time" },
+          "received_at": { "type": "string", "format": "date-time" },
+          "quality": { "enum": ["good", "suspect", "bad"] },
+          "source": { "type": "string" },
+          "simulated": { "type": "boolean" },
+          "freshness": { "enum": ["current", "stale", "future"] },
+          "age_seconds": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "knowledge_version": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["candidate_id", "digest"],
+          "properties": {
+            "candidate_id": { "type": "string" },
+            "digest": { "type": "string" }
+          }
+        }
+      ]
+    }
+  }
+}
