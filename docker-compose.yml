@@ -3,6 +3,10 @@
 
 x-onboard-env: &onboard-env
   ONBOARD_DB_PATH: /data/sqlite/onboard.db
+  WELLBEING_DB_PATH: /data/sqlite/wellbeing.db
+  # Ground services are not part of this stack; set to true with ONBOARD_GROUND_API_URL to publish.
+  ONBOARD_TELEMETRY_ENABLED: ${ONBOARD_TELEMETRY_ENABLED:-false}
+  ONBOARD_GROUND_API_URL: ${ONBOARD_GROUND_API_URL:-http://host.docker.internal:8001}
   ONBOARD_CHROMA_PATH: /data/chroma
   ONBOARD_OLLAMA_BASE_URL: http://ollama:11434
   ONBOARD_OLLAMA_CHAT_MODEL: ${ONBOARD_OLLAMA_CHAT_MODEL:-qwen2.5:0.5b}

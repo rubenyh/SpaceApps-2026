@@ -13,7 +13,7 @@ Docker Compose runs the onboard stack. The Tauri console runs natively on the ho
 | `demo-init` | One-shot. Waits for Ollama, pulls `qwen2.5:0.5b` and `bge-m3` if missing, and runs the guide ingest when the Chroma index is missing or outdated. Exits 0 when done. Safe to rerun. |
 | `simulator` | `firmware/simulator.py`. Starts after the API healthcheck passes, registers `ast-01` and `ast-02`, and posts readings every 5 s. |
 
-Volumes: `sqlite` (readings), `chroma` (guide index), `ollama` (models). They survive `docker compose down` and restarts.
+Volumes: `sqlite` (`onboard.db` readings and `wellbeing.db`), `chroma` (guide index), `ollama` (models). They survive `docker compose down` and restarts.
 
 ### Start
 
@@ -61,6 +61,7 @@ docker compose down -v    # also delete the volumes (database, index, models)
 ### Notes
 
 - Port 8000 must be free. Stop any native `uv run fastapi dev` first, or publish another port with `ONBOARD_API_PORT=8010 docker compose up --build` and start the console with `VITE_ONBOARD_API_URL=http://127.0.0.1:8010`.
+- Telemetry to ground is off in this stack. To publish to a ground-api running on the host, start with `ONBOARD_TELEMETRY_ENABLED=true` (default target `http://host.docker.internal:8001`, override with `ONBOARD_GROUND_API_URL`).
 - Each simulator start uploads its 30-day flash log again, so restarts add more history rows.
 - If the corpus or embedding model changes, `demo-init` re-ingests on the next `up`. Restart the API afterwards (`docker compose restart onboard-api`) so it reads the new index.
 
