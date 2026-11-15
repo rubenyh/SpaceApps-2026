@@ -1,7 +1,7 @@
 """Bridge from the ESP32-S3 urine analyser (USB serial) to onboard-api.
 
 The board prints one line per sample: "temperature;pH;salinity;", e.g. "26.1;6.94;0;"
-(°C, pH, mg/L). Every --every seconds the latest sample goes to `POST /readings`
+(°C, pH, mg/L TDS; salinity is stored as conductivity in mS/cm, the unit of its range). Every --every seconds the latest sample goes to `POST /readings`
 as urine_temperature, urine_ph and urine_salinity, source "serial:urine-analyser".
 Run the simulator with --real-urine <id> so it stops simulating those three.
 
@@ -17,6 +17,9 @@ from simulator import Uplink, log, reading
 
 BAUD = 115200
 SOURCE = "serial:urine-analyser"
+# shortcut: assumes the board computes TDS as 0.5 x conductivity (µS/cm), the usual TDS-probe factor;
+# set the factor its firmware really uses once known.
+MG_L_PER_MS_CM = 500
 
 
 def parse_line(linea: str, astronauta: str, when: datetime) -> list[dict]:
@@ -30,7 +33,7 @@ def parse_line(linea: str, astronauta: str, when: datetime) -> list[dict]:
     return [
         reading(astronauta, "urine_temperature", "°C", when, value=temperatura, quality=temp_quality, source=SOURCE),
         reading(astronauta, "urine_ph", "pH", when, value=ph, source=SOURCE),
-        reading(astronauta, "urine_salinity", "mg/L", when, value=salinidad, source=SOURCE),
+        reading(astronauta, "urine_salinity", "mS/cm", when, value=round(salinidad / MG_L_PER_MS_CM, 2), source=SOURCE),
     ]
 
 
@@ -78,6 +81,7 @@ def main() -> None:
         raise SystemExit(1)
 
     uplink = Uplink(args.url)
+    uplink.configure_sensors()  # salinity range, in case the simulator is not running
     while not uplink.register_crew():
         time.sleep(5)
 
@@ -109,7 +113,7 @@ def main() -> None:
                     log(f"línea ignorada: {linea.strip()!r}")
             if latest and time.monotonic() >= next_upload:
                 t, ph, sal = (r["value"] for r in latest)
-                log(f"{args.astronaut} {t} °C, pH {ph}, {sal} mg/L | sent {uplink.flush(latest)}, buffered {len(uplink.buffer)}")
+                log(f"{args.astronaut} {t} °C, pH {ph}, {sal} mS/cm | sent {uplink.flush(latest)}, buffered {len(uplink.buffer)}")
                 latest = []
                 next_upload = time.monotonic() + args.every
     except KeyboardInterrupt:
