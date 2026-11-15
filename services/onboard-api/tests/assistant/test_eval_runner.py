@@ -182,3 +182,11 @@ def test_schema_file_next_to_cases_is_not_a_case(tmp_path: Path) -> None:
     (tmp_path / "fam").mkdir()
     (tmp_path / "fam" / "a.json").write_text('{"case_id": "a"}', encoding="utf-8")
     assert [c["case_id"] for c in load_cases(tmp_path)] == ["a"]
+
+
+def test_case_file_without_case_id_is_a_load_error(tmp_path: Path) -> None:
+    from onboard_api.assistant.eval.runner import load_cases
+
+    (tmp_path / "odd.json").write_text('{"family": "x"}', encoding="utf-8")
+    [case] = load_cases(tmp_path)
+    assert case["case_id"] == "odd" and "_load_error" in case

@@ -102,6 +102,8 @@ def load_cases(cases_dir: Path) -> list[dict]:
             case = json.loads(path.read_text(encoding="utf-8"))
         except ValueError as exc:
             case = {"case_id": path.stem, "_load_error": f"{path.name}: {exc}"}
+        if not isinstance(case, dict) or not isinstance(case.get("case_id"), str):
+            case = {"case_id": path.stem, "_load_error": f"{path.name}: no case_id"}
         cases.append(case)
     return cases
 
