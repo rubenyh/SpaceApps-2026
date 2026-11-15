@@ -94,7 +94,7 @@ export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> 
   try {
     response = await fetch(`${API_BASE_URL}${path}`, { signal: controller.signal });
   } catch (err) {
-    if (timedOut) throw new NetworkError("tiempo de espera agotado");
+    if (timedOut) throw new NetworkError("request timed out");
     if (signal?.aborted) throw new AbortedError();
     throw new NetworkError(err instanceof Error ? err.message : String(err));
   } finally {
@@ -115,6 +115,6 @@ export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> 
   try {
     return (await response.json()) as T;
   } catch {
-    throw new HttpError(response.status, "la respuesta no es JSON válido");
+    throw new HttpError(response.status, "the response is not valid JSON");
   }
 }

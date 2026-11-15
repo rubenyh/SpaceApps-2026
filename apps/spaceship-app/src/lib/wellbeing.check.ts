@@ -1,8 +1,10 @@
 // Self-check for lib/wellbeing.ts. Run: node src/lib/wellbeing.check.ts
-import type { ComponentState, CrewMemberSummary, Origin, WellbeingAssessment } from "../api/types";
+import type { ComponentState, IndicatorState, CrewMemberSummary, Origin, WellbeingAssessment } from "../api/types";
 import {
   addDays,
   barFraction,
+  baselineDays,
+  indicatorScored,
   dayCount,
   validPeriod,
   componentLabel,
@@ -105,6 +107,21 @@ eq(formatValue(4.5, "h"), "4.5 h", "value with unit");
 eq(formatValue(3, "0-4"), "3 / 4", "scale value");
 eq(formatValue(0.6667, "ratio"), "0.67 ratio", "rounded value");
 
+
+// Insufficient data / baseline pending never get a score.
+{
+  const comp = (baseline_days: number, baseline_ready: boolean) =>
+    ({ baseline_days, baseline_ready }) as ComponentState;
+  const ind = (status: IndicatorState["status"], z: number | null, comps: ComponentState[]) =>
+    ({ status, z, components: comps }) as IndicatorState;
+  eq(indicatorScored(ind("attention", 2.1, [comp(7, true)]), 5), true, "full baseline is scored");
+  eq(indicatorScored(ind("ok", 0.2, [comp(4, true)]), 5), false, "baseline_days < min is not scored");
+  eq(indicatorScored(ind("stale", 1.0, [comp(7, true)]), 5), false, "stale is not scored");
+  eq(indicatorScored(ind("no_data", null, []), 5), false, "no_data is not scored");
+  eq(indicatorScored(ind("baseline_pending", 0.5, [comp(3, false)]), 5), false, "pending is not scored");
+  eq(baselineDays(ind("no_data", null, [])), 0, "no components = 0 baseline days");
+  eq(baselineDays(ind("ok", 0, [comp(3, false), comp(6, true)])), 6, "largest component baseline");
+}
 eq(staleHint("2026-11-11", "2026-11-14"), "Last data Nov 11 — 3 days old.", "stale hint with age");
 eq(staleHint("2026-11-13", "2026-11-14"), "Last data Nov 13 — 1 day old.", "stale hint singular");
 eq(staleHint("2026-11-11"), "Last data Nov 11.", "stale hint without today");

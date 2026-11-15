@@ -13,16 +13,16 @@ export function SensorName({ kind }: { kind: SensorKind }) {
   return <>{SENSOR_LABELS[kind]}</>;
 }
 
-/** Range with PROV. for provisional values; "Sin rango" when there is none. */
+/** Range with PROV. for provisional values; "No range" when there is none. */
 export function RangeLabel({ config }: { config: SensorConfig }) {
   const text = configRange(config);
-  if (text === null) return <span className="muted">Sin rango</span>;
+  if (text === null) return <span className="muted">No range</span>;
   return (
     <span className="range">
-      {config.range_role === "sample_validity" ? "Validez muestra " : ""}
+      {config.range_role === "sample_validity" ? "Sample validity " : ""}
       {text}
       {config.provisional ? (
-        <abbr className="tag tag--prov" title="Rango provisional de demostración, sin validación clínica">
+        <abbr className="tag tag--prov" title="Provisional demo range, not clinically validated">
           PROV.
         </abbr>
       ) : null}

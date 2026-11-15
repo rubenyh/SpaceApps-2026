@@ -1,4 +1,5 @@
-"""One-shot demo setup: wait for Ollama, pull missing models, ingest guides if stale.
+"""One-shot demo setup: wait for Ollama, pull missing models, load them into memory,
+ingest guides if stale.
 
 Safe to rerun. The index is rebuilt only when the stamp next to it does not match
 the current corpus files, chunker and embedding model digest.
@@ -82,6 +83,13 @@ def main() -> int:
             else:
                 pull(http, model)
         embed_digest = local_models(http)[settings.ollama_embed_model]
+        # Load both models now: a cold load on CPU takes longer than the API's timeouts,
+        # and an aborted load leaves the model unused (the ollama service keeps them loaded).
+        log(f"loading {settings.ollama_chat_model} and {settings.ollama_embed_model} into memory")
+        http.post("/api/chat", json={"model": settings.ollama_chat_model, "messages": []},
+                  timeout=None).raise_for_status()
+        http.post("/api/embed", json={"model": settings.ollama_embed_model, "input": "warm-up"},
+                  timeout=None).raise_for_status()
 
     stamp_file = settings.chroma_path / "ingest-stamp.txt"
     stamp = index_stamp(embed_digest, settings)

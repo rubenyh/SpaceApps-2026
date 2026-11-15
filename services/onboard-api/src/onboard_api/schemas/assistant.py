@@ -156,11 +156,18 @@ class MatchedRule(BaseModel):
     urgency: Urgency
 
 
+# Evidence quality of a finding. simulated: `simulated:*` or `demo` source;
+# stale: old or future-dated reading; poor_quality: quality != "good";
+# missing: the reading (or the whole repository) is not available.
+EvidenceFlag = Literal["simulated", "stale", "missing", "poor_quality"]
+
+
 class Finding(BaseModel):
     kind: Literal["symptom", "reading", "event", "data_gap"]
     detail: str
     # "report" (text), "structured", "sqlite:<kind>", "event:<id>".
     source: str
+    evidence_flags: list[EvidenceFlag] = []
 
 
 class PossibleCause(BaseModel):
@@ -201,6 +208,15 @@ class CaseReport(BaseModel):
     transmission: Literal["not_sent"] = "not_sent"
 
 
+class IncidentRef(BaseModel):
+    """Onboard incident stored for an `immediate` response. recorded=False keeps the
+    action and steps in the response and says why nothing was stored."""
+
+    id: str | None = None
+    recorded: bool
+    error: str | None = None
+
+
 class AssistantResponse(BaseModel):
     """Same shape for every workflow. New workflows add a `workflow` value."""
 
@@ -212,7 +228,7 @@ class AssistantResponse(BaseModel):
     disclaimer: str | None = None
     urgency: Urgency | None = None
     action: str | None = None
-    # Who to tell, e.g. "tripulación". Nothing is transmitted.
+    # Who to tell, e.g. "crew". Nothing is transmitted.
     notify: list[str] = []
     # Cited checklist of the action, in order. Separate self / crew / equipment.
     steps: list[ActionStep] = []
@@ -228,6 +244,8 @@ class AssistantResponse(BaseModel):
     clarifying_question: str | None = None
     # Set with needs_clarification on medical/clarify replies: send it back unchanged.
     clarification: Clarification | None = None
+    # Set only when urgency == "immediate".
+    incident: IncidentRef | None = None
 
 
 class OperationalEvent(BaseModel):

@@ -1,6 +1,6 @@
 # Architecture
 
-This document follows the system from startup through a user action. It shows where decisions are made and which files to change. It describes the working tree as of 2026-11-14. If this document and the code disagree, the code wins.
+This document follows the system from startup through a user action. It shows where decisions are made and which files to change. It describes the working tree as of 2026-11-15. If this document and the code disagree, the code wins.
 
 Status labels used below:
 
@@ -21,7 +21,7 @@ flowchart LR
         WDB[("SQLite<br/>data/wellbeing.db")]
         Vision["wellbeing-vision<br/>daily video log"]
         Chroma[("ChromaDB<br/>data/chroma")]
-        Ollama["Ollama :11434<br/>qwen2.5:0.5b, bge-m3"]
+        Ollama["Ollama :11434<br/>qwen2.5:3b, bge-m3"]
         Events["Demo events JSON<br/>(optional)"]
         Seed["scripts/seed_demo.py"]
         Firmware["firmware/simulator.py<br/>simulated biomonitor"]
@@ -51,15 +51,15 @@ flowchart LR
 
 On the ship, the console (reads and assistant), the demo producers and the vision collector (writes) call onboard-api over HTTP. onboard-api pushes readings to ground-api in telemetry batches ([flow 6](#6-telemetry-and-ground-console)). base-app reads only from ground-api.
 
-In the Docker Compose demo, `onboard-api`, `ollama`, `demo-init` and `simulator` run as containers and the console stays on the host. ground-api and base-app are not in the stack, and telemetry is off by default there. The paths in the diagram are the native defaults; Compose uses the `sqlite`, `chroma` and `ollama` volumes instead ([Docker Compose demo](#docker-compose-demo)).
+In the Docker Compose demo, `onboard-api`, `ollama`, `demo-init` and `simulator` and `ground-api` run as containers, and both consoles stay on the host. Telemetry goes to the `ground-api` container. The paths in the diagram are the native defaults; Compose uses the `sqlite`, `chroma` and `ollama` volumes instead ([Docker Compose demo](#docker-compose-demo)).
 
 ## Component map
 
 | Component | Status | Responsibility | Entry point | Main files |
 |---|---|---|---|---|
-| Astronaut console | Implemented | Shows crew status, readings history and the assistant chat. Read-only for readings. | [`main.tsx`](../apps/spaceship-app/src/main.tsx) mounts [`App.tsx`](../apps/spaceship-app/src/App.tsx). Rust shell: [`main.rs`](../apps/spaceship-app/src-tauri/src/main.rs), [`lib.rs`](../apps/spaceship-app/src-tauri/src/lib.rs). | [`api/client.ts`](../apps/spaceship-app/src/api/client.ts), [`api/types.ts`](../apps/spaceship-app/src/api/types.ts), [`hooks/usePolling.ts`](../apps/spaceship-app/src/hooks/usePolling.ts), [`screens/`](../apps/spaceship-app/src/screens/), [`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts), [`lib/estado.ts`](../apps/spaceship-app/src/lib/estado.ts) |
+| Astronaut console | Implemented | Shows crew status, readings history, the assistant chat, urgent incidents (acknowledge, close), the Wellbeing tab (crew and personal views, check-in, ground packages) and the Earth link state in the header. Read-only for readings. | [`main.tsx`](../apps/spaceship-app/src/main.tsx) mounts [`App.tsx`](../apps/spaceship-app/src/App.tsx). Rust shell: [`main.rs`](../apps/spaceship-app/src-tauri/src/main.rs), [`lib.rs`](../apps/spaceship-app/src-tauri/src/lib.rs). | [`api/client.ts`](../apps/spaceship-app/src/api/client.ts), [`api/types.ts`](../apps/spaceship-app/src/api/types.ts), [`hooks/usePolling.ts`](../apps/spaceship-app/src/hooks/usePolling.ts), [`screens/`](../apps/spaceship-app/src/screens/), [`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts), [`lib/estado.ts`](../apps/spaceship-app/src/lib/estado.ts), [`components/Header.tsx`](../apps/spaceship-app/src/components/Header.tsx), [`components/IncidentPanel.tsx`](../apps/spaceship-app/src/components/IncidentPanel.tsx), [`WellbeingScreen.tsx`](../apps/spaceship-app/src/screens/WellbeingScreen.tsx) and [`screens/wellbeing/`](../apps/spaceship-app/src/screens/wellbeing/) |
 | Tauri shell (console) | Implemented, minimal | Opens the window. Registers only the `opener` plugin. No custom Rust commands: all data goes through `fetch` in the webview. | [`lib.rs`](../apps/spaceship-app/src-tauri/src/lib.rs) | [`tauri.conf.json`](../apps/spaceship-app/src-tauri/tauri.conf.json), [`capabilities/default.json`](../apps/spaceship-app/src-tauri/capabilities/default.json) |
-| onboard-api | Implemented | Crew, sensor config and readings API over SQLite. Status evaluation. Assistant endpoint. Wellbeing routes. Telemetry publisher. | `onboard_api.main:app` in [`main.py`](../services/onboard-api/src/onboard_api/main.py) | [`config.py`](../services/onboard-api/src/onboard_api/config.py), [`dependencies.py`](../services/onboard-api/src/onboard_api/dependencies.py), [`routers/`](../services/onboard-api/src/onboard_api/routers/), [`services/`](../services/onboard-api/src/onboard_api/services/), [`repositories/`](../services/onboard-api/src/onboard_api/repositories/), [`schemas/`](../services/onboard-api/src/onboard_api/schemas/) |
+| onboard-api | Implemented | Crew, sensor config and readings API over SQLite. Status evaluation. Assistant endpoint. Urgent incident records (`/incidents`). Earth link state and demo-gated outage controls. Wellbeing routes. Telemetry publisher. | `onboard_api.main:app` in [`main.py`](../services/onboard-api/src/onboard_api/main.py) | [`config.py`](../services/onboard-api/src/onboard_api/config.py), [`dependencies.py`](../services/onboard-api/src/onboard_api/dependencies.py), [`routers/`](../services/onboard-api/src/onboard_api/routers/), [`services/`](../services/onboard-api/src/onboard_api/services/), [`repositories/`](../services/onboard-api/src/onboard_api/repositories/), [`schemas/`](../services/onboard-api/src/onboard_api/schemas/) |
 | Assistant parent graph | Implemented | Routes a message to `medical`, `clarify` or `unsupported`. Deterministic, no LLM. | [`assistant/graph.py`](../services/onboard-api/src/onboard_api/assistant/graph.py) `build_assistant_graph`, `respond` | [`assistant/routing.py`](../services/onboard-api/src/onboard_api/assistant/routing.py), [`assistant/state.py`](../services/onboard-api/src/onboard_api/assistant/state.py) |
 | Medical workflow subgraph | Implemented | Interprets the report with rules, then (no alarm) with the local model, applies alarm and case rules from 16 protocol cards, loads readings, retrieves guides, drafts and validates the explanation. Carries an open clarification case across requests. | [`workflows/medical/graph.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/graph.py) `build_medical_graph` | [`nodes.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/nodes.py), [`interpret.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/interpret.py), [`understand.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/understand.py), [`triage.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/triage.py), [`context.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/context.py), [`prompts.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/prompts.py), [`state.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/state.py), [`protocols/`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/protocols/) |
 | Integration clients | Implemented | One Ollama client (`chat`, schema-constrained `chat_json`, `embed`) and one ChromaDB retriever, shared by all workflows. | Built in `build_assistant_deps` in [`main.py`](../services/onboard-api/src/onboard_api/main.py) | [`integrations/__init__.py`](../services/onboard-api/src/onboard_api/assistant/integrations/__init__.py) (Protocols), [`ollama.py`](../services/onboard-api/src/onboard_api/assistant/integrations/ollama.py), [`chroma.py`](../services/onboard-api/src/onboard_api/assistant/integrations/chroma.py) |
@@ -67,11 +67,11 @@ In the Docker Compose demo, `onboard-api`, `ollama`, `demo-init` and `simulator`
 | Device simulator | Implemented (simulated hardware) | Software stand-in for the biomonitor: pulse oximeter per astronaut, shared urine analyser, muscle scanner. Registers `ast-01` and `ast-02`, uploads a history "flash log", then posts live readings with source `simulated:<sensor>`. Buffers readings (up to 10 000) while the API is down. Stdlib only. | [`firmware/simulator.py`](../firmware/simulator.py) | [`firmware/test_simulator.py`](../firmware/test_simulator.py) |
 | Demo seeder | Implemented (dev tool) | Creates the same two demo astronauts and posts fake readings with source `demo`, optionally every 5 s. | [`scripts/seed_demo.py`](../services/onboard-api/scripts/seed_demo.py) | |
 | Demo setup | Implemented (Compose `demo-init`) | One-shot: waits for Ollama, pulls the chat and embedding models if missing, runs the guide ingest when `ingest-stamp.txt` in the Chroma path does not match the corpus, chunker and embedding model digest. Logs lines prefixed `[prepare-demo]`. Safe to rerun. | [`scripts/prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py) | [`docker-compose.yml`](../docker-compose.yml), [`Dockerfile`](../services/onboard-api/Dockerfile) |
-| Database schema | Implemented | SQLite schema and seed rows for `sensor_config`, applied at onboard-api startup. | [`db/migrations/onboard/0001_baseline.sql`](../db/migrations/onboard/0001_baseline.sql) | [`db/data-dictionary.md`](../db/data-dictionary.md), [`repositories/database.py`](../services/onboard-api/src/onboard_api/repositories/database.py) |
+| Database schema | Implemented | SQLite schema and seed rows for `sensor_config` (0001), incident tables (0002), applied at onboard-api startup. | [`db/migrations/onboard/0001_baseline.sql`](../db/migrations/onboard/0001_baseline.sql), [`0002_incidents.sql`](../db/migrations/onboard/0002_incidents.sql) | [`db/data-dictionary.md`](../db/data-dictionary.md), [`repositories/database.py`](../services/onboard-api/src/onboard_api/repositories/database.py) |
 | Wellbeing module (onboard-api) | Implemented | Sustained change of each astronaut against their own baseline: daily check-ins, signals, vision sessions, co-presence, crew and personal views, consented ground packages. Support notes only, no clinical labels. Own SQLite file; reads the onboard DB read-only. | `wellbeing_router` registered in [`main.py`](../services/onboard-api/src/onboard_api/main.py), routes in [`wellbeing/router.py`](../services/onboard-api/src/onboard_api/wellbeing/router.py) | [`wellbeing/`](../services/onboard-api/src/onboard_api/wellbeing/), contract: [`wellbeing-contract.md`](wellbeing-contract.md) |
-| Telemetry publisher | Implemented | Background task in onboard-api. Sends astronauts, sensor config and new readings to ground-api as v1 batches. | `TelemetryPublisher.run`, started in `lifespan` in [`main.py`](../services/onboard-api/src/onboard_api/main.py) | [`telemetry/publisher.py`](../services/onboard-api/src/onboard_api/telemetry/publisher.py), contract: [`contracts/telemetry/README.md`](../contracts/telemetry/README.md), [`telemetry.v1.schema.json`](../contracts/telemetry/telemetry.v1.schema.json) |
-| ground-api | Implemented | Telemetry receiver (`POST /telemetry/v1/batches`, `GET /telemetry/v1/cursor`) and read API for base-app (`/link`, `/crew`, `/astronauts/{id}/readings`, `/alerts`). Evaluates sensor status with its own clock. | `ground_api.main:app` in [`main.py`](../services/ground-api/src/ground_api/main.py) | [`telemetry.py`](../services/ground-api/src/ground_api/telemetry.py), [`storage.py`](../services/ground-api/src/ground_api/storage.py), [`status.py`](../services/ground-api/src/ground_api/status.py), [`schemas.py`](../services/ground-api/src/ground_api/schemas.py), [`config.py`](../services/ground-api/src/ground_api/config.py), [`tests/test_telemetry.py`](../services/ground-api/tests/test_telemetry.py) |
-| base-app (ground console) | Implemented | Read-only ground view: link state, crew status, astronaut charts, alerts. UI text in Spanish. No custom Rust commands. | [`main.tsx`](../apps/base-app/src/main.tsx) mounts [`App.tsx`](../apps/base-app/src/App.tsx). Rust shell: [`lib.rs`](../apps/base-app/src-tauri/src/lib.rs) | [`api/client.ts`](../apps/base-app/src/api/client.ts), [`api/ground.ts`](../apps/base-app/src/api/ground.ts), [`api/types.ts`](../apps/base-app/src/api/types.ts), [`hooks/usePolling.ts`](../apps/base-app/src/hooks/usePolling.ts), [`lib/board.ts`](../apps/base-app/src/lib/board.ts), [`screens/`](../apps/base-app/src/screens/) |
+| Telemetry publisher | Implemented | Background task in onboard-api. Sends astronauts, sensor config, new readings and queued incident updates to ground-api as v1 batches. | `TelemetryPublisher.run`, started in `lifespan` in [`main.py`](../services/onboard-api/src/onboard_api/main.py) | [`telemetry/publisher.py`](../services/onboard-api/src/onboard_api/telemetry/publisher.py), contract: [`contracts/telemetry/README.md`](../contracts/telemetry/README.md), [`telemetry.v1.schema.json`](../contracts/telemetry/telemetry.v1.schema.json) |
+| ground-api | Implemented | Telemetry receiver (`POST /telemetry/v1/batches`, `GET /telemetry/v1/cursor`) and read API for base-app (`/link`, `/crew`, `/astronauts/{id}/readings`, `/alerts`, `/incidents`, `/incidents/{id}`). Demo-gated `DELETE /demo/incidents` (off unless `GROUND_DEMO_CONTROLS_ENABLED=true`). Evaluates sensor status with its own clock. | `ground_api.main:app` in [`main.py`](../services/ground-api/src/ground_api/main.py) | [`telemetry.py`](../services/ground-api/src/ground_api/telemetry.py), [`storage.py`](../services/ground-api/src/ground_api/storage.py), [`status.py`](../services/ground-api/src/ground_api/status.py), [`schemas.py`](../services/ground-api/src/ground_api/schemas.py), [`config.py`](../services/ground-api/src/ground_api/config.py), [`tests/test_telemetry.py`](../services/ground-api/tests/test_telemetry.py) |
+| base-app (ground console) | Implemented | Read-only ground view: link state, crew status, astronaut charts, alerts, incidents. Every screen is in English (only file names such as `Tripulacion.tsx` stay Spanish). No custom Rust commands. | [`main.tsx`](../apps/base-app/src/main.tsx) mounts [`App.tsx`](../apps/base-app/src/App.tsx). Rust shell: [`lib.rs`](../apps/base-app/src-tauri/src/lib.rs) | [`api/client.ts`](../apps/base-app/src/api/client.ts), [`api/ground.ts`](../apps/base-app/src/api/ground.ts), [`api/types.ts`](../apps/base-app/src/api/types.ts), [`hooks/usePolling.ts`](../apps/base-app/src/hooks/usePolling.ts), [`lib/board.ts`](../apps/base-app/src/lib/board.ts), [`screens/`](../apps/base-app/src/screens/) |
 | Wellbeing vision collector | Implemented (daily video log only) | Own process. Webcam + MediaPipe Face Landmarker: neutral calibration, fatigue and tension metrics. Posts one summary per log to `POST /wellbeing/vision-sessions`; never stores or sends frames. Local JSONL outbox while the API is down. | `wellbeing-vision` CLI in [`cli.py`](../services/wellbeing-vision/src/wellbeing_vision/cli.py) | [`bitacora.py`](../services/wellbeing-vision/src/wellbeing_vision/bitacora.py), [`face.py`](../services/wellbeing-vision/src/wellbeing_vision/face.py), [`sink.py`](../services/wellbeing-vision/src/wellbeing_vision/sink.py), [`README.md`](../services/wellbeing-vision/README.md) |
 | Hardware collectors | Planned | pySerial, OpenCV, MediaPipe pose. No code in the repo. `firmware/simulator.py` stands in for the device. Readings arrive only through `POST /readings`. | none | |
 
@@ -81,7 +81,7 @@ All commands were run on Windows 11 with Git Bash on 2026-11-14.
 
 ### Docker Compose demo
 
-`docker compose up --build` from the repo root runs the onboard stack: `onboard-api` (port 8000), `ollama`, the one-shot `demo-init` (model pull and guide ingest via [`scripts/prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py)) and `simulator`. The API does not depend on Ollama or `demo-init`. The console stays native. ground-api and base-app are not in the stack; Compose sets `ONBOARD_TELEMETRY_ENABLED=false` and points `ONBOARD_GROUND_API_URL` at `http://host.docker.internal:8001` for when it is turned on. Steps, logs and volumes: [README](../README.md#run-the-demo-docker-compose--tauri). The sections below describe the native setup.
+`docker compose up --build` from the repo root runs the onboard stack: `onboard-api` (port 8000), `ollama`, the one-shot `demo-init` (model pull and guide ingest via [`scripts/prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py)) `simulator` and `ground-api` (port 8001). The API does not depend on Ollama, `demo-init` or `ground-api`. Both consoles stay native. Compose points `ONBOARD_GROUND_API_URL` at `http://ground-api:8001`. Demo controls are off unless the stack starts with `DEMO_CONTROLS_ENABLED=true` (sets `ONBOARD_DEMO_CONTROLS_ENABLED` and `GROUND_DEMO_CONTROLS_ENABLED`); runbook: [demo-outage.md](demo-outage.md). `run.ps1` starts the stack and opens both consoles ([RUN-REPO](RUN-REPO.md)). Steps, logs and volumes: [README](../README.md#run-the-demo-docker-compose--tauri). The sections below describe the native setup.
 
 Until `demo-init` finishes, the guide index is empty and searches fall back as described in [Failure and fallback behavior](#failure-and-fallback-behavior). The API picks up the first ingest without a restart. After a later re-ingest, restart it with `docker compose restart onboard-api`.
 
@@ -92,14 +92,14 @@ Working directory: `services/onboard-api`.
 ```sh
 uv sync --locked
 uv run fastapi dev                 # port 8000, auto-reload
-PYTHONUTF8=1 uv run pytest -q      # 326 passed, 1 skipped
+PYTHONUTF8=1 uv run pytest -q      # 418 passed, 1 skipped (2026-11-15)
 ```
 
 Optional local dependencies, needed only by some assistant paths:
 
 ```sh
 ollama pull bge-m3          # embeddings (ingest and query)
-ollama pull qwen2.5:0.5b    # chat model: reads non-alarm turns and drafts explanations
+ollama pull qwen2.5:3b    # chat model: reads non-alarm turns and drafts explanations
 PYTHONUTF8=1 uv run python -m onboard_api.assistant.ingest   # fills data/chroma
 ```
 
@@ -107,7 +107,7 @@ Startup sequence (`create_app` and `lifespan` in [`main.py`](../services/onboard
 
 1. `Settings()` reads `ONBOARD_*` environment variables ([`config.py`](../services/onboard-api/src/onboard_api/config.py)). No `.env` file is read. Relative paths resolve from the current working directory.
 2. CORS middleware allows `settings.cors_origins`. Defaults: `http://localhost:1420` (Vite in the Tauri webview), `tauri://localhost`, `http://tauri.localhost`.
-3. Routers are registered: `astronauts`, `status`, `sensors`, `readings`, `assistant`, `wellbeing`, plus `GET /` health.
+3. Routers are registered: `astronauts`, `status`, `sensors`, `readings`, `assistant`, `incidents`, `link`, `wellbeing`, plus `GET /` health. `incidents` serves `GET /incidents`, `GET /incidents/{id}`, `POST /incidents/{id}/acknowledgments` (409 if the incident is closed) and `POST /incidents/{id}/close` (409 if already closed). `link` serves `GET /telemetry/link` (`enabled`, `paused`, `failures`, `batches_sent`); its async `POST /telemetry/pause`, `POST /telemetry/resume` and `DELETE /demo/incidents?astronaut_id=` return 403 unless `ONBOARD_DEMO_CONTROLS_ENABLED=true` (409 for pause/resume when telemetry is off). Resume sets the publisher's `wake` event, so the backlog goes out at once. The reset takes the publisher's `sending` lock (waits for a send in flight), deletes that astronaut's incidents and events, and drops the pending batch.
 4. On lifespan start, `init_db` ([`database.py`](../services/onboard-api/src/onboard_api/repositories/database.py)) creates the DB directory and applies pending migrations from `<repo>/db/migrations/onboard/` (or `ONBOARD_MIGRATIONS_DIR`). The version is tracked in `PRAGMA user_version`.
 5. `build_assistant_deps` builds one `OllamaClient`, one `GuideRetriever`, one `SqliteReadingsProvider` and one `StaticEventSource`. If `ONBOARD_DEMO_EVENTS_PATH` is set, the events file is loaded here. No network or index call happens at startup. Ollama and ChromaDB are touched on the first request that needs them.
 6. The result is stored on `app.state.settings` and `app.state.assistant_deps`.
@@ -122,18 +122,19 @@ Runtime configuration (all prefixed `ONBOARD_`):
 | `MIGRATIONS_DIR` | `<repo>/db/migrations/onboard` | `init_db` |
 | `CORS_ORIGINS` | Vite and Tauri origins | CORS middleware |
 | `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | `OllamaClient` |
-| `OLLAMA_CHAT_MODEL` | `qwen2.5:0.5b` | `understand_turn` (`chat_json`) and `compose_answer` (`chat`) |
+| `OLLAMA_CHAT_MODEL` | `qwen2.5:3b` | `understand_turn` (`chat_json`) and `compose_answer` (`chat`) |
 | `OLLAMA_EMBED_MODEL` | `bge-m3` | Ingest and retrieval. Must match the ingested index. |
 | `OLLAMA_TIMEOUT_SECONDS` | `20.0` | `chat` and `embed` calls |
-| `OLLAMA_INTERPRET_TIMEOUT_SECONDS` | `8.0` | `chat_json` call of the local interpreter |
+| `OLLAMA_INTERPRET_TIMEOUT_SECONDS` | `15.0` | `chat_json` call of the local interpreter |
 | `CHROMA_PATH` | `data/chroma` | `GuideRetriever` |
 | `GUIDES_COLLECTION` | `medical_guides` | `GuideRetriever` |
 | `RETRIEVAL_MAX_DISTANCE` | `0.50` | Drops chunks with a larger cosine distance |
 | `DEMO_EVENTS_PATH` | unset | Ship events for the demo, e.g. [`demo/events.example.json`](../services/onboard-api/demo/events.example.json): a simulated radiation event and a `cabin_co2` event, both for `ast-02` only. While an event is active, every message for that astronaut routes to an `immediate` alarm; `ast-01` has no events. |
-| `TELEMETRY_ENABLED` | `true` | Starts the telemetry publisher. Compose sets it to `false`. |
-| `GROUND_API_URL` | `http://127.0.0.1:8001` | Publisher base URL. Compose default: `http://host.docker.internal:8001`. |
+| `TELEMETRY_ENABLED` | `true` | Starts the telemetry publisher. Compose keeps it `true`. |
+| `GROUND_API_URL` | `http://127.0.0.1:8001` | Publisher base URL. Compose default: `http://ground-api:8001`. |
 | `TELEMETRY_INTERVAL_SECONDS` | `5.0` | Wait between batches, and base of the retry backoff |
 | `SHIP_ID` | `ship-01` | `ship_id` in every batch and in the cursor query |
+| `DEMO_CONTROLS_ENABLED` | `false` | Enables the demo routes in `routers/link.py` ([demo-outage.md](demo-outage.md)) |
 
 Wellbeing settings use the `WELLBEING_` prefix ([`wellbeing/settings.py`](../services/onboard-api/src/onboard_api/wellbeing/settings.py)). `WELLBEING_DB_PATH` (default `data/wellbeing.db`) is the module's own database. `WELLBEING_MISSION_TZ` (IANA zone, default `UTC`) sets the mission day that every wellbeing input is grouped by; timestamps stay in UTC. The onboard database is opened read-only from `ONBOARD_DB_PATH` (or `WELLBEING_ONBOARD_DB_PATH`). The other `WELLBEING_*` values are provisional thresholds and baseline windows, not clinical cut-offs; `GET /wellbeing/parameters` returns the baseline and threshold values. Endpoints and data shapes: [`wellbeing-contract.md`](wellbeing-contract.md).
 
@@ -169,7 +170,7 @@ Working directory: `services/ground-api`.
 ```sh
 uv sync --locked
 uv run fastapi dev --port 8001     # not run as written; served with uvicorn on another port for the check below
-PYTHONUTF8=1 uv run pytest -q      # 18 passed
+PYTHONUTF8=1 uv run pytest -q      # 25 passed (2026-11-15)
 ```
 
 `create_app` and `lifespan` in [`main.py`](../services/ground-api/src/ground_api/main.py): `Settings()` reads `GROUND_*` variables ([`config.py`](../services/ground-api/src/ground_api/config.py)), CORS allows `settings.cors_origins`, and `storage.init_db` creates `GROUND_DB_PATH` (default `data/ground.db`) with `CREATE TABLE IF NOT EXISTS`. There are no migration files.
@@ -178,6 +179,7 @@ PYTHONUTF8=1 uv run pytest -q      # 18 passed
 |---|---|---|
 | `GROUND_DB_PATH` | `data/ground.db` | `init_db`, one connection per request (`get_connection`) |
 | `GROUND_CORS_ORIGINS` | `http://localhost:1421`, `tauri://localhost`, `http://tauri.localhost` | CORS middleware |
+| `GROUND_DEMO_CONTROLS_ENABLED` | `false` | Enables `DELETE /demo/incidents` |
 
 Verified 2026-11-14: ground-api and onboard-api on spare ports with temp databases. A reading posted to onboard-api appeared in `GET /alerts` and `GET /link` on ground within the interval. After stopping ground-api, onboard logged `telemetry send failed (1 in a row), retry in 2s` (interval 1 s). After a restart, the backlog arrived.
 
@@ -199,10 +201,10 @@ Runtime configuration: `VITE_GROUND_API_URL` sets the ground base URL at build t
 
 1. [`main.tsx`](../apps/spaceship-app/src/main.tsx) renders `App`. `App` provides `ConnectionContext`, which every poll uses to report whether the service answered.
 2. `Console` in [`App.tsx`](../apps/spaceship-app/src/App.tsx) polls `GET /astronauts` every 30 s with `usePolling` ([`usePolling.ts`](../apps/spaceship-app/src/hooks/usePolling.ts)) through `listAstronauts` ([`api/astronauts.ts`](../apps/spaceship-app/src/api/astronauts.ts)).
-3. The selected astronaut is the stored id if it is in the list, else the first one. With an empty list the console shows "No crew members registered". With a network error it shows "ONBOARD SERVICE UNAVAILABLE". The console UI text is English; assistant replies from the server are Spanish.
+3. The selected astronaut is the stored id if it is in the list, else the first one. With an empty list the console shows "No crew members registered". With a network error it shows "ONBOARD SERVICE UNAVAILABLE". The console UI text is English; assistant replies from the server are English too (input may be English or Spanish).
 4. A shell-level poll calls `GET /astronauts/{id}/status` every 5 s. `tabFlags` ([`lib/estado.ts`](../apps/spaceship-app/src/lib/estado.ts)) turns the result into problem icons on the tabs.
 5. On the server, `astronaut_status` ([`routers/status.py`](../services/onboard-api/src/onboard_api/routers/status.py)) calls `get_astronaut_status` ([`services/status.py`](../services/onboard-api/src/onboard_api/services/status.py)). For each `sensor_config` row it reads the latest reading and applies `evaluate_sensor`. Precedence: `no_data`, then `stale` (age above `stale_after_seconds`), then `no_range` (no range or text value), then `alert` (outside `normal_min`/`normal_max`), else `normal`.
-6. Each tab screen in [`screens/`](../apps/spaceship-app/src/screens/) runs its own polls: Estado and Vitales every 5 s, Músculo, Orina and Registros every 30 s, using `getAstronautStatus` and `listReadings` ([`api/readings.ts`](../apps/spaceship-app/src/api/readings.ts)).
+6. Each tab screen in [`screens/`](../apps/spaceship-app/src/screens/) runs its own polls: Status and Vital signs every 5 s, Muscle, Urine and Records every 30 s, using `getAstronautStatus` and `listReadings` ([`api/readings.ts`](../apps/spaceship-app/src/api/readings.ts)).
 
 Data across the boundary: JSON matching [`schemas/status.py`](../services/onboard-api/src/onboard_api/schemas/status.py) and [`schemas/readings.py`](../services/onboard-api/src/onboard_api/schemas/readings.py), mirrored by hand in [`types.ts`](../apps/spaceship-app/src/api/types.ts).
 
@@ -237,12 +239,12 @@ Trigger: the user sends a message in [`AsistenteScreen.tsx`](../apps/spaceship-a
    2. `evaluate_alarms` (`check_alarms`): `triage.evaluate_alarms` returns `immediate` rule hits from text, structured symptoms and events relevant to this astronaut (events with empty `astronaut_ids` apply to the whole cabin).
    3. `route_after_alarms`: any hit or `sos` → `respond_alarm`, else `understand`.
    4. `respond_alarm`: `decide()` builds the `Decision` from the protocol cards only. With SOS, `_with_sos` puts the SOS action first and notifies the medical officer and the crew. No SQLite, ChromaDB or Ollama call. Adds `ALARM_NOTICE`. End.
-   5. `understand` (`understand_turn`): skipped for educational questions. Otherwise `understand.read_turn` asks the local model for JSON (`chat_json`, schema `LlmReading`, 8 s timeout) with symptom codes, status and the user's exact words as evidence. `understand.accept` keeps an observation only when its evidence is in the new message, a bare "sí"/"no" answers only the pending question's codes, and the rules do not read the same words as another symptom. A concrete complaint outside the vocabulary is kept as `uncovered`. Any model failure returns no change: the rules alone decide.
+   5. `understand` (`understand_turn`): skipped for educational questions. Otherwise `understand.read_turn` asks the local model for JSON (`chat_json`, schema `LlmReading`, 15 s timeout) with symptom codes, status and the user's exact words as evidence. `understand.accept` keeps an observation only when its evidence is in the new message, a bare "sí"/"no" answers only the pending question's codes, and the rules do not read the same words as another symptom. A concrete complaint outside the vocabulary is kept as `uncovered`. Any model failure returns no change: the rules alone decide.
    6. `recheck_alarms` (`check_alarms` again) and `route_after_recheck`: model-added observations can still raise an alarm before any slower dependency → `respond_alarm`, else `load_context`.
    7. `load_context`: `SqliteReadingsProvider.load` ([`context.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/context.py)) reads the latest reading per kind and marks stale, future-dated and low-quality readings. Warnings are grouped per sensor kind (`kind_warnings`).
    8. `evaluate_case` (`assess_case`): `triage.evaluate_case` returns non-alarm rule hits (`review_required`, `undetermined`, ...) using the interpretation, events and readings. `select_route` picks `clarify`, `assessment`, `educational` or `out_of_coverage`. `out_of_coverage` needs a concrete uncovered complaint or symptom; a report with no concrete symptom gets `clarify` instead. A second `clarify` after the "symptom" question becomes `out_of_coverage`. With hits, `decide()` builds the `Decision`. Reading warnings become `data_notices` only for sensor kinds pertinent to the decision's cards (`_reading_notices`).
    9. `route_after_case`: `clarify` → `respond_clarify` (returns a `clarification` with `question_id` `"symptom"` or `"<protocol_id>.<question_key>"` and the case's observations); `assessment` or `educational` → `retrieve_guides`; anything else → `respond_out_of_coverage`.
-   10. `retrieve_guides`: queries ChromaDB with the primary card's title (never the personal text), filtered by the card's `guide_topics`. Only an educational question with no known topic uses the message itself. `k=3`, Spanish first, English fallback, distance ≤ `RETRIEVAL_MAX_DISTANCE`.
+   10. `retrieve_guides`: queries ChromaDB with the primary card's title (never the personal text), filtered by the card's `guide_topics`. Only an educational question with no known topic uses the message itself. `k=3`, English chunks only (Spanish matches are dropped; with none left the reply uses card text or the abstain message), distance ≤ `RETRIEVAL_MAX_DISTANCE`.
    11. `compose_answer`: when chunks exist, calls `llm.chat(SYSTEM, user)` with the card, action, findings, notices and numbered chunks. `valid_draft` rejects a draft that is empty, cites a chunk that does not exist, contains a number not present in the grounding text, or claims transmission or de-escalation. The reply is always the card action first, then the validated draft. Without a valid draft, the reply is the card summary (or a guide excerpt for an educational question).
 8. Every terminal node builds the same `AssistantResponse`: `reply`, `workflow`, `needs_clarification`, `urgency`, `action`, `notify`, `protocol_id`, `matched_rules`, `findings`, `possible_causes`, `sources`, `data_notices`, `disclaimer`, `clarifying_question`, `clarification`.
 9. The console appends the reply to its local log. If `needs_clarification` is true, it stores the request as `pending`, together with the response's `clarification` object (see flow 4).
@@ -279,7 +281,7 @@ sequenceDiagram
         alt alarm hit or SOS
             M-->>P: respond_alarm (cards only, urgency immediate)
         else no alarm
-            M->>O: understand: chat_json (8 s timeout)
+            M->>O: understand: chat_json (15 s timeout)
             M->>M: accept evidence, recheck_alarms
             M->>DB: load_context (latest reading per kind)
             M->>M: evaluate_case + select_route
@@ -288,7 +290,7 @@ sequenceDiagram
             else assessment / educational
                 M->>O: embed card title (bge-m3)
                 M->>C: query top 3 by topic and language
-                M->>O: chat (qwen2.5:0.5b) if chunks found
+                M->>O: chat (qwen2.5:3b) if chunks found
                 M->>M: valid_draft or fall back to card text
                 M-->>P: compose_answer
             end
@@ -342,9 +344,12 @@ Ship side, `TelemetryPublisher` ([`publisher.py`](../services/onboard-api/src/on
 1. On the first step after start, `GET /telemetry/v1/cursor?ship_id=<SHIP_ID>` returns ground's highest stored reading id for this ship (or null). The cursor is fetched once per process.
 2. `_build_batch` (in a worker thread) opens the onboard DB and reads all astronauts, all sensor configs and up to 500 readings with `id > cursor`, oldest first (`ReadingRepository.after_id`). The batch gets a new `batch_id` and `sent_at`.
 3. `POST /telemetry/v1/batches`. On success the cursor moves to the last reading id in the batch. A batch with no readings is still sent every interval (heartbeat).
-4. A full batch (500 readings) is followed at once by the next one. Otherwise the task waits `TELEMETRY_INTERVAL_SECONDS`.
+4. A full batch (500 readings or 500 incident updates) is followed at once by the next one. Otherwise the task waits `TELEMETRY_INTERVAL_SECONDS`, cut short when resume sets `wake`.
+5. Each send runs under the `sending` lock. While `paused` (demo outage), the task checks every 0.5 s, sends nothing and counts no failures.
 
-Sent: astronauts (`id`, `display_name`), sensor configs, readings. Not sent: wellbeing data, assistant conversations, camera frames. The assistant's `notify` field names who the crew should tell; nothing is transmitted for it. Wellbeing ground packages stay `queued` in `wellbeing.db`; no code sends them.
+The console header polls `GET /telemetry/link` every 2 s ([`Header.tsx`](../apps/spaceship-app/src/components/Header.tsx)) and shows "Earth link: up", "down (simulated outage)", "ground not answering" (`failures > 0`), "checking…" (no batch sent yet) or "off".
+
+Sent: astronauts (`id`, `display_name`), sensor configs, readings, incident updates (`created`, `acknowledged`, `closed`; queued in `incident_events` until ground answers 2xx; no message or report text). Not sent: wellbeing data, assistant conversations, camera frames. The assistant's `notify` field names who the crew should tell; nothing is transmitted for it. Wellbeing ground packages stay `queued` in `wellbeing.db`; no code sends them.
 
 Ground side ([`telemetry.py`](../services/ground-api/src/ground_api/telemetry.py), [`storage.py`](../services/ground-api/src/ground_api/storage.py)):
 
@@ -355,9 +360,9 @@ Ground side ([`telemetry.py`](../services/ground-api/src/ground_api/telemetry.py
 
 Ground console, base-app ([`App.tsx`](../apps/base-app/src/App.tsx)):
 
-1. Polls `GET /link` every 2 s, `GET /crew` every 3 s and `GET /alerts?limit=200` every 5 s with `usePolling` ([`usePolling.ts`](../apps/base-app/src/hooks/usePolling.ts)), through [`api/ground.ts`](../apps/base-app/src/api/ground.ts). Requests time out after 8 s.
+1. Polls `GET /link` every 2 s, `GET /crew` every 3 s and `GET /alerts?limit=200` every 5 s (the Incidents screen polls `GET /incidents` every 5 s while open) with `usePolling` ([`usePolling.ts`](../apps/base-app/src/hooks/usePolling.ts)), through [`api/ground.ts`](../apps/base-app/src/api/ground.ts). Requests time out after 8 s.
 2. `linkState` ([`lib/board.ts`](../apps/base-app/src/lib/board.ts)) labels the link: `no_batch` before the first batch, `late` from 15 s without a batch, `lost` from 60 s, `unreachable` when ground-api does not answer.
-3. Screens in [`screens/`](../apps/base-app/src/screens/): Tripulación (crew board), Astronauta (readings per kind via `GET /astronauts/{id}/readings`, heart rate and SpO₂ for the last 15 min every 5 s; urine pH, salinity and muscle density for 14 days every 30 s), Alertas, Enlace (link details and a ledger of link changes kept in component state).
+3. Screens in [`screens/`](../apps/base-app/src/screens/): Crew (`Tripulacion.tsx`, crew board), Astronaut (`Astronauta.tsx`, readings per kind via `GET /astronauts/{id}/readings`, heart rate and SpO₂ for the last 15 min every 5 s; urine pH, salinity and muscle density for 14 days every 30 s), Alerts (`Alertas.tsx`), Incidents (incident updates with "Onboard time" on the ship clock and "Received on ground" on the ground clock), Link (`Enlace.tsx`, link details and a ledger of link changes kept in component state).
 
 ## Data and state
 
@@ -370,11 +375,12 @@ Ground console, base-app ([`App.tsx`](../apps/base-app/src/App.tsx)):
 | Ship events | onboard-api process | In memory (`StaticEventSource`), loaded once from `ONBOARD_DEMO_EVENTS_PATH` | Read by `select_intent` and `evaluate_alarms`. No API writes them; a restart is needed to change them. |
 | Assistant graph state | One request | LangGraph state dicts `AssistantState` ([`state.py`](../services/onboard-api/src/onboard_api/assistant/state.py)) and `MedicalState` ([`medical/state.py`](../services/onboard-api/src/onboard_api/assistant/workflows/medical/state.py)) | Discarded after the response. No checkpointer. |
 | Open clarification case | The client | `clarification` object in the response, echoed back in the next request | Server reads it in `case_for` and `interpret_report`. The console stores it with the pending request and echoes it. |
-| Conversation | Console | `AsistenteScreen` component state (`entries`, `pending`) | Lost on tab change or reload |
+| Conversation | Console | `AsistenteScreen` component state (`entries`, `pending`) | Chat lost on tab change or reload. Urgent incidents are not: see the next row. |
+| Urgent incidents | onboard-api | Tables `incidents` and `incident_events` in the onboard DB ([`0002_incidents.sql`](../db/migrations/onboard/0002_incidents.sql)) | Created by `POST /assistant/messages` for `urgency = immediate`. Acknowledged and closed through `/incidents` routes. The console's `IncidentPanel` (assistant tab) reloads them with `GET /incidents`, so they survive tab changes and reloads. |
 | Unsent device readings | Simulator process | In-memory `deque` (max 10 000, oldest dropped) in [`simulator.py`](../firmware/simulator.py) | Flushed to `POST /readings` when the API answers again. Lost when the simulator stops. |
 | Wellbeing data (check-ins, signals, vision sessions, co-presence, ground packages) | Wellbeing module | SQLite at `WELLBEING_DB_PATH` (default `data/wellbeing.db`), migrated on first use | Written and read through the `/wellbeing` routes ([`wellbeing-contract.md`](wellbeing-contract.md)). Reads astronauts and `heart_rate` readings from the onboard DB with a read-only connection. |
-| Telemetry cursor and pending batch | Publisher task | In memory (`cursor`, `pending`, `failures`) on `app.state.telemetry_publisher` | Cursor fetched from ground once per process start. The unsent batch is kept and resent with the same `batch_id`. The onboard `readings` table is the queue, so nothing is lost on restart. |
-| Ground copy of crew, sensors, readings, alerts, batches | ground-api | SQLite at `GROUND_DB_PATH` (default `data/ground.db`), tables `batches`, `astronauts`, `sensors`, `readings` (key `ship_id`, `id`), `alerts` ([`storage.py`](../services/ground-api/src/ground_api/storage.py)) | Written only by `POST /telemetry/v1/batches`. Read by the ground read API. Astronauts and sensors are keyed without `ship_id` (one ship). |
+| Telemetry cursor and pending batch | Publisher task | In memory (`cursor`, `pending`, `failures`, `paused`, `batches_sent`) on `app.state.telemetry_publisher` | Cursor fetched from ground once per process start. The unsent batch is kept and resent with the same `batch_id`; `DELETE /demo/incidents` drops it so it is rebuilt from the DB. The onboard `readings` table is the queue, so nothing is lost on restart. |
+| Ground copy of crew, sensors, readings, alerts, incidents, batches | ground-api | SQLite at `GROUND_DB_PATH` (default `data/ground.db`), tables `batches`, `astronauts`, `sensors`, `readings` (key `ship_id`, `id`), `alerts`, `incidents`, `incident_updates` (key `ship_id`, `id`) ([`storage.py`](../services/ground-api/src/ground_api/storage.py)) | Written by `POST /telemetry/v1/batches` (and the demo-gated `DELETE /demo/incidents`). Read by the ground read API. Astronauts and sensors are keyed without `ship_id` (one ship). |
 | Link history | base-app | Ledger in `App` component state | Lost on reload |
 | Selected astronaut | Console | `localStorage` key `consola-medica.astronaut` | `App.tsx` |
 | Last polled data | Console | `usePolling` state per screen | Kept when a later poll fails |
@@ -391,20 +397,20 @@ API contract mirror: [`schemas/`](../services/onboard-api/src/onboard_api/schema
 | ground-api down, link lost, ground error or onboard DB busy | `TelemetryPublisher.run` ([`publisher.py`](../services/onboard-api/src/onboard_api/telemetry/publisher.py)) | Logs a warning and retries after `min(interval × 2^failures, 60 s)` (5 s interval: 10, 20, 40, 60 s). Onboard requests are not affected. When the link returns, every reading after the cursor is sent in batches of 500. |
 | Retry of a batch ground already stored (reply lost) | `storage.ingest` ([`storage.py`](../services/ground-api/src/ground_api/storage.py)) | Same `batch_id` is detected; 202 with `accepted: 0`. Readings are also deduplicated by `(ship_id, id)`. |
 | Ground database reset while onboard-api runs | `TelemetryPublisher.step` | The cursor is fetched only once per process, so older readings are not resent until onboard-api restarts and asks for the cursor again. |
-| Telemetry disabled (Compose default) | `lifespan` in [`main.py`](../services/onboard-api/src/onboard_api/main.py) | No publisher task, no ground traffic. |
-| ground-api unreachable from base-app | `apiGet` ([`client.ts`](../apps/base-app/src/api/client.ts)), `usePolling`, `App.tsx` | Banner "Sin conexión con el servicio de tierra" with a retry button. Screens keep the last data, marked as old. Link state `unreachable`. |
+| Telemetry disabled (`ONBOARD_TELEMETRY_ENABLED=false`) | `lifespan` in [`main.py`](../services/onboard-api/src/onboard_api/main.py) | No publisher task, no ground traffic. `GET /telemetry/link` returns `enabled: false`; the header shows "Earth link: off". |
+| ground-api unreachable from base-app | `apiGet` ([`client.ts`](../apps/base-app/src/api/client.ts)), `usePolling`, `App.tsx` | Banner "No connection to the ground service" with a "Retry now" button. Screens keep the last data, marked as old. Link state `unreachable`. |
 | No batch for 15 s / 60 s | `linkState` ([`board.ts`](../apps/base-app/src/lib/board.ts)), ground `evaluate_sensor` | Link shown `late` / `lost`. Ground sensor status turns `stale` once the latest reading is older than `stale_after_seconds` by the ground clock. |
 | HTTP 404 / 409 / 422 | Routers, `extractDetail` in `client.ts` | `HttpError` with the server `detail`. Assistant shows `Error <status>: <detail>`. |
 | Unknown astronaut | `ensure_astronaut_exists` ([`services/astronauts.py`](../services/onboard-api/src/onboard_api/services/astronauts.py)) | 404 for status and readings. The assistant still answers without readings. |
 | Missing or stale readings | `evaluate_sensor`; `SqliteReadingsProvider`; `_reading_notices` | Status `no_data` or `stale`. The assistant states gaps in `data_notices` (no pulse or SpO₂, stale age, future timestamp, suspect/bad quality, muscle unit pending) for the sensor kinds pertinent to the decision's cards. Values are never filled in. |
 | No `astronaut_id`, unknown astronaut, or SQLite file missing/unreadable during an assistant call | `SqliteReadingsProvider.load`, `load_context` | `available=False` plus a general warning. The reply continues. The warning reaches `data_notices` only when the case has a decision whose cards use readings. |
 | Alarm or SOS detected | `respond_alarm` | Returns from local cards at once. Readings, ChromaDB and Ollama are never waited on. |
-| Local interpreter fails, times out (8 s) or returns invalid JSON | `understand.read_turn` | Returns `None`; the turn continues with the rule interpretation only. No notice. |
+| Local interpreter fails, times out (15 s) or returns invalid JSON | `understand.read_turn` | Returns `None`; the turn continues with the rule interpretation only. No notice. |
 | Model proposes a symptom not backed by the user's words | `understand.accept` | Observation dropped. |
 | Ollama or ChromaDB down during retrieval | `retrieve_guides` | ChromaDB failure: notice `NOTICE_GUIDES_FAILED` ("... (ChromaDB)."). Query embedding failure (Ollama): `GuideRetriever.search` raises `EmbeddingUnavailable`, notice `NOTICE_EMBEDDING_FAILED`. Reply uses card text. |
 | Guide index empty (ingest not run yet, or `demo-init` still running) | `GuideRetriever.search` ([`chroma.py`](../services/onboard-api/src/onboard_api/assistant/integrations/chroma.py)), `retrieve_guides` | `search` raises `DependencyUnavailable` and clears the cached Chroma client, so the next search reopens the index and sees a later ingest. Notice `NOTICE_GUIDES_FAILED`. Reply uses card text. |
 | `demo-init` fails (Ollama unreachable after 300 s, pull or ingest error) | [`prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py) | Exits non-zero with the reason in `docker compose logs demo-init`. The API keeps running; assistant paths that need models or guides fall back as above. Rerun with `docker compose up demo-init`. |
-| No relevant guide chunk | `retrieve_guides`, `compose_answer` | Notice "No se encontró una guía local pertinente." A case with a decision uses the card summary. An educational question returns `EDUCATIONAL_ABSTAIN` and does not answer. |
+| No relevant guide chunk | `retrieve_guides`, `compose_answer` | Notice `NOTICE_NO_GUIDES` ("No relevant local guide in English was found."). A case with a decision uses the card summary. An educational question returns `EDUCATIONAL_ABSTAIN` and does not answer. |
 | Ollama chat error or timeout (20 s per call) | `OllamaClient._post` raises `DependencyUnavailable`; `compose_answer` catches it | Notice `NOTICE_LLM_FAILED`. Reply uses card summary or a guide excerpt. |
 | LLM draft cites unknown sources, adds numbers or unsafe claims | `valid_draft` | Draft discarded, notice `NOTICE_DRAFT_REJECTED`, card text shown. |
 | Psychological or out-of-scope request | `select_intent` → `respond_unsupported` | Fixed capabilities reply. Adds an emergency line when distress words are present. |

@@ -6,6 +6,6 @@ from onboard_api.schemas.assistant import AssistantRequest, AssistantResponse
 AssistantResponder = Callable[[AssistantRequest], AssistantResponse]
 
 DISCLAIMER = (
-    "Soporte informativo únicamente. El diagnóstico y las decisiones de "
-    "tratamiento corresponden a personal cualificado."
+    "Informational support only. Diagnosis and treatment decisions belong to"
+    " qualified personnel."
 )

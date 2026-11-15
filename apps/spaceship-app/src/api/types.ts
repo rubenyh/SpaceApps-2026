@@ -276,6 +276,57 @@ export interface Finding {
   detail: string;
   /** "report" (text), "structured", "sqlite:<kind>", "event:<id>". */
   source: string;
+  /** Evidence quality. Optional for older servers. */
+  evidence_flags?: EvidenceFlag[];
+}
+
+export type EvidenceFlag = "simulated" | "stale" | "missing" | "poor_quality";
+
+/** Onboard incident stored for an `immediate` response. */
+export interface IncidentRef {
+  id: string | null;
+  recorded: boolean;
+  /** Why nothing was stored, when recorded is false. */
+  error: string | null;
+}
+
+/** Stored onboard incident (GET /incidents, GET /incidents/{id}). Timestamps are UTC ISO 8601. */
+export interface Incident {
+  id: string;
+  status: "open" | "closed";
+  astronaut_id: string | null;
+  reported_by: string | null;
+  /** Onboard server clock. */
+  began_at: string;
+  closed_at: string | null;
+  urgency: Urgency;
+  action: string | null;
+  protocol_id: string | null;
+  steps: ActionStep[];
+  matched_rules: MatchedRule[];
+  findings: Finding[];
+  data_notices: string[];
+  mission_procedures: MissionProcedure[];
+  missing_guidance: string[];
+  /** Oldest first. */
+  acknowledgments: Acknowledgment[];
+  /** Oldest first. */
+  events: IncidentEvent[];
+  /** disabled: telemetry off; queued: some event not yet accepted by ground; delivered: all accepted. */
+  ground_delivery: "disabled" | "queued" | "delivered";
+}
+
+export interface Acknowledgment {
+  acknowledged_by: string;
+  acknowledged_at: string;
+}
+
+export interface IncidentEvent {
+  id: string;
+  type: "created" | "acknowledged" | "closed";
+  occurred_at: string;
+  acknowledged_by: string | null;
+  delivered_at: string | null;
 }
 
 /** Candidate from the protocol's reviewed catalog. Never a probability. */
@@ -334,6 +385,8 @@ export interface AssistantResponse {
   clarifying_question: string | null;
   /** Set with needs_clarification on medical/clarify replies: send it back unchanged. */
   clarification: Clarification | null;
+  /** Set only when urgency is "immediate". Optional for older servers. */
+  incident?: IncidentRef | null;
 }
 
 // --- Wellbeing (mental health): docs/wellbeing-contract.md ---

@@ -2,20 +2,20 @@ import type { GroundReading, Quality, SensorConfig, SensorKind } from "../api/ty
 
 /** Plain-text sensor names (also for <option>, where markup is not allowed). */
 export const SENSOR_LABELS: Record<SensorKind, string> = {
-  heart_rate: "Pulso",
+  heart_rate: "Heart rate",
   spo2: "SpO2",
-  muscle_density: "Músculo",
-  urine_ph: "pH orina",
-  urine_salinity: "Salinidad",
-  urine_color: "Color orina",
-  urine_temperature: "Temp. orina",
-  urine_radiation_marker: "Marcador radiación",
+  muscle_density: "Muscle density",
+  urine_ph: "Urine pH",
+  urine_salinity: "Urine salinity",
+  urine_color: "Urine color",
+  urine_temperature: "Urine temp.",
+  urine_radiation_marker: "Radiation marker",
 };
 
 export const QUALITY_LABELS: Record<Quality, string> = {
-  good: "Buena",
-  suspect: "Dudosa",
-  bad: "Mala",
+  good: "Good",
+  suspect: "Suspect",
+  bad: "Bad",
 };
 
 /** Round to at most `maxDecimals` without padding zeros. */
@@ -34,21 +34,21 @@ export function readingValueText(r: GroundReading | null | undefined): string {
   return "--";
 }
 
-/** "12 s", "3 min", "26 h", "3 días". */
+/** "12 s", "3 min", "26 h", "3 days". */
 export function formatDuration(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
   if (s < 60) return `${s} s`;
   if (s < 3600) return `${Math.floor(s / 60)} min`;
   if (s < 48 * 3600) return `${Math.floor(s / 3600)} h`;
   const d = Math.floor(s / 86400);
-  return `${d} ${d === 1 ? "día" : "días"}`;
+  return `${d} ${d === 1 ? "day" : "days"}`;
 }
 
-/** "hace 12 s". Empty when unknown. */
+/** "12 s ago". Empty when unknown. */
 export function formatAge(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) return "";
-  if (seconds < 0) return "fecha futura";
-  return `hace ${formatDuration(seconds)}`;
+  if (seconds < 0) return "future date";
+  return `${formatDuration(seconds)} ago`;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -65,15 +65,15 @@ export function utcMinutes(ms: number): string {
   return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 }
 
-const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** "14 nov" in UTC. */
+/** "14 Nov" in UTC. */
 export function utcDay(ms: number): string {
   const d = new Date(ms);
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
 }
 
-/** "14 nov 18:02:11Z" or "--" for null/invalid. */
+/** "14 Nov 18:02:11Z" or "--" for null/invalid. */
 export function utcStamp(iso: string | null | undefined): string {
   if (!iso) return "--";
   const t = Date.parse(iso);

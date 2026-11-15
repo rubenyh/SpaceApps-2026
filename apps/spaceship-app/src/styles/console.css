@@ -186,6 +186,16 @@ textarea {
   white-space: nowrap;
 }
 
+/* The Tauri window opens at 1280 px (min 1024): let the two status pills wrap
+   to two lines instead of pushing the page wider than the window. */
+@media (max-width: 1500px) {
+  .header__conn {
+    max-width: 14rem;
+    white-space: normal;
+    line-height: 1.15;
+  }
+}
+
 .header__conn--online .state-icon {
   color: var(--state-normal);
 }
@@ -3346,4 +3356,110 @@ textarea {
   .wellbeing__bar {
     gap: var(--space-3);
   }
+}
+
+/* Wellbeing #49: provisional label next to each indicator status, exact package JSON. */
+.wb-ind__status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.wb-preview__json {
+  max-height: 320px;
+  overflow: auto;
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Open incident panel (#44): above the conversation; next action and Acknowledge dominate. */
+.incidents {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 55%;
+  padding: var(--space-3) var(--space-4);
+  overflow-y: auto;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.incident {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-alert);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+
+.incident__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--state-alert);
+}
+
+.incident__since,
+.incident__states,
+.incident__more {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.incident__next {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  line-height: 1.35;
+}
+
+.incident__label {
+  display: block;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.incident__ack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.incident__ack label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.incident__ack-btn {
+  font-size: var(--text-lg);
+}
+
+.incident__states,
+.incident__guidance ul,
+.incident__more ol,
+.incident__more ul {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.incident__guidance {
+  font-size: var(--text-sm);
+  color: var(--state-stale);
+}
+
+.incident__error {
+  margin: 0;
+  color: var(--state-alert);
+}
+
+.evidence-flag {
+  margin-left: var(--space-1);
+  color: var(--state-stale);
 }

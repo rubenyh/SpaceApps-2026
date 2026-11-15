@@ -21,10 +21,10 @@ export function isHealthAlert(s: SensorStatus, offline: boolean): boolean {
 export type RowState = "alert" | "stale" | "clear" | "empty";
 
 export const ROW_LABELS: Record<RowState, string> = {
-  alert: "Alerta",
-  stale: "Dato viejo",
-  clear: "Sin alertas",
-  empty: "Sin datos",
+  alert: "Alert",
+  stale: "Old data",
+  clear: "No alerts",
+  empty: "No data",
 };
 
 /** Worst state of one astronaut: health alert > stale > some data > nothing. */
@@ -57,17 +57,17 @@ export interface CellView {
 /** One board/sensor cell. Never invents a value; the radiation marker never shows its value. */
 export function cellView(s: SensorStatus | null | undefined, offline: boolean): CellView {
   const st = shownStatus(s, offline);
-  if (!s || !s.latest || st === "no_data") return { text: "--", tone: "muted", note: "Sin dato" };
+  if (!s || !s.latest || st === "no_data") return { text: "--", tone: "muted", note: "No data" };
   if (s.kind === "urine_radiation_marker") {
-    return { text: "Posible exposición", tone: st === "stale" ? "stale" : "plain", note: st === "stale" ? "Dato viejo" : "Requiere confirmación" };
+    return { text: "Possible exposure", tone: st === "stale" ? "stale" : "plain", note: st === "stale" ? "Old data" : "Needs confirmation" };
   }
   const text = readingValueText(s.latest);
-  if (st === "stale") return { text, tone: "stale", note: "Dato viejo" };
-  if (st === "no_range") return { text, tone: "plain", note: "Sin rango" };
+  if (st === "stale") return { text, tone: "stale", note: "Old data" };
+  if (st === "no_range") return { text, tone: "plain", note: "No range" };
   if (st === "alert") {
-    if (s.config.range_role === "sample_validity") return { text, tone: "stale", note: "Muestra no válida" };
+    if (s.config.range_role === "sample_validity") return { text, tone: "stale", note: "Invalid sample" };
     const side = rangeSide(s);
-    return { text, tone: "alert", note: side === "high" ? "Alto" : side === "low" ? "Bajo" : "Fuera de rango" };
+    return { text, tone: "alert", note: side === "high" ? "High" : side === "low" ? "Low" : "Out of range" };
   }
   return { text, tone: "plain", note: "" };
 }
@@ -105,29 +105,29 @@ export function linkState(link: Link | null, sinceSeconds: number | null, unreac
 
 /** Short state words for the top bar (stable between ticks). */
 export const LINK_HEADLINES: Record<LinkState, string> = {
-  unknown: "Consultando",
-  unreachable: "Tierra sin respuesta",
-  no_batch: "Sin lotes todavía",
-  ok: "Enlace al día",
-  late: "Lote retrasado",
-  lost: "Sin enlace",
+  unknown: "Checking",
+  unreachable: "Ground not answering",
+  no_batch: "No batches yet",
+  ok: "Link up",
+  late: "Batch late",
+  lost: "No link",
 };
 
 /** Plain words for the link state, with the time without data. */
 export function linkWords(state: LinkState, sinceSeconds: number | null): string {
   switch (state) {
     case "unknown":
-      return "Consultando servicio de tierra";
+      return "Checking the ground service";
     case "unreachable":
-      return "Servicio de tierra sin respuesta";
+      return "Ground service not answering";
     case "no_batch":
-      return "Aún no ha llegado ningún lote";
+      return "No batch has arrived yet";
     case "ok":
-      return "Enlace al día";
+      return "Link up";
     case "late":
-      return `Lote retrasado: ${formatDuration(sinceSeconds ?? 0)} sin datos`;
+      return `Batch late: ${formatDuration(sinceSeconds ?? 0)} without data`;
     case "lost":
-      return `Sin lotes desde hace ${formatDuration(sinceSeconds ?? 0)}`;
+      return `No link: no batch for ${formatDuration(sinceSeconds ?? 0)}`;
   }
 }
 

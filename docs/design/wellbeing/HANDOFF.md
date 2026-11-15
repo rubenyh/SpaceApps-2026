@@ -50,11 +50,11 @@ Todo el texto visible de la UI va en **inglés**.
 | `ok` | Doing well | `--state-normal` | `--border-normal` | círculo + check | igual que normal físico |
 | `attention` | Attention | `--state-stale` | `2px solid` | círculo + onda | sólido, para no confundirse con "No recent data" |
 | `needs_support` | Needs support | `--state-alert`, fondo `--state-alert-tint` | `--border-alert` | corazón (no triángulo) | **sin `--alert-pulse`**; la tarjeta ofrece una acción de apoyo |
-| `baseline_pending` | Calibrating | `--state-norange` | `--border-norange` (3px double) | círculo punteado + punto | "Building personal baseline" |
+| `baseline_pending` | Baseline pending | `--state-norange` | `--border-norange` (3px double) | círculo punteado + punto | "Baseline pending: insufficient data to compare with your usual." |
 | `stale` | No recent data | `--state-stale` | `--border-stale` (dashed) | reloj | mostrar `latest_day` |
-| `no_data` | No data | `--state-nodata` | `--border-nodata` (dotted) | círculo punteado + raya | valores como `---` |
+| `no_data` | Insufficient data | `--state-nodata` | `--border-nodata` (dotted) | círculo punteado + raya | valores como `---` |
 
-`IndicatorStatus` usa el mismo mapa, pero `ok` se muestra como "Within usual" y `attention` como "Changed vs. usual".
+`IndicatorStatus` usa el mismo mapa, pero `ok` se muestra como "Within usual", `attention` como "Changed vs. usual" y `stale` como "Insufficient data (stale)". Etiquetas en [`lib/wellbeing.ts`](../../../apps/spaceship-app/src/lib/wellbeing.ts).
 Ningún estado de bienestar pulsa. El estado siempre lleva ícono + texto + borde, nunca sólo color.
 
 ## Mapeo de Origin
@@ -115,7 +115,7 @@ Ningún estado de bienestar pulsa. El estado siempre lleva ícono + texto + bord
 - Columna derecha: vista previa desde `GET …/content` y la lista de paquetes con estado `queued` / `withdrawn` / `sent`. Sólo los `queued` tienen el botón "Withdraw consent".
 
 ### Estados especiales (`States.dc.html`)
-- `baseline_pending`: "Calibrating · Building your personal baseline", con barra de progreso de días si el backend expone cuántos faltan.
+- `baseline_pending`: "Baseline pending: insufficient data to compare with your usual.", con barra de progreso de días si el backend expone cuántos faltan.
 - `stale`: chip "No recent data" o "Old data", el último día, y la pista atenuada con marcador dashed.
 - `no_data`, o una fuente faltante (por ejemplo sin Watch): se muestra el hueco y `---`, nunca un valor inventado.
 - Error del servicio: `ServiceBanner` "Wellbeing service unavailable", se mantienen los últimos datos marcados como stale, y botón Retry.
@@ -144,7 +144,7 @@ PersonalLock    { astronautId: string; onUnlock(): void }
 
 1. **PIN / lock por astronauta**: no existe en el contrato. Para la demo basta un PIN local por astronauta en config.
 2. `z_threshold` sólo viene en `WellbeingTimeline`. Personal también lo necesita: pedir ambos endpoints o agregarlo a `WellbeingAssessment`.
-3. El contrato no dice cuántos días necesita la línea base (para la barra de "Calibrating"). Agregar `min_baseline_days` o quitar la barra.
+3. El contrato no dice cuántos días necesita la línea base (para la barra de "Baseline pending"). Agregar `min_baseline_days` o quitar la barra.
 4. La demo tiene 21 días de historial y la timeline pide 30, así que los primeros 9 salen vacíos. Para la demo conviene `days=21`.
 5. Las fuentes por indicador y los valores de componentes del diseño son de ejemplo; se renderizan desde `sources` y `components`.
 

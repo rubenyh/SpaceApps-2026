@@ -1,74 +1,74 @@
 {
   "id": "urinary_symptoms",
-  "version": "2.0.0",
-  "title": "Síntomas urinarios",
+  "version": "2.1.0",
+  "title": "Urinary symptoms",
   "priority": 110,
-  "summary": "Ardor o urgencia al orinar: posible infección de vejiga. Fiebre o escalofríos con dolor de costado: posible infección renal. Dolor de costado intenso en oleadas o sangre visible: cálculo entre las causas. Incapacidad súbita de orinar: posible retención aguda. pH, conductividad, color RGB y temperatura de la muestra, por sí solos, solo describen la muestra: no indican sangre, temperatura corporal, infección ni radiación. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
+  "summary": "Burning or urgency when urinating: possible bladder infection. Fever or chills with flank pain: possible kidney infection. Severe flank pain in waves or visible blood: a stone is among the causes. Sudden inability to urinate: possible acute retention. Sample pH, conductivity, RGB color and temperature, on their own, only describe the sample: they do not indicate blood, body temperature, infection or radiation. Informational support only: not a diagnosis or a treatment decision. There are no clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "No puedes orinar de forma súbita: emergencia.",
+      "text": "Sudden inability to urinate: emergency.",
       "notify": [
-        "tripulación",
-        "control de misión (si hay enlace)"
+        "crew",
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "text": "Call for emergency help now using the mission's means (ship alarm, crew, mission control if the link is up). Do not wait to see if it improves.",
           "source_ids": [
             "niddk_urinary_retention"
           ]
         }
       ],
-      "mission_procedure": "Procedimiento de emergencia médica de la misión",
+      "mission_procedure": "Mission medical emergency procedure",
       "missing_guidance": [
-        "Sondaje vesical: depende del procedimiento y del material de la misión (no cargado)."
+        "Bladder catheterization: depends on the mission procedure and equipment (not loaded)."
       ]
     },
     "prompt_review": {
       "urgency": "review_required",
-      "text": "Fiebre con dolor de costado, dolor intenso o sangre visible en la orina: vigila de cerca.",
+      "text": "Fever with flank pain, severe pain or visible blood in the urine: monitor closely.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Si no puedes orinar o el dolor abdominal es intenso, trátalo como emergencia.",
+          "text": "If you cannot urinate or the abdominal pain is severe, treat it as an emergency.",
           "source_ids": [
             "niddk_urinary_retention"
           ]
         },
         {
           "who": "self",
-          "text": "Anota fiebre, escalofríos, náuseas o vómitos y dolor de espalda, costado o ingle en el informe.",
+          "text": "Record fever, chills, nausea or vomiting, and back, flank or groin pain in the report.",
           "source_ids": [
             "niddk_kidney_infection"
           ]
         }
       ],
       "missing_guidance": [
-        "Las fuentes de la ficha no dan pasos de autocuidado ni tratamiento: antibióticos y analgésicos dependen del procedimiento de la misión (no cargado)."
+        "The card's sources do not give self-care or treatment steps: antibiotics and pain relievers depend on the mission procedure (not loaded)."
       ]
     },
     "review": {
       "urgency": "review_required",
-      "text": "Síntomas urinarios: vigila las señales de infección renal.",
+      "text": "Urinary symptoms: watch for signs of kidney infection.",
       "notify": [
-        "control de misión (si hay enlace)"
+        "mission control (if the link is up)"
       ],
       "steps": [
         {
           "who": "self",
-          "text": "Si aparecen fiebre y escalofríos, náuseas o vómitos, o dolor en espalda, costado o ingle, anótalo: la atención debe ser rápida.",
+          "text": "If fever and chills, nausea or vomiting, or back, flank or groin pain appears, record it: care should be prompt.",
           "source_ids": [
             "niddk_bladder_infection"
           ]
         }
       ],
       "missing_guidance": [
-        "Las fuentes de la ficha no dan pasos de autocuidado ni tratamiento: depende del procedimiento de la misión (no cargado)."
+        "The card's sources do not give self-care or treatment steps: it depends on the mission procedure (not loaded)."
       ]
     }
   },
@@ -76,32 +76,32 @@
   "candidates": [
     {
       "id": "bladder_infection",
-      "label": "Infección de vejiga",
-      "minimum_evidence": "Ardor o urgencia al orinar reportados.",
+      "label": "Bladder infection",
+      "minimum_evidence": "Reported burning or urgency when urinating.",
       "source_ids": [
         "niddk_bladder_infection"
       ]
     },
     {
       "id": "kidney_infection",
-      "label": "Infección renal",
-      "minimum_evidence": "Fiebre o escalofríos con dolor de costado reportados.",
+      "label": "Kidney infection",
+      "minimum_evidence": "Reported fever or chills with flank pain.",
       "source_ids": [
         "niddk_kidney_infection"
       ]
     },
     {
       "id": "kidney_stone",
-      "label": "Cálculo renal",
-      "minimum_evidence": "Dolor de costado intenso o en oleadas, o sangre visible en la orina reportada.",
+      "label": "Kidney stone",
+      "minimum_evidence": "Reported severe or wave-like flank pain, or visible blood in the urine.",
       "source_ids": [
         "niddk_kidney_stones"
       ]
     },
     {
       "id": "acute_retention",
-      "label": "Retención urinaria aguda",
-      "minimum_evidence": "Incapacidad súbita de orinar reportada.",
+      "label": "Acute urinary retention",
+      "minimum_evidence": "Reported sudden inability to urinate.",
       "source_ids": [
         "niddk_urinary_retention"
       ]

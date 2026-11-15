@@ -19,6 +19,8 @@ SensorKind = Literal[
 RangeRole = Literal["health", "sample_validity"]
 Quality = Literal["good", "suspect", "bad"]
 ReadingStatus = Literal["normal", "alert", "no_data", "stale", "no_range"]
+Urgency = Literal["immediate", "review_required", "undetermined", "informational"]
+IncidentUpdateType = Literal["created", "acknowledged", "closed"]
 
 
 class Contract(BaseModel):
@@ -54,6 +56,26 @@ class Reading(Contract):
     source: str = Field(min_length=1, max_length=64)
 
 
+class IncidentRule(Contract):
+    rule_id: str
+    protocol_id: str
+    protocol_version: str
+
+
+class IncidentUpdate(Contract):
+    id: str = Field(min_length=1, max_length=64)
+    incident_id: str = Field(min_length=1, max_length=64)
+    astronaut_id: str | None
+    type: IncidentUpdateType
+    occurred_at: AwareDatetime
+    urgency: Urgency
+    protocol_id: str | None
+    protocol_version: str | None
+    matched_rules: list[IncidentRule]
+    action: str | None
+    acknowledged_by: str | None
+
+
 class TelemetryBatch(Contract):
     schema_version: Literal[1]
     ship_id: str = Field(min_length=1, max_length=64)
@@ -62,11 +84,14 @@ class TelemetryBatch(Contract):
     astronauts: list[Astronaut]
     sensors: list[SensorConfig]
     readings: list[Reading] = Field(max_length=1000)
+    incident_updates: list[IncidentUpdate] = Field(default=[], max_length=500)
 
 
 class BatchAccepted(BaseModel):
     accepted: int
     duplicates: int
+    incident_updates_accepted: int = 0
+    incident_updates_duplicates: int = 0
 
 
 class Cursor(BaseModel):
@@ -107,3 +132,31 @@ class Alert(BaseModel):
     normal_min: float | None
     normal_max: float | None
     side: Literal["high", "low"]
+
+
+class GroundAcknowledgment(BaseModel):
+    acknowledged_by: str
+    acknowledged_at: AwareDatetime  # onboard occurred_at
+    received_at: AwareDatetime
+
+
+class GroundIncidentUpdate(BaseModel):
+    id: str
+    type: IncidentUpdateType
+    occurred_at: AwareDatetime  # onboard clock
+    received_at: AwareDatetime  # ground clock
+    acknowledged_by: str | None
+
+
+class GroundIncident(BaseModel):
+    ship_id: str
+    id: str
+    astronaut_id: str | None
+    began_at: AwareDatetime | None  # null until the created update arrives
+    urgency: Urgency
+    protocol_id: str | None
+    protocol_version: str | None
+    matched_rules: list[IncidentRule]
+    action: str | None
+    acknowledgments: list[GroundAcknowledgment]
+    updates: list[GroundIncidentUpdate]  # occurred_at ascending

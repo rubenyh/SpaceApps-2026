@@ -66,7 +66,7 @@ export function LineChart({
   const last = visible[visible.length - 1];
 
   return (
-    <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${label}: ${visible.length} lecturas`}>
+    <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${label}: ${visible.length} readings`}>
       {hasZone ? (
         <>
           <rect className="chart__zone" x={X0} y={zoneTop} width={X1 - X0} height={Math.max(0, zoneBottom - zoneTop)} />

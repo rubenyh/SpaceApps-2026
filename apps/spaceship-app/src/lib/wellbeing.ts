@@ -3,6 +3,7 @@ import type {
   Confidence,
   CrewMemberSummary,
   IndicatorKind,
+  IndicatorState,
   IndicatorStatus,
   SupportLevel,
   Trend,
@@ -14,18 +15,18 @@ export const SUPPORT_LABELS: Record<SupportLevel, string> = {
   ok: "Doing well",
   attention: "Attention",
   needs_support: "Needs support",
-  baseline_pending: "Calibrating",
+  baseline_pending: "Baseline pending",
   stale: "No recent data",
-  no_data: "No data",
+  no_data: "Insufficient data",
 };
 
 /** Same map as SupportLevel, worded for one indicator. */
 export const INDICATOR_STATUS_LABELS: Record<IndicatorStatus, string> = {
   ok: "Within usual",
   attention: "Changed vs. usual",
-  baseline_pending: "Calibrating",
-  stale: "Old data",
-  no_data: "No data",
+  baseline_pending: "Baseline pending",
+  stale: "Insufficient data (stale)",
+  no_data: "Insufficient data",
 };
 
 export const INDICATOR_LABELS: Record<IndicatorKind, string> = {
@@ -63,6 +64,18 @@ export const TIMELINE_DAYS = 21;
 /** ZTrack scale (adverse z: positive = further from the person's usual). */
 export const Z_MIN = -2;
 export const Z_MAX = 4;
+
+/** Largest per-component baseline, in days: how far the person's baseline has got. */
+export const baselineDays = (ind: IndicatorState) => Math.max(0, ...ind.components.map((c) => c.baseline_days));
+
+/**
+ * Only an indicator with a ready baseline of at least `minDays` and fresh data gets a score.
+ * no_data, stale and baseline_pending show their label instead of a z.
+ */
+export const indicatorScored = (ind: IndicatorState, minDays: number) =>
+  (ind.status === "ok" || ind.status === "attention") &&
+  ind.z !== null &&
+  ind.components.some((c) => c.baseline_ready && c.baseline_days >= minDays);
 
 export const sourcesText = (sources: WellbeingSource[]) =>
   sources.length > 0 ? sources.map((s) => SOURCE_LABELS[s]).join(" · ") : "---";
