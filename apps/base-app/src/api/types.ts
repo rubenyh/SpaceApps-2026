@@ -125,6 +125,12 @@ export interface GroundIncident {
   acknowledgments: GroundAcknowledgment[];
   /** Sorted by occurred_at asc. */
   updates: GroundIncidentUpdate[];
+  /** Optional: absent on incidents stored before issue #67. */
+  reported_via?: "console" | "watch" | null;
+  /** Onboard readings snapshot taken at creation, joined on ground. */
+  readings?: GroundReading[];
+  /** Snapshot readings not yet received by ground. */
+  missing_reading_ids?: number;
 }
 
 // --- Medical evaluation (contracts/medical-eval/README.md, sections 1-4) ------
