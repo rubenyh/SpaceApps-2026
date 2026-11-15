@@ -9,7 +9,12 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from onboard_api.assistant.integrations import DependencyUnavailable, Embedder, GuideChunk
+from onboard_api.assistant.integrations import (
+    DependencyUnavailable,
+    Embedder,
+    EmbeddingUnavailable,
+    GuideChunk,
+)
 
 # Metadata keys every stored chunk carries (see corpus manifest / ingest).
 CHUNK_FIELDS = (
@@ -65,7 +70,10 @@ class GuideRetriever:
         self, query: str, k: int = 3, topics: list[str] | None = None, language: str = "es"
     ) -> list[GuideChunk]:
         collection = self._get_collection()
-        vector = self.embedder.embed([query])[0]
+        try:
+            vector = self.embedder.embed([query])[0]
+        except Exception as exc:
+            raise EmbeddingUnavailable(f"Query embedding failed: {exc!r}") from exc
         other = "en" if language == "es" else "es"
         for lang in (language, other):
             hits = self._query(collection, vector, k, topics, lang)

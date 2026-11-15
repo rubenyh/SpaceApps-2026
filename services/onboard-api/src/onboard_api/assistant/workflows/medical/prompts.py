@@ -26,6 +26,9 @@ EDUCATIONAL_ABSTAIN = (
 )
 NOTICE_READINGS_FAILED = "Repositorio de lecturas no disponible: no se consultaron lecturas."
 NOTICE_GUIDES_FAILED = "No se pudieron consultar las guías locales (ChromaDB)."
+NOTICE_EMBEDDING_FAILED = (
+    "El modelo de embeddings (Ollama) no respondió: no se consultaron las guías locales."
+)
 NOTICE_NO_GUIDES = "No se encontró una guía local pertinente."
 NOTICE_LLM_FAILED = (
     "El modelo local (Ollama) no respondió: se muestra el texto conservado de la ficha"

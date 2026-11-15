@@ -6,7 +6,7 @@ add an explanation; any failure there becomes a data notice plus card text.
 
 import re
 
-from onboard_api.assistant.integrations import LLM, GuideChunk, Retriever
+from onboard_api.assistant.integrations import LLM, EmbeddingUnavailable, GuideChunk, Retriever
 from onboard_api.assistant.workflows.medical import prompts
 from onboard_api.assistant.workflows.medical import understand
 from onboard_api.assistant.workflows.medical.interpret import interpret, is_sos
@@ -254,12 +254,16 @@ def retrieve_guides(state: MedicalState, retriever: Retriever) -> dict:
     query = card.title if card else state["request"].message
     topics = list(card.guide_topics) if card and card.guide_topics else None
     notices = list(state.get("notices", []))
+    guides, failure = [], None
     try:
         guides = list(retriever.search(query, k=3, topics=topics, language="es"))
+    except EmbeddingUnavailable:
+        failure = prompts.NOTICE_EMBEDDING_FAILED
     except Exception:
-        guides = []
-        notices.append(prompts.NOTICE_GUIDES_FAILED)
-    if not guides and prompts.NOTICE_GUIDES_FAILED not in notices:
+        failure = prompts.NOTICE_GUIDES_FAILED
+    if failure:
+        notices.append(failure)
+    elif not guides:
         notices.append(prompts.NOTICE_NO_GUIDES)
     return {"guides": guides, "notices": notices}
 
