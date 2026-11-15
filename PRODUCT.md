@@ -48,7 +48,7 @@ Readings come from the spacecraft's own sensors: a wearable pulse oximeter per a
 
 1. Honest over reassuring: missing or old data is never shown as fine.
 2. Glanceable state: an astronaut sees what needs attention without reading every number.
-3. Support, not diagnosis: point to the crew medical officer when it matters.
+3. Support, not diagnosis: no clinician is on board, so give cited first-aid steps the astronaut can act on, point to the mission emergency procedure, and say what guidance is missing.
 4. Works without the ground: everything essential runs onboard.
 
 ## Accessibility & Inclusion

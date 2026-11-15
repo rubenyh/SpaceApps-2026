@@ -16,6 +16,7 @@ Keys:
 
 FRESH = "2026-11-14T11:59:00Z"  # 60 s before T0
 STALE = "2026-11-14T11:50:00Z"  # 600 s before T0 (> 300 s policy for pulse and SpO2)
+FUTURE = "2026-11-14T12:10:00Z"  # 600 s after T0: future-dated, flagged like stale
 
 
 def _req(message: str, **extra: object) -> dict:
@@ -23,9 +24,9 @@ def _req(message: str, **extra: object) -> dict:
 
 
 def _reading(kind: str, value=None, unit: str = "", recorded_at: str = FRESH, quality: str = "good",
-             value_text: str | None = None) -> dict:
+             value_text: str | None = None, source: str = "manual") -> dict:
     body = {"astronaut_id": "ana", "kind": kind, "unit": unit, "recorded_at": recorded_at,
-            "quality": quality, "source": "manual"}
+            "quality": quality, "source": source}
     body["value" if value_text is None else "value_text"] = value if value_text is None else value_text
     return body
 
@@ -88,10 +89,14 @@ CASES: list[dict] = [
     _case("neuro_resolved_weakness", NEURO,
           "De repente no podía hablar bien y tuve debilidad en el brazo derecho, ya se me pasó",
           NEURO, "immediate", "alarm"),
+    _case("neuro_negated", NEURO, "No se me traba el habla ni tengo debilidad; tengo tos y fiebre", FEVER,
+          "review_required", "assessment", near=True),
     _case("neuro_mild_headache", NEURO, "Tengo dolor de cabeza leve desde la mañana y fiebre", FEVER,
           "review_required", "assessment", near=True),
     # 5 loss of consciousness
     _case("loc_crewmate_unresponsive", LOC, "Mi compañero no responde", LOC, "immediate", "alarm"),
+    _case("loc_negated", LOC, "No me desmayé; tengo tos desde ayer", FEVER, "review_required",
+          "assessment", near=True),
     _case("loc_historical", LOC, "Hace dos años me desmayé, pero ahora tengo tos", FEVER,
           "review_required", "assessment", near=True),
     # 6 allergy
@@ -126,6 +131,8 @@ CASES: list[dict] = [
           MUSCLE, "review_required", "assessment", near=True),
     # 12 urinary
     _case("urinary_fever_flank", URI, "Tengo fiebre y dolor en el costado", URI, "review_required", "assessment"),
+    _case("urinary_negated", URI, "No me arde al orinar; tengo tos y fiebre", FEVER, "review_required",
+          "assessment", near=True),
     _case("urinary_rgb_only", URI, "La muestra de orina salió de color rojizo pero no tengo síntomas", None,
           "review_required", "out_of_coverage", near=True,
           readings=[_reading("urine_color", unit="rgb_hex", value_text="#B04030")]),
@@ -143,6 +150,8 @@ CASES: list[dict] = [
     # 15 cabin
     _case("cabin_co2_confirmed_normal_spo2", CABIN, "Me duele la cabeza", CABIN, "immediate", "alarm",
           events=[_event("cabin_co2")], readings=[_reading("spo2", 99, "%")]),
+    _case("cabin_negated", CABIN, "No suena ninguna alarma de CO2; tengo tos", FEVER, "review_required",
+          "assessment", near=True),
     _case("cabin_resolved_event", CABIN, "Tengo tos", FEVER, "review_required", "assessment", near=True,
           events=[_event("cabin_co2", status="resolved")]),
     # 16 radiation

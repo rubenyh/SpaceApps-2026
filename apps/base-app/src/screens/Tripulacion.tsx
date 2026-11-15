@@ -44,24 +44,24 @@ export function Tripulacion({ crew, crewAt, offline, now, link, ledger, onOpen }
 
   return (
     <>
-      <h1 className="sr-only">Tripulación</h1>
+      <h1 className="sr-only">Crew</h1>
       <div className="board-wrap">
         <table className="board">
           <caption className="sr-only">
-            Tablero de tripulación: un astronauta por fila. Abre un astronauta para ver el detalle.
+            Crew board: one astronaut per row. Open an astronaut to see the details.
           </caption>
           <thead>
             <tr>
-              <th scope="col">Astronauta</th>
+              <th scope="col">Astronaut</th>
               {BOARD_KINDS.map((k) => (
                 <th scope="col" key={k}>
                   <SensorName kind={k} />
                   {unitOf(k) ? <span className="board__unit"> {unitOf(k)}</span> : null}
-                  {noRange(k) ? <span className="board__norange">Sin rango</span> : null}
+                  {noRange(k) ? <span className="board__norange">No range</span> : null}
                 </th>
               ))}
-              <th scope="col">Estado</th>
-              <th scope="col">Último dato</th>
+              <th scope="col">Status</th>
+              <th scope="col">Last data</th>
             </tr>
           </thead>
           <tbody>
@@ -69,8 +69,8 @@ export function Tripulacion({ crew, crewAt, offline, now, link, ledger, onOpen }
               offline ? (
                 <tr>
                   <td colSpan={COLS} className="board__empty">
-                    Sin datos de tripulación: el servicio de tierra no responde. Se mostrarán en cuanto
-                    conteste.
+                    No crew data: the ground service is not answering. Crew data appears as soon as it
+                    answers.
                   </td>
                 </tr>
               ) : (
@@ -97,8 +97,8 @@ export function Tripulacion({ crew, crewAt, offline, now, link, ledger, onOpen }
               <tr>
                 <td colSpan={COLS} className="board__empty">
                   {link?.last_batch_received_at
-                    ? "Los lotes recibidos no traen tripulación."
-                    : "Aún no hay tripulación en tierra. Aparecerá con el primer lote que envíe la nave."}
+                    ? "The batches received carry no crew."
+                    : "No crew on ground yet. Crew appears with the first batch the ship sends."}
                 </td>
               </tr>
             ) : (
@@ -115,7 +115,7 @@ export function Tripulacion({ crew, crewAt, offline, now, link, ledger, onOpen }
                           e.stopPropagation();
                           onOpen(m.astronaut_id);
                         }}
-                        aria-label={`Abrir ${m.display_name}`}
+                        aria-label={`Open ${m.display_name}`}
                       >
                         <Flap text={m.display_name} />
                       </button>
@@ -128,8 +128,8 @@ export function Tripulacion({ crew, crewAt, offline, now, link, ledger, onOpen }
                       return (
                         <td key={k} className={`cell cell--${c.tone}`}>
                           <Flap text={c.text} tiles width={TILES[k]} />
-                          {/* "Sin rango" is stated once in the column header. */}
-                          <span className="note">{c.note === "Sin rango" ? "" : c.note}</span>
+                          {/* "No range" is stated once in the column header. */}
+                          <span className="note">{c.note === "No range" ? "" : c.note}</span>
                         </td>
                       );
                     })}
@@ -137,7 +137,7 @@ export function Tripulacion({ crew, crewAt, offline, now, link, ledger, onOpen }
                       <Flap text={ROW_LABELS[state]} />
                     </td>
                     <td className="cell cell--age">
-                      <Flap text={age === null ? "Nunca" : formatAge(age)} animate={false} />
+                      <Flap text={age === null ? "Never" : formatAge(age)} animate={false} />
                     </td>
                   </tr>
                 );
@@ -148,7 +148,7 @@ export function Tripulacion({ crew, crewAt, offline, now, link, ledger, onOpen }
       </div>
 
       <section className="section" aria-labelledby="ledger-title">
-        <h2 id="ledger-title">Lotes recibidos</h2>
+        <h2 id="ledger-title">Batches received</h2>
         <Ledger ledger={ledger} link={link} offline={offline} />
       </section>
     </>

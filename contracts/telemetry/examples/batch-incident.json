@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "ship_id": "ship-01",
+  "batch_id": "0f6b2d4e-8a1c-4c3e-9b7d-5e2a1f0c9d31",
+  "sent_at": "2026-11-14T18:10:00.000000Z",
+  "astronauts": [{ "id": "ast-01", "display_name": "Demo Uno" }],
+  "sensors": [],
+  "readings": [],
+  "incident_updates": [
+    {
+      "id": "5c1d9a2e-3b4f-4e6a-8c7d-1a2b3c4d5e60",
+      "incident_id": "9e8d7c6b-5a49-4382-9170-6f5e4d3c2b1a",
+      "astronaut_id": "ast-01",
+      "type": "created",
+      "occurred_at": "2026-11-14T18:05:00.000000Z",
+      "urgency": "immediate",
+      "protocol_id": "respiratory-distress",
+      "protocol_version": "1.0",
+      "matched_rules": [{ "rule_id": "resp-cannot-breathe", "protocol_id": "respiratory-distress", "protocol_version": "1.0" }],
+      "action": "Start oxygen and call the crew medical officer now.",
+      "acknowledged_by": null
+    },
+    {
+      "id": "7a6b5c4d-3e2f-4a1b-9c8d-7e6f5a4b3c21",
+      "incident_id": "9e8d7c6b-5a49-4382-9170-6f5e4d3c2b1a",
+      "astronaut_id": "ast-01",
+      "type": "acknowledged",
+      "occurred_at": "2026-11-14T18:06:30.000000Z",
+      "urgency": "immediate",
+      "protocol_id": "respiratory-distress",
+      "protocol_version": "1.0",
+      "matched_rules": [{ "rule_id": "resp-cannot-breathe", "protocol_id": "respiratory-distress", "protocol_version": "1.0" }],
+      "action": "Start oxygen and call the crew medical officer now.",
+      "acknowledged_by": "ast-02"
+    }
+  ]
+}

@@ -41,7 +41,7 @@ def test_missing_config_row_defaults_to_300s(tmp_path) -> None:
     )
     assert ctx.latest["heart_rate"].stale
     assert not ctx.latest["spo2"].stale
-    assert any("pulso" in w and "vigencia 300 s" in w for w in ctx.warnings)
+    assert any("pulse" in w and "valid for 300 s" in w for w in ctx.warnings)
 
 
 def test_explicit_null_config_is_never_stale(tmp_path) -> None:
@@ -57,10 +57,10 @@ def test_future_reading_within_skew_is_fresh(tmp_path) -> None:
     ctx = _setup(tmp_path, {"heart_rate": timedelta(seconds=-5)})
     hr = ctx.latest["heart_rate"]
     assert not hr.stale and hr.age_seconds == 0
-    assert not any("futuro" in w for w in ctx.warnings)
+    assert not any("future" in w for w in ctx.warnings)
 
 
 def test_future_reading_beyond_skew_is_flagged_stale(tmp_path) -> None:
     ctx = _setup(tmp_path, {"heart_rate": timedelta(minutes=-10)})
     assert ctx.latest["heart_rate"].stale
-    assert any("pulso" in w and "hora de captura en el futuro" in w for w in ctx.warnings)
+    assert any("pulse" in w and "capture time in the future" in w for w in ctx.warnings)

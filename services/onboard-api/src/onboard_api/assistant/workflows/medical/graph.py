@@ -19,7 +19,7 @@ def build_medical_graph(
     g = StateGraph(MedicalState)
     g.add_node("interpret", partial(nodes.interpret_report, events=events))
     g.add_node("evaluate_alarms", nodes.check_alarms)
-    g.add_node("respond_alarm", nodes.respond_alarm)
+    g.add_node("respond_alarm", partial(nodes.respond_alarm, readings=readings))
     # Qwen reads the turn only after the rules found no alarm; its observations are
     # checked against the alarm rules again before any slower dependency.
     g.add_node("understand", partial(nodes.understand_turn, llm=llm))

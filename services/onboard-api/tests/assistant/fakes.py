@@ -57,18 +57,18 @@ class FakeRetriever:
         self.chunks = chunks
         self.calls: list[dict] = []
 
-    def search(self, query, k=3, topics=None, language="es"):
+    def search(self, query, k=3, topics=None, language="en"):
         self.calls.append({"query": query, "k": k, "topics": topics, "language": language})
         return self.chunks[:k]
 
 
 class FailingRetriever:
-    def search(self, query, k=3, topics=None, language="es"):
+    def search(self, query, k=3, topics=None, language="en"):
         raise DependencyUnavailable("chroma down")
 
 
 class EmbedderDownRetriever:
-    def search(self, query, k=3, topics=None, language="es"):
+    def search(self, query, k=3, topics=None, language="en"):
         raise EmbeddingUnavailable("ollama down")
 
 
@@ -95,15 +95,15 @@ class FakeEvents:
         return [e for e in self.events if e.status == "active"]
 
 
-def chunk(i: int, topic: str = "breathing_problems") -> GuideChunk:
+def chunk(i: int, topic: str = "breathing_problems", language: str = "en") -> GuideChunk:
     return GuideChunk(
         chunk_id=f"chunk-{i}",
         source_id="medlineplus-breathing",
-        title="Problemas respiratorios",
-        section=f"Sección {i}",
-        url="https://medlineplus.gov/spanish/breathingproblems.html",
+        title="Breathing Problems",
+        section=f"Section {i}",
+        url="https://medlineplus.gov/breathingproblems.html",
         topic=topic,
-        language="es",
-        text=f"Texto de la guía número {i}.",
+        language=language,
+        text=f"Guide text number {i}.",
         distance=0.1,
     )

@@ -1,23 +1,155 @@
 {
   "id": "injury_bleeding_or_burn",
-  "version": "1.0.0",
-  "title": "Lesión, sangrado o quemadura",
+  "version": "2.1.0",
+  "title": "Injury, bleeding or burn",
   "priority": 80,
-  "summary": "Golpe, lesión, sangrado o quemadura reportados. Separar mecanismo, estado de conciencia y si el sangrado continúa. Contusión o conmoción son hipótesis que requieren evidencia del evento y síntomas pertinentes. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Reported blow, injury, bleeding or burn. Separate the mechanism, the level of consciousness and whether the bleeding continues. Contusion or concussion are hypotheses that require evidence of the event and relevant symptoms. Informational support only: not a diagnosis or a treatment decision. No clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
-    "immediate": {
+    "heavy_bleeding": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo: sangrado abundante que continúa, quemadura grave o señales de alarma tras un golpe en la cabeza. Seguir la ficha de atención de emergencia de la misión.",
+      "text": "Heavy bleeding that continues: emergency. Press on the wound now.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "crew",
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Press directly on the wound with a sterile dressing, a clean cloth or clothing (or your hand) and keep pressing until it stops.",
+          "source_ids": [
+            "medlineplus_bleeding_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "If blood soaks through the dressing, do not remove it: put another one on top and keep pressing.",
+          "source_ids": [
+            "medlineplus_bleeding_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Do not remove objects stuck in the wound.",
+          "source_ids": [
+            "medlineplus_bleeding_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Lie down and raise your feet about 30 cm if there is no head, neck, back or leg injury.",
+          "source_ids": [
+            "medlineplus_bleeding_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Call for emergency help now using the mission's means (ship alarm, crew, mission control if the link is up). Do not wait to see if it gets better.",
+          "source_ids": [
+            "medlineplus_bleeding_first_aid"
+          ]
+        }
+      ],
+      "mission_procedure": "Mission medical emergency procedure"
+    },
+    "severe_burn": {
+      "urgency": "immediate",
+      "text": "Severe burn: emergency.",
+      "notify": [
+        "crew",
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Move away from whatever is burning or giving off smoke.",
+          "source_ids": [
+            "medlineplus_burns_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Cover the burn with a dry sterile dressing or a clean cloth and raise it above the heart if you can.",
+          "source_ids": [
+            "medlineplus_burns_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Do not apply ointments, ice or cold water to a severe burn, do not break blisters and do not remove clothing stuck to the skin.",
+          "source_ids": [
+            "medlineplus_burns_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Call for emergency help now using the mission's means (ship alarm, crew, mission control if the link is up). Do not wait to see if it gets better.",
+          "source_ids": [
+            "medlineplus_burns_first_aid"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Another crew member: check that the person is breathing; start CPR if needed. If it could be electrical, do not touch the person directly.",
+          "source_ids": [
+            "medlineplus_burns_first_aid"
+          ]
+        }
+      ],
+      "mission_procedure": "Mission medical emergency procedure"
+    },
+    "head_injury_red_flags": {
+      "urgency": "immediate",
+      "text": "Blow to the head with danger signs: emergency.",
+      "notify": [
+        "crew",
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Call for emergency help now using the mission's means (ship alarm, crew, mission control if the link is up). Do not wait to see if it gets better.",
+          "source_ids": [
+            "cdc_heads_up_signs"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Another crew member: stay with the person and monitor their level of consciousness.",
+          "source_ids": [
+            "cdc_heads_up_signs"
+          ]
+        }
+      ],
+      "mission_procedure": "Mission medical emergency procedure"
     },
     "review": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo por la lesión. Avisar de inmediato si el sangrado no se detiene o, tras un golpe en la cabeza, aparecen vómitos repetidos o confusión que empeora.",
+      "text": "Injury without warning signs: tend to it and monitor. If the bleeding does not stop or, after a blow to the head, repeated vomiting or worsening confusion appears, it is an emergency.",
       "notify": [
-        "responsable médico a bordo"
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Superficial wound: wash it with soap and water, dry it and press with a clean cloth if it bleeds.",
+          "source_ids": [
+            "medlineplus_bleeding_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Minor burn with intact skin: cool it with cool (not ice-cold) water for 5 to 30 minutes and cover it with a dry dressing.",
+          "source_ids": [
+            "medlineplus_burns_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "After a blow to the head, monitor for hours: repeated vomiting, increasing confusion, drowsiness, slurred speech or a worsening headache are an emergency.",
+          "source_ids": [
+            "cdc_heads_up_signs"
+          ]
+        }
       ]
     }
   },
@@ -25,16 +157,16 @@
   "candidates": [
     {
       "id": "contusion",
-      "label": "Contusión",
-      "minimum_evidence": "Golpe reportado con dolor localizado, hinchazón o hematoma.",
+      "label": "Contusion",
+      "minimum_evidence": "Reported blow with localized pain, swelling or bruising.",
       "source_ids": [
         "who_icrc_basic_emergency_care"
       ]
     },
     {
       "id": "concussion",
-      "label": "Conmoción cerebral",
-      "minimum_evidence": "Golpe en la cabeza con dolor de cabeza, mareo, náuseas, vómitos o confusión.",
+      "label": "Concussion",
+      "minimum_evidence": "Blow to the head with headache, dizziness, nausea, vomiting or confusion.",
       "source_ids": [
         "cdc_heads_up_signs"
       ]
@@ -43,21 +175,33 @@
   "sources": [
     {
       "id": "who_icrc_basic_emergency_care",
-      "title": "OMS/ICRC: Basic Emergency Care",
-      "section": "Lesiones y sangrado",
+      "title": "WHO/ICRC: Basic Emergency Care",
+      "section": "Injuries and bleeding",
       "url": "https://www.who.int/publications/i/item/9789241513081"
     },
     {
       "id": "cdc_heads_up_signs",
       "title": "CDC HEADS UP: Signs and Symptoms",
-      "section": "Señales de alarma",
+      "section": "Danger signs",
       "url": "https://www.cdc.gov/heads-up/signs-symptoms/index.html"
     },
     {
       "id": "medlineplus_burns",
       "title": "MedlinePlus: Burns",
-      "section": "Resumen",
+      "section": "Summary",
       "url": "https://medlineplus.gov/burns.html"
+    },
+    {
+      "id": "medlineplus_bleeding_first_aid",
+      "title": "MedlinePlus: Bleeding (first aid)",
+      "section": "First aid",
+      "url": "https://medlineplus.gov/ency/article/000045.htm"
+    },
+    {
+      "id": "medlineplus_burns_first_aid",
+      "title": "MedlinePlus: Burns (first aid)",
+      "section": "First aid",
+      "url": "https://medlineplus.gov/ency/article/000030.htm"
     }
   ],
   "guide_topics": [

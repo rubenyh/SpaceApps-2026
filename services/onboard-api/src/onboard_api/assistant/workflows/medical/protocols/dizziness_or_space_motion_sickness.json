@@ -1,23 +1,73 @@
 {
   "id": "dizziness_or_space_motion_sickness",
-  "version": "1.0.0",
-  "title": "Mareo o cinetosis espacial",
+  "version": "2.1.0",
+  "title": "Dizziness or space motion sickness",
   "priority": 160,
-  "summary": "Mareo o sensación de giro. Importan el inicio, la ingesta, las pérdidas de líquidos, el movimiento y la fase de la misión. La cinetosis espacial se considera solo si el contexto la sustenta (adaptación, movimientos de cabeza); la deshidratación, si hay pérdidas o baja ingesta. Debilidad de un lado o alteración del habla activan la ficha neurológica. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Dizziness or a spinning sensation. Onset, intake, fluid losses, movement and mission phase matter. Space motion sickness is only considered if the context supports it (adaptation, head movements); dehydration, if there are fluid losses or low intake. Weakness on one side or impaired speech activates the neurologic card. Informational support only: not a diagnosis or a treatment decision. No clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "with_neurologic_signs": {
       "urgency": "immediate",
-      "text": "El mareo se acompaña de signos neurológicos: se aplica la ficha de señales neurológicas de alarma (aviso inmediato).",
+      "text": "The dizziness comes with neurologic signs: the neurologic warning signs card applies (emergency).",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "crew",
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Call for emergency help now using the mission's means (ship alarm, crew, mission control if the link is up). Do not wait to see if it gets better.",
+          "source_ids": [
+            "cdc_stroke_signs"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Note the time the first symptoms started.",
+          "source_ids": [
+            "cdc_stroke_signs"
+          ]
+        }
+      ],
+      "mission_procedure": "Mission neurological procedure"
     },
     "assessment": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo si el mareo persiste, interfiere con las actividades o el contexto es insuficiente.",
+      "text": "Dizziness without neurologic signs: limit movement and monitor.",
       "notify": [
-        "responsable médico a bordo"
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Limit head movements; focusing on a task or closing your eyes may ease it.",
+          "source_ids": [
+            "nasa_space_adaptation_sickness"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Stay hydrated.",
+          "source_ids": [
+            "nasa_space_adaptation_sickness"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Increase air circulation if possible.",
+          "source_ids": [
+            "nasa_space_adaptation_sickness"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "If weakness on one side, impaired speech or loss of vision appears, treat it as an emergency.",
+          "source_ids": [
+            "cdc_stroke_signs"
+          ]
+        }
+      ],
+      "missing_guidance": [
+        "Motion sickness medication is decided by the mission with its flight surgeon: procedure not loaded in the assistant."
       ]
     }
   },
@@ -25,16 +75,16 @@
   "candidates": [
     {
       "id": "space_motion_sickness",
-      "label": "Cinetosis espacial (síndrome de adaptación espacial)",
-      "minimum_evidence": "Mareo durante la adaptación a microgravedad o relacionado con movimientos, sin señales neurológicas.",
+      "label": "Space motion sickness (space adaptation syndrome)",
+      "minimum_evidence": "Dizziness during adaptation to microgravity or related to movement, without neurologic signs.",
       "source_ids": [
         "nasa_space_adaptation_sickness"
       ]
     },
     {
       "id": "dehydration",
-      "label": "Deshidratación",
-      "minimum_evidence": "Mareo con pérdidas de líquidos (vómitos, diarrea, sudoración) o baja ingesta reportadas.",
+      "label": "Dehydration",
+      "minimum_evidence": "Dizziness with reported fluid losses (vomiting, diarrhea, sweating) or low intake.",
       "source_ids": [
         "medlineplus_dizziness_vertigo"
       ]
@@ -49,9 +99,15 @@
     },
     {
       "id": "medlineplus_dizziness_vertigo",
-      "title": "MedlinePlus: Mareos y vértigo",
-      "section": "Resumen",
+      "title": "MedlinePlus: Dizziness and vertigo",
+      "section": "Summary",
       "url": "https://medlineplus.gov/spanish/dizzinessandvertigo.html"
+    },
+    {
+      "id": "cdc_stroke_signs",
+      "title": "CDC: Signs and Symptoms of Stroke",
+      "section": "Stroke signs",
+      "url": "https://www.cdc.gov/stroke/signs-symptoms/"
     }
   ],
   "guide_topics": [

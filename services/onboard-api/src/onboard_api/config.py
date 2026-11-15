@@ -25,12 +25,12 @@ class Settings(BaseSettings):
 
     # Local assistant. Everything runs on this machine.
     ollama_base_url: str = "http://127.0.0.1:11434"
-    ollama_chat_model: str = "qwen2.5:0.5b"
+    ollama_chat_model: str = "qwen2.5:3b"
     # Same model for ingest and query; changing it requires re-ingesting.
     ollama_embed_model: str = "bge-m3"
     ollama_timeout_seconds: float = 20.0
     # Max wait for the local interpreter (text -> observations) on non-alarm turns.
-    ollama_interpret_timeout_seconds: float = 8.0
+    ollama_interpret_timeout_seconds: float = 15.0
     chroma_path: Path = Path("data/chroma")
     guides_collection: str = "medical_guides"
     # Cosine distance above which a retrieved chunk is dropped (tuned on bge-m3 eval).
@@ -43,3 +43,6 @@ class Settings(BaseSettings):
     ground_api_url: str = "http://127.0.0.1:8001"
     telemetry_interval_seconds: float = 5.0
     ship_id: str = "ship-01"
+    # Demo controls (docs/demo-outage.md): POST /telemetry/pause|resume and
+    # DELETE /demo/incidents. Off by default, also in docker-compose (DEMO_CONTROLS_ENABLED=true).
+    demo_controls_enabled: bool = False

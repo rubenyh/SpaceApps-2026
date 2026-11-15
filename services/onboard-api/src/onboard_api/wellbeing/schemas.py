@@ -9,6 +9,8 @@ from typing import Literal, Self
 
 from pydantic import AwareDatetime, BaseModel, Field, model_validator
 
+from onboard_api.schemas.readings import is_simulated_source  # noqa: F401 (re-exported)
+
 Quality = Literal["good", "suspect", "bad"]
 SupportLevel = Literal[
     "ok", "attention", "needs_support", "baseline_pending", "stale", "no_data"
@@ -44,10 +46,6 @@ _Scale = Field(ge=0, le=4)
 _SourceField = Field(min_length=1, max_length=64)
 _Ratio = Field(default=None, ge=0, le=1)
 _NonNegative = Field(default=None, ge=0)
-
-
-def is_simulated_source(source: str) -> bool:
-    return source in ("simulated", "demo") or source.startswith("simulated:")
 
 
 # --- Parameters and check-in form ---

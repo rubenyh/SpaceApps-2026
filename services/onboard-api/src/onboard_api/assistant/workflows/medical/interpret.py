@@ -87,21 +87,74 @@ _P = [
     ("cabin_alarm_reported", r"alarma (de |del )?(co2|dioxido|humo|presion|cabina|aire|incendio|fuego|despresurizacion)|alerta de (co2|humo|presion|cabina|aire)|huele a humo|hay humo|perdida de presion|despresuriz\w*|fuga de aire", {}),
     ("radiation_alert_reported", r"(alarma|alerta) de (radiacion|particulas|dosis)|dosimetro (marca|suena|alerta|pita|da (una )?alarma)|suena el dosimetro|tormenta solar|evento de particulas", {}),
 ]
+# English phrases: the console UI is English, so a typed English report must reach the
+# same rules (and the alarms) without Ollama. ponytail: common phrasings only, like the
+# Spanish list; negation, onset and severity words below accept both languages.
+_CANT = r"(can'?t|cannot|unable to|could ?n'?t)"
+_P += [
+    ("shortness_of_breath", r"short(ness)? of breath|out of breath|breathless\w*|hard to breathe|(trouble|difficulty|problems?) breathing|struggling to breathe|can'?t catch my breath", {}),
+    ("shortness_of_breath", rf"\b{_CANT} breathe|\bchoking\b|suffocat\w*", {"severity": "severe"}),
+    ("abnormal_breathing", r"\bnot breathing|\bgasping|breathing (strangely|abnormally|irregularly|weird\w*)", {}),
+    ("chest_pain", r"chest (pain|discomfort|ache|hurts)|pain in (my|the|his|her|their) chest|(my|his|her) chest hurts", {}),
+    ("chest_pain", r"chest (pressure|tightness)|pressure (in|on) (my|the) chest|tight(ness in the)? chest", {"context": "pressure"}),
+    ("cold_sweat", r"cold sweat", {}),
+    ("palpitations", r"heart (is )?(racing|pounding|fluttering|skipping)|racing heart|irregular heart ?beat", {}),
+    ("speech_change", rf"slurred speech|slurring|{_CANT} (speak|talk)|trouble (speaking|talking)", {}),
+    ("facial_droop", r"facial droop|face (is )?droop\w*|drooping (face|mouth)", {}),
+    ("one_sided_weakness", rf"weak(ness)? (on|in) one side|one[- ]sided weakness|{_CANT} move my (arm|leg|hand)|(arm|leg) (went|is) (numb|weak)", {}),
+    ("vision_loss", rf"lost (my )?(vision|sight)|vision loss|{_CANT} see\b", {}),
+    ("sudden_severe_headache", r"worst headache of my life|thunderclap headache", {"onset": "sudden", "severity": "severe"}),
+    ("headache", r"headache|my head hurts", {}),
+    ("unresponsive", r"\bunresponsive|not responding|won'?t wake up|\bunconscious", {}),
+    ("fainting", r"\bfaint(ed|ing)?\b|passed out|blacked out|lost consciousness", {}),
+    ("seizure", r"\bseizure|\bfitting\b", {}),
+    ("throat_swelling", r"throat (is )?(swelling|closing|swollen)|swollen (tongue|lips|throat)|tongue (is )?swell\w*", {}),
+    ("hives", r"\bhives\b|\brash\b", {}),
+    ("allergen_exposure", r"\ballerg\w*", {}),
+    ("fever", r"\bfever\w*", {}),
+    ("chills", r"\bchills\b|\bshivering", {}),
+    ("cough", r"\bcough\w*", {}),
+    ("malaise", r"feel(ing)? (sick|ill|unwell)|\bmalaise", {}),
+    ("confusion", r"\bconfused\b|disoriented", {}),
+    ("stiff_neck", r"stiff neck|neck (is )?stiff", {}),
+    ("dizziness", r"\bdizz\w*|light-?headed\w*|room (is )?spinning", {}),
+    ("nausea", r"\bnause\w*|feel like (throwing up|vomiting)", {}),
+    ("vomiting", r"throwing up|threw up|(?<!feel like )\bvomiting", {}),
+    ("diarrhea", r"diarrh\w*", {}),
+    ("abdominal_pain", r"(stomach|abdominal|belly|tummy) (pain|ache|hurts)|stomach ?ache|my (stomach|belly|abdomen) hurts", {}),
+    ("heat_exposure", r"\bheat\b|overheat\w*|too hot", {}),
+    ("heavy_sweating", r"sweating (a lot|heavily|profusely)|heavy sweating|drenched in sweat", {}),
+    ("collapse", r"\bcollaps\w*", {}),
+    ("urinary_burning", r"burn(s|ing)? when (i )?(pee|urinat\w*)|pain(ful)? (when )?urinat\w*", {}),
+    ("unable_to_urinate", rf"{_CANT} (pee|urinate)", {}),
+    ("muscle_pain", r"muscle (pain|aches?)|sore muscles|muscles (hurt|ache)", {}),
+    ("muscle_cramps", r"\bcramp\w*", {}),
+    ("muscle_weakness", r"muscle weakness|weak muscles", {}),
+    ("injury", r"\binjur\w*|\bi hit my|\bcut myself|\bsprain\w*", {}),
+    ("head_injury", r"hit (my|his|her) head|head injury|bumped (my|his|her) head", {}),
+    ("bleeding", r"\bbleed(ing|s)?\b", {}),
+    ("heavy_bleeding", r"bleeding (heavily|a lot|badly)|heavy bleeding|won'?t stop bleeding|bleeding (that )?won'?t stop", {"severity": "severe"}),
+    ("burn", r"\bburn(ed|t|s)?\b(?! when)", {}),
+    ("severe_burn", r"(severe|bad|large|deep) burn", {"severity": "severe"}),
+    ("cabin_alarm_reported", r"(co2|smoke|pressure|cabin|fire) alarm|smell(s)? (of )?smoke|pressure loss|air leak", {}),
+    ("radiation_alert_reported", r"radiation (alarm|alert)|dosimeter (alarm|alert|is beeping)|solar (storm|particle event)", {}),
+]
 _PATTERNS = [(code, re.compile(rx), extra) for code, rx, extra in _P]
 
-_NEGATOR = re.compile(r"\b(no|sin|ni|nunca|tampoco|jamas|niego|nada de)\b")
+_NEGATOR = re.compile(r"\b(no|sin|ni|nunca|tampoco|jamas|niego|nada de|not|without|never|don'?t|dont|deny|denies)\b")
 # "no" that does not negate the symptom that follows.
 _NEUTRAL_NO = re.compile(
     r"\bno (se|sabe|sabemos) (que|por que|como|cuando|donde|cual)\b"
     r"|\bno (se me |se le |se )?(quita|pasa|para|cede|mejora)\b"
     r"|\bsin (embargo|duda)\b"
 )
-_UNKNOWN = re.compile(r"\bno (se|sabe|sabemos|estoy segur[oa]( de)?) si\b")
+_UNKNOWN = re.compile(r"\bno (se|sabe|sabemos|estoy segur[oa]( de)?) si\b|\b(not sure|don'?t know|unsure) (if|whether)\b")
 
 _EDUCATIONAL = re.compile(
     r"\b(que es|que son|que causa\w*|que provoca\w*|por que se produce\w*|para que sirve\w*|como funciona\w*"
     r"|como se mide|explicame|explica|cuales son (los|las) (sintomas|causas|signos|senales)"
-    r"|en que consiste|informacion sobre|informacion general|hablame de)\b"
+    r"|en que consiste|informacion sobre|informacion general|hablame de"
+    r"|what is|what are|what causes|explain|tell me about)\b"
 )
 _HYPOTHETICAL = re.compile(
     r"\b(que pasa si|que pasaria si|que hago si|que hacer si|que (debo|debe|deberia) hacer si|que hago en caso"
@@ -140,14 +193,15 @@ _NAMED_OTHER = re.compile(
     r"|se golpe|se cort|se quem|est[aá] confundid)"
 )
 
-_SUDDEN = re.compile(r"\b(de repente|repentin\w*|subit\w*|de golpe|de pronto|sin aviso)\b")
-_GRADUAL = re.compile(r"\b(poco a poco|de a poco|gradual\w*|progresiv\w*|lentamente)\b")
+_SUDDEN = re.compile(r"\b(de repente|repentin\w*|subit\w*|de golpe|de pronto|sin aviso|sudden\w*|out of nowhere)\b")
+_GRADUAL = re.compile(r"\b(poco a poco|de a poco|gradual\w*|progresiv\w*|lentamente|slowly)\b")
 _SEVERE = re.compile(
     r"\b((?<!poco )intens\w*|much[oa]s?|muchisim\w*|grave|muy fuerte|insoportable|sever[oa]|terrible|horrible"
-    r"|el peor|la peor)\b"
+    r"|el peor|la peor|severe|very bad|unbearable|extreme\w*|worst|a lot|very much)\b"
 )
-_MODERATE = re.compile(r"\b((?<!poco )fuerte|moderad[oa]|bastante)\b")
-_MILD = re.compile(r"\b(leve|un poco|poquito|liger[oa]|algo de|suave|es poco(?! a poco)|poco (intens\w*|fuerte|dolor\w*))\b")
+_MODERATE = re.compile(r"\b((?<!poco )fuerte|moderad[oa]|bastante|moderate)\b")
+_MILD = re.compile(r"\b(leve|un poco|poquito|liger[oa]|algo de|suave|es poco(?! a poco)|poco (intens\w*|fuerte|dolor\w*)"
+                   r"|mild|slight\w*|a (little|bit))\b")
 _ONGOING = re.compile(
     rf"\b{_AGO} que\b|"
     r"\b(sigue|sigo|todavia|aun|persiste|no se (me |le )?(quita|pasa)|desde (hace|ayer|anoche|esta manana|la manana|hoy)"
@@ -162,7 +216,9 @@ _ADAPTATION = re.compile(
 )
 _UNWELL = re.compile(
     r"\b(no me siento bien|me siento mal|me encuentro mal|no me encuentro bien|me siento rar[oa]"
-    r"|algo no (anda|va) bien|no estoy bien|me siento fatal)\b"
+    r"|algo no (anda|va) bien|no estoy bien|me siento fatal"
+    r"|i (don'?t|do not) feel (well|good|right)|not feeling (well|good|right)"
+    r"|i feel (bad|weird|strange|off|awful|terrible|funny)|something (is|feels) (off|wrong))\b"
 )
 # A concrete complaint outside the closed vocabulary ("me duele el oído"). Not negated.
 _COMPLAINT = re.compile(
@@ -173,37 +229,43 @@ _COMPLAINT = re.compile(
 # Words that say something is wrong without naming a symptom ("malestar físico").
 VAGUE = re.compile(
     r"\b(malestar|molestia|me siento (mal|rar[oa]|fatal)|no me siento bien|sintomas?|fisic[oa]"
-    r"|algo (raro|anda mal|no va bien)|incomod\w*|mal\b)"
+    r"|algo (raro|anda mal|no va bien)|incomod\w*|mal\b"
+    r"|discomfort|feel(ing)? (bad|weird|strange|off|awful|terrible|funny)|don'?t feel (well|good|right)"
+    r"|something (is|feels) (off|wrong)|physical|uncomfortable)"
 )
 # Explicit call for help. "SOS" in capitals (lowercase "sos" is also a Spanish verb form).
 _SOS_UPPER = re.compile(r"\bSOS\b")
 _SOS = re.compile(r"\b(mayday|auxilio|socorro)\b")
 _HEALTH = re.compile(
     r"\b(medic\w*|salud|sintoma\w*|enferm\w*|dolor\w*|duele|duelen|malestar|doctor\w*|sangre|orina\w*"
-    r"|muestra|pulso|oxigeno|lesion|herida|cuerpo|radiacion|dosimetro)\b"
+    r"|muestra|pulso|oxigeno|lesion|herida|cuerpo|radiacion|dosimetro"
+    r"|symptoms?|pain|hurts?|sick|medical|health|doctor|blood|breath\w*|injur\w*|body|unwell)\b"
 )
 _READINGS = [
     (re.compile(r"oximetr\w*"), ("spo2", "heart_rate")),
     (re.compile(r"saturacion|\bspo2\b|oxigenacion|oxigeno en (la )?sangre"), ("spo2",)),
     (re.compile(r"\bpulso\b|frecuencia cardiaca|\bfrecuencia\b|\blpm\b|\bbpm\b"), ("heart_rate",)),
+    (re.compile(r"oximeter"), ("spo2", "heart_rate")),
+    (re.compile(r"\bsaturation|oxygen level|blood oxygen"), ("spo2",)),
+    (re.compile(r"\bpulse\b|heart rate"), ("heart_rate",)),
 ]
 _TOPICS = [
-    ("loss_of_consciousness_or_seizure", r"desmay|sincope|convuls|epileps|inconscien|perdida de (la )?conciencia"),
-    ("cabin_environment_alert", r"\bco2\b|dioxido de carbono|monoxido|calidad del aire|presion de (la )?cabina|despresuriz|humo|eclss"),
-    ("radiation_alert", r"radiacion|dosimetr|\bdosis\b|rayos cosmicos|particulas solares|tormenta solar|radionucl"),
-    ("breathing_difficulty", r"respir|oximetr|saturacion|\bspo2\b|disnea|falta de aire"),
-    ("severe_allergic_reaction", r"anafilax|alergi|alergic|urticaria|epinefrina|adrenalina"),
-    ("neurologic_red_flags", r"ictus|derrame cerebral|embolia|accidente cerebrovascular|\bacv\b|\bait\b|dolor de cabeza|cefalea|migran"),
-    ("chest_pain", r"infarto|dolor (de|en el) pecho|toracic|angina|coronari"),
-    ("heat_illness", r"golpe de calor|insolacion|\bcalor\b|hipertermi"),
-    ("injury_bleeding_or_burn", r"herida|quemadura|golpe|conmocion|contusion|sangrado|hemorragia|fractura|torcedura"),
-    ("abdominal_pain_or_gi_bleeding", r"abdom|estomag|barriga|vientre|apendic|heces negras|gastritis"),
-    ("urinary_symptoms", r"orina|urinari|rinon|renal|calculo|vejiga|cistitis|pielonefritis"),
-    ("muscle_symptoms", r"muscul|calambre|rabdomiolisis"),
-    ("fever_or_respiratory_illness", r"fiebre|\btos\b|gripe|resfriad|catarro|virus|infeccion respiratoria"),
-    ("vomiting_diarrhea_or_dehydration", r"deshidrat|vomit|diarrea|nausea|hidrata"),
-    ("palpitations", r"arritmi|palpitac|\bpulso\b|frecuencia cardiaca|ritmo cardiaco|taquicardi|corazon"),
-    ("dizziness_or_space_motion_sickness", r"\bmareo|vertigo|cinetosis|adaptacion espacial|sindrome de adaptacion"),
+    ("loss_of_consciousness_or_seizure", r"desmay|sincope|convuls|epileps|inconscien|perdida de (la )?conciencia|faint|passing out|seizure|epilep|unconscious|loss of consciousness"),
+    ("cabin_environment_alert", r"\bco2\b|dioxido de carbono|monoxido|calidad del aire|presion de (la )?cabina|despresuriz|humo|eclss|carbon dioxide|carbon monoxide|air quality|cabin pressure|depressuri|smoke"),
+    ("radiation_alert", r"radiacion|dosimetr|\bdosis\b|rayos cosmicos|particulas solares|tormenta solar|radionucl|radiation|dosimet|\bdose\b|cosmic ray|solar particle|solar storm"),
+    ("breathing_difficulty", r"respir|oximetr|saturacion|\bspo2\b|disnea|falta de aire|breath|oximet|saturation|oxygen"),
+    ("severe_allergic_reaction", r"anafilax|alergi|alergic|urticaria|epinefrina|adrenalina|anaphyla|allerg|hives|epinephrine|adrenaline"),
+    ("neurologic_red_flags", r"ictus|derrame cerebral|embolia|accidente cerebrovascular|\bacv\b|\bait\b|dolor de cabeza|cefalea|migran|stroke|\btia\b|headache|migraine"),
+    ("chest_pain", r"infarto|dolor (de|en el) pecho|toracic|angina|coronari|heart attack|chest pain|angina|coronary"),
+    ("heat_illness", r"golpe de calor|insolacion|\bcalor\b|hipertermi|heat stroke|heat exhaustion|\bheat\b|hypertherm|overheat"),
+    ("injury_bleeding_or_burn", r"herida|quemadura|golpe|conmocion|contusion|sangrado|hemorragia|fractura|torcedura|wound|\bburns?\b|concussion|bruise|bleeding|hemorrhage|fracture|sprain|injur"),
+    ("abdominal_pain_or_gi_bleeding", r"abdom|estomag|barriga|vientre|apendic|heces negras|gastritis|abdominal|stomach|belly|appendic|black stool|gastritis"),
+    ("urinary_symptoms", r"orina|urinari|rinon|renal|calculo|vejiga|cistitis|pielonefritis|urine|urinary|kidney|bladder|cystitis"),
+    ("muscle_symptoms", r"muscul|calambre|rabdomiolisis|muscle|cramp|rhabdo"),
+    ("fever_or_respiratory_illness", r"fiebre|\btos\b|gripe|resfriad|catarro|virus|infeccion respiratoria|fever|cough|\bflu\b|\bcold\b|respiratory infection"),
+    ("vomiting_diarrhea_or_dehydration", r"deshidrat|vomit|diarrea|nausea|hidrata|dehydrat|vomit|diarrh|nause|hydrat"),
+    ("palpitations", r"arritmi|palpitac|\bpulso\b|frecuencia cardiaca|ritmo cardiaco|taquicardi|corazon|arrhythm|palpitation|heart rate|heart rhythm|tachycard|\bheart\b"),
+    ("dizziness_or_space_motion_sickness", r"\bmareo|vertigo|cinetosis|adaptacion espacial|sindrome de adaptacion|dizz|vertigo|motion sickness|space adaptation"),
 ]
 _TOPICS_RX = [(re.compile(rx), card) for card, rx in _TOPICS]
 

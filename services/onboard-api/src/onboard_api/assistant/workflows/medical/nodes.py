@@ -11,6 +11,7 @@ from onboard_api.assistant.workflows.medical import prompts
 from onboard_api.assistant.workflows.medical import understand
 from onboard_api.assistant.workflows.medical.interpret import interpret, is_sos
 from onboard_api.assistant.workflows.medical.protocols import load_catalog
+from onboard_api.assistant.workflows.medical.report import build_report
 from onboard_api.assistant.workflows.medical.state import (
     Decision,
     EventSource,
@@ -31,15 +32,27 @@ from onboard_api.schemas.assistant import (
     Clarification,
     Finding,
     GuideSource,
+    MissionProcedure,
     Urgency,
 )
 
 _CITATION = re.compile(r"\[(\d+)\]")
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
 # ponytail: keyword screen, not a semantic check; the card action is shown first anyway.
+# Rejects transmission or notification claims, de-escalation, an onboard clinician that
+# does not exist, and absence claims (unknown stays unknown; absent comes from the report).
 _UNSAFE = re.compile(
-    r"envi[aéó]|transmit|ya avis|notifiqu|no es urgente|no hace falta (avisar|valor)"
-    r"|no (es|hace) necesario (avisar|valor|consultar)",
+    r"envi[aéó]|transmit|avis[eéó]|avisad|notific|inform[eéó]\b|contact[eéó]|se (le )?(comunic|llam)"
+    r"|no es urgente|no hace falta|no (es|hace) necesario|no (es|parece) grave|no te preocupes"
+    r"|m[eé]dico|doctor|cl[ií]nico|enfermer"
+    r"|descart|no (tienes|tiene|presentas|presenta|hay signos|hay se[nñ]ales)|ausencia de|sin signos"
+    # English drafts (the prompt asks for English).
+    r"|\b(sent|transmitt\w*|notif\w*|informed|alerted|contacted|reported to)\b"
+    r"|not (urgent|serious|necessary|needed)|no need|don'?t worry|nothing to worry"
+    # "No clinical staff on board" echoes the card and passes; a referral to one does not.
+    r"|physician|nurse|clinician|medical officer"
+    r"|\b(ask|consult|see|call|contact|seek) (a |an |the |your )?(clinical|medical|health ?care)"
+    r"|rul(e|ed|ing) out|you (do not|don'?t) have|(is|are) absent|absence of|no (signs?|evidence) of",
     re.IGNORECASE,
 )
 
@@ -53,8 +66,20 @@ def _response(
     action: str | None = None,
     notify: list[str] | None = None,
     clarification: Clarification | None = None,
+    procedures: list[MissionProcedure] | None = None,
+    always_report: bool = False,
 ) -> dict:
     d = decision
+    urgency = urgency or (d.urgency if d else None)
+    action = action or (d.action if d else None)
+    interp = state.get("interpretation")
+    report = None
+    if always_report or d or (interp and any(o.temporality != "hypothetical" for o in interp.observations)):
+        report = build_report(
+            state["request"], state["now"], interp, state.get("events", []),
+            state.get("readings"), d, urgency, action,
+            [n for n in state.get("notices", []) if n not in prompts.ASSISTANT_NOTICES],
+        )
     return {
         "response": AssistantResponse(
             reply=reply,
@@ -63,9 +88,13 @@ def _response(
             sources=sources if sources is not None else (d.protocol_sources if d else []),
             data_notices=list(state.get("notices", [])),
             disclaimer=prompts.DISCLAIMER,
-            urgency=urgency or (d.urgency if d else None),
-            action=action or (d.action if d else None),
+            urgency=urgency,
+            action=action,
             notify=notify or (d.notify if d else []),
+            steps=d.steps if d else [],
+            mission_procedures=procedures or (d.mission_procedures if d else []),
+            missing_guidance=d.missing_guidance if d else [],
+            report=report,
             protocol_id=d.protocol_id if d else None,
             additional_protocol_ids=d.additional_protocol_ids if d else [],
             matched_rules=d.matched_rules if d else [],
@@ -116,25 +145,32 @@ def route_after_recheck(state: MedicalState) -> str:
 
 def _with_sos(decision: Decision | None) -> Decision:
     """SOS leads the action; card alarms found in the same turn are kept."""
-    officer, crew = prompts.MEDICAL_OFFICER, "tripulación"
     finding = Finding(kind="event", detail=prompts.SOS_FINDING, source="report")
+    emergency = MissionProcedure(title=prompts.EMERGENCY_PROCEDURE)
     if decision is None:
-        return Decision("immediate", None, [], prompts.SOS_ACTION, [officer, crew], [], [finding],
-                        [], None, [], prompts.SOS_ACTION)
+        return Decision("immediate", None, [], prompts.SOS_ACTION, list(prompts.NOTIFY_EMERGENCY), [],
+                        [finding], [], None, [], prompts.SOS_ACTION, mission_procedures=[emergency])
     decision.action = f"{prompts.SOS_ACTION} {decision.action}"
     decision.summary = f"{prompts.SOS_ACTION}\n{decision.summary}"
-    decision.notify = list(dict.fromkeys([officer, crew, *decision.notify]))
+    decision.notify = list(dict.fromkeys([*prompts.NOTIFY_EMERGENCY, *decision.notify]))
     decision.findings = [finding, *decision.findings]
+    if all(p.title != emergency.title for p in decision.mission_procedures):
+        decision.mission_procedures = [emergency, *decision.mission_procedures]
     return decision
 
 
-def respond_alarm(state: MedicalState) -> dict:
+def respond_alarm(state: MedicalState, readings: ReadingsProvider) -> dict:
+    """The alarm is decided from the cards, events and request. Readings (local SQLite,
+    never Ollama/ChromaDB) only add evidence and the report; they never change urgency."""
     hits = state["alarm_hits"]
-    decision = decide(hits, load_catalog(), None) if hits else None
+    ctx = _safe_load(readings, state)
+    decision = decide(hits, load_catalog(), ctx) if hits else None
     if state.get("sos"):
         decision = _with_sos(decision)
-    state = {**state, "notices": [*state.get("notices", []), prompts.ALARM_NOTICE]}
-    return {"route": "alarm", "decision": decision, **_response(state, decision.summary, decision)}
+    notices = [*state.get("notices", []), prompts.ALARM_NOTICE, *_reading_notices(ctx, decision)]
+    state = {**state, "readings": ctx, "notices": notices}
+    return {"route": "alarm", "decision": decision, "readings": ctx,
+            **_response(state, decision.summary, decision)}
 
 
 # --- Local interpreter (Qwen), only once no alarm is pending. ---
@@ -159,17 +195,20 @@ def understand_turn(state: MedicalState, llm: LLM) -> dict:
 # --- Non-alarm branch. ---
 
 
-def load_context(state: MedicalState, readings: ReadingsProvider) -> dict:
+def _safe_load(readings: ReadingsProvider, state: MedicalState) -> ReadingsContext:
     try:
-        ctx = readings.load(state["request"].astronaut_id, state["now"])
+        return readings.load(state["request"].astronaut_id, state["now"])
     except Exception:  # providers should not raise; never let one break the reply
-        ctx = ReadingsContext(available=False, warnings=[prompts.NOTICE_READINGS_FAILED])
-    return {"readings": ctx}
+        return ReadingsContext(available=False, warnings=[prompts.NOTICE_READINGS_FAILED])
+
+
+def load_context(state: MedicalState, readings: ReadingsProvider) -> dict:
+    return {"readings": _safe_load(readings, state)}
 
 
 def _reading_notices(readings: ReadingsContext, decision: Decision | None) -> list[str]:
     """Reading warnings that matter for the decision's cards; none without a decision."""
-    pids = [decision.protocol_id, *decision.additional_protocol_ids] if decision else []
+    pids = [decision.protocol_id, *decision.additional_protocol_ids] if decision and decision.protocol_id else []
     kinds = {k for p in pids for k in PERTINENT_READINGS.get(p, ())}
     if not kinds:
         return []
@@ -229,14 +268,18 @@ def respond_clarify(state: MedicalState) -> dict:
 
 
 def respond_out_of_coverage(state: MedicalState) -> dict:
-    return _response(
+    out = _response(
         state,
         f"{prompts.OUT_OF_COVERAGE_ACTION}\n\n{prompts.OUT_OF_COVERAGE_REPLY}",
         urgency="review_required",
         action=prompts.OUT_OF_COVERAGE_ACTION,
-        notify=[prompts.MEDICAL_OFFICER],
+        notify=list(prompts.NOTIFY_GROUND),
         sources=[],
+        procedures=[MissionProcedure(title=prompts.MEDICAL_PROCEDURE)],
+        always_report=True,
     )
+    out["response"].missing_guidance = [prompts.OUT_OF_COVERAGE_MISSING]
+    return out
 
 
 def _card(state: MedicalState):
@@ -256,7 +299,9 @@ def retrieve_guides(state: MedicalState, retriever: Retriever) -> dict:
     notices = list(state.get("notices", []))
     guides, failure = [], None
     try:
-        guides = list(retriever.search(query, k=3, topics=topics, language="es"))
+        # English replies: Spanish fallbacks from the retriever are dropped.
+        guides = [g for g in retriever.search(query, k=3, topics=topics, language="en")
+                  if g.language == "en"]
     except EmbeddingUnavailable:
         failure = prompts.NOTICE_EMBEDDING_FAILED
     except Exception:
@@ -301,6 +346,9 @@ def compose_answer(state: MedicalState, llm: LLM) -> dict:
     draft = None
     if chunks:  # without chunks the card text already says everything we can back
         card = _card(state)
+        report = build_report(state["request"], state["now"], state["interpretation"],
+                              state.get("events", []), state.get("readings"), decision,
+                              decision.urgency, decision.action, notices) if decision else None
         user = prompts.build_user_prompt(
             card.title if card else None,
             decision.action if decision else None,
@@ -308,6 +356,7 @@ def compose_answer(state: MedicalState, llm: LLM) -> dict:
             [f.detail for f in decision.findings] if decision else [],
             notices,
             chunks,
+            report.text if report else None,
         )
         try:
             draft = llm.chat(prompts.SYSTEM, user).strip()

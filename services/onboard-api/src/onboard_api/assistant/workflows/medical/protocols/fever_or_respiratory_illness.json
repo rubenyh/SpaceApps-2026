@@ -1,23 +1,70 @@
 {
   "id": "fever_or_respiratory_illness",
-  "version": "1.0.0",
-  "title": "Fiebre o síntomas respiratorios",
+  "version": "2.1.0",
+  "title": "Fever or respiratory symptoms",
   "priority": 130,
-  "summary": "Fiebre reportada, tos o malestar. Una infección respiratoria es posible si el conjunto es compatible. La temperatura corporal debe medirse con una fuente independiente; la temperatura de la muestra de orina describe la muestra, no el cuerpo. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Reported fever, cough or feeling unwell. A respiratory infection is possible if the overall picture is consistent. Body temperature must be measured with an independent source; the urine sample temperature describes the sample, not the body. Informational support only: not a diagnosis or a treatment decision. No clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo: fiebre o síntomas respiratorios con señales de alarma (dificultad respiratoria intensa, confusión nueva o rigidez de cuello).",
+      "text": "Fever or respiratory symptoms with warning signs (severe breathing difficulty, new confusion or stiff neck): emergency.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "crew",
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Call for emergency help now using the mission's means (ship alarm, crew, mission control if the link is up). Do not wait to see if it gets better.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Loosen tight clothing and do not eat or drink while you are short of breath.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        }
+      ],
+      "mission_procedure": "Mission medical emergency procedure"
     },
     "review": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo si los síntomas persisten o empeoran. Anotar la temperatura corporal medida y la hora, si existen.",
+      "text": "Fever, cough or feeling unwell without warning signs: rest, drink fluids and monitor.",
       "notify": [
-        "responsable médico a bordo"
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Drink fluids and rest.",
+          "source_ids": [
+            "medlineplus_fever"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Remove extra clothing; wear a light layer.",
+          "source_ids": [
+            "medlineplus_fever"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Measure body temperature with a thermometer and record the value and time.",
+          "source_ids": [
+            "medlineplus_fever"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "If the fever lasts more than 48 to 72 hours or stays above 39.4 °C, record it in the report as a priority.",
+          "source_ids": [
+            "medlineplus_fever"
+          ]
+        }
       ]
     }
   },
@@ -25,8 +72,8 @@
   "candidates": [
     {
       "id": "respiratory_infection",
-      "label": "Infección respiratoria",
-      "minimum_evidence": "Fiebre o escalofríos junto con tos.",
+      "label": "Respiratory infection",
+      "minimum_evidence": "Fever or chills together with cough.",
       "source_ids": [
         "cdc_respiratory_viruses",
         "medlineplus_fever"
@@ -37,14 +84,20 @@
     {
       "id": "medlineplus_fever",
       "title": "MedlinePlus: Fever",
-      "section": "Cuándo contactar al médico",
+      "section": "When to contact a medical professional",
       "url": "https://medlineplus.gov/ency/article/003090.htm"
     },
     {
       "id": "cdc_respiratory_viruses",
       "title": "CDC: About Respiratory Viruses",
-      "section": "Síntomas y señales de alarma",
+      "section": "Symptoms and warning signs",
       "url": "https://www.cdc.gov/respiratory-viruses/about/"
+    },
+    {
+      "id": "medlineplus_breathing_first_aid",
+      "title": "MedlinePlus: Breathing problems - first aid",
+      "section": "Symptoms and when to get help",
+      "url": "https://medlineplus.gov/ency/article/000007.htm"
     }
   ],
   "guide_topics": [
