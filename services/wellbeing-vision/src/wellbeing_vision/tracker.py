@@ -1,5 +1,6 @@
 """IoU tracker for faces, identity votes per track, and pose skeletons linked to tracks by their boxes."""
 
+import itertools
 from collections import deque
 from dataclasses import dataclass, field
 
@@ -51,9 +52,10 @@ class Track:
 
 
 class IoUTracker:
-    def __init__(self) -> None:
+    def __init__(self, ids=None) -> None:
+        """ids: a shared counter, so tracks of several cameras never share an id (unknown-<id> stays unique)."""
         self.tracks: list[Track] = []
-        self._next = 1
+        self._ids = ids or itertools.count(1)
 
     def update(self, faces: list[Face], frame_idx: int) -> list[Track]:
         """Greedy IoU association. Returns the tracks seen in this frame."""
@@ -72,8 +74,7 @@ class IoUTracker:
             seen.append(t)
         for fi, f in enumerate(faces):
             if fi not in used_f:
-                t = Track(self._next, f, frame_idx)
-                self._next += 1
+                t = Track(next(self._ids), f, frame_idx)
                 self.tracks.append(t)
                 seen.append(t)
         self.tracks = [t for t in self.tracks if frame_idx - t.last_seen <= MAX_AGE]

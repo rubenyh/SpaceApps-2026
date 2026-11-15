@@ -40,6 +40,16 @@ def main() -> None:
     ide.add_argument("--rotate", type=int, choices=(0, 90, 180, 270),
                      help="fix the orientation (e.g. 180: camera or crew upside down); default: search all")
 
+    amb = sub.add_parser("ambiente", help="ambient mode: co-presence and motion per module, with preview")
+    amb.add_argument("--cameras", type=int, nargs="+", default=sorted(settings.cameras),
+                     help="camera indexes; each is the module in WELLBEING_VISION_CAMERAS (default: all)")
+    amb.add_argument("--window", type=float, default=60.0, help="seconds per co-presence window")
+    amb.add_argument("--rotate", type=int, choices=(0, 90, 180, 270),
+                     help="fix the orientation for every camera; default: search all")
+    amb.add_argument("--seconds", type=float, default=0.0, help="0 = until q/Esc")
+    amb.add_argument("--dry-run", action="store_true", help="print JSON instead of POSTing")
+    amb.add_argument("--out", type=Path, help="with --dry-run, also append JSON lines here")
+
     args = parser.parse_args()
     if args.cmd == "models":
         download_models(settings.models_dir)
@@ -50,6 +60,12 @@ def main() -> None:
         run_identify(settings, args.camera, args.seconds, args.rotate)
         return
 
+    if args.cmd == "ambiente":
+        from wellbeing_vision.ambiente import run_ambiente
+
+        sink = Sink(settings.api_url, settings.outbox_path, dry_run=args.dry_run, dry_run_file=args.out)
+        run_ambiente(settings, sink, args.cameras, args.window, args.rotate, args.seconds)
+        return
     if args.astronaut not in settings.astronauts:
         parser.error(f"{args.astronaut} is not in the configured crew: {', '.join(settings.astronauts)}")
     if args.cmd == "enroll":

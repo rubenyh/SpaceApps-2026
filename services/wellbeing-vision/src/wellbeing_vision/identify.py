@@ -103,6 +103,22 @@ def _pose_landmarker(settings: Settings) -> PoseLandmarker:
     ))
 
 
+def detect_poses(pose: PoseLandmarker, frame: np.ndarray, deg: int, ts_ms: int) -> list[np.ndarray]:
+    """Poses found in the frame rotated like the faces, as 33 x (x, y, visibility) in frame pixels."""
+    img = rotate(frame, deg)
+    res = pose.detect_for_video(
+        mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(img, cv2.COLOR_BGR2RGB)), ts_ms)
+    (h, w), (ih, iw) = frame.shape[:2], img.shape[:2]
+    return [np.column_stack([unrotate(np.array([(p.x * iw, p.y * ih) for p in lm]), deg, w, h),
+                             [p.visibility for p in lm]]) for lm in res.pose_landmarks]
+
+
+def skeleton(pose: np.ndarray, w: float, h: float) -> list:
+    """Visible upper-body segments, normalized to the frame."""
+    p = lambda i: (pose[i][0] / w, pose[i][1] / h)  # noqa: E731
+    return [(p(a), p(b)) for a, b in SKELETON if min(pose[a][2], pose[b][2]) > 0.5]
+
+
 def run_identify(settings: Settings, camera: int, seconds: float = 0.0, rotation: int | None = None) -> None:
     """Live preview: who is in view, one box per tracked face, the pose linked to it. Sends nothing.
     The frame is shown as the camera delivers it: rotation is only tried internally to find faces."""
@@ -129,15 +145,7 @@ def run_identify(settings: Settings, camera: int, seconds: float = 0.0, rotation
                     tr.vote(gallery.scores(faceid.template(frame, tr.face)), i)
             resolve(seen)
             last_ms = max(int((time.monotonic() - t0) * 1000), last_ms + 1)
-            img = rotate(frame, faceid.deg)
-            res = pose.detect_for_video(
-                mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(img, cv2.COLOR_BGR2RGB)), last_ms)
-            ih, iw = img.shape[:2]
-            poses = []  # 33 x (x, y, visibility) in frame pixels
-            for lm in res.pose_landmarks:
-                xy = unrotate(np.array([(p.x * iw, p.y * ih) for p in lm]), faceid.deg, w, h)
-                poses.append(np.column_stack([xy, [p.visibility for p in lm]]))
-            link_poses(seen, poses)
+            link_poses(seen, detect_poses(pose, frame, faceid.deg, last_ms))
 
             boxes, lines, rows = [], [], []
             for tr in sorted(seen, key=lambda tr: tr.id):
@@ -146,8 +154,7 @@ def run_identify(settings: Settings, camera: int, seconds: float = 0.0, rotation
                 x0, y0, x1, y1 = tr.face.box
                 boxes.append((x0 / w, y0 / h, x1 / w, y1 / h, name, color))
                 if tr.pose is not None:
-                    lines += [((tr.pose[a][0] / w, tr.pose[a][1] / h), (tr.pose[b][0] / w, tr.pose[b][1] / h))
-                              for a, b in SKELETON if min(tr.pose[a][2], tr.pose[b][2]) > 0.5]
+                    lines += skeleton(tr.pose, w, h)
                 rows.append(Row(name, f"{tr.score:.2f}" if tr.votes else "—", color))
                 if tr.astronaut:
                     names[name] = max(names.get(name, 0.0), tr.score)
