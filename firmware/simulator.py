@@ -51,7 +51,7 @@ SALINITY_CONFIG = {
     "normal_min": 5.6,
     "normal_max": 30.3,
     "range_role": "health",
-    "provisional": True,
+    "provisional": False,
     "range_source": "UF-1000i urine conductivity, 1,064 healthy adults (Laboratory Medicine 2013)",
 }
 SENSOR_CONFIGS = {"urine_radiation_marker": RADIATION_CONFIG, "urine_salinity": SALINITY_CONFIG}
