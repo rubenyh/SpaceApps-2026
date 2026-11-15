@@ -69,6 +69,7 @@ Identifies exactly what is evaluated, reviewed and shipped.
 - A file's `sha256` is the SHA-256 of its bytes with every `\r\n` replaced by `\n` (component files are text; this makes Windows CRLF and LF checkouts of one commit hash the same, onboard and on ground).
 - A directory's `sha256` is the SHA-256 of the sorted lines `"<relative posix path>\t<file sha256>\n"`, over its files excluding `__pycache__/` and `*.pyc`.
 - `rules` is the directory `services/onboard-api/src/onboard_api/assistant/workflows/medical` minus `prompts.py` (its own `prompts` component) and the `protocols/` subdirectory (its own `protocols` component). Every module that changes behaviour is covered.
+- An inline component (`"path": "inline"`) hashes the canonical JSON of its `value`.
 - `model_config.value` may carry more keys (e.g. `retrieval_max_distance`); they are part of the hash.
 - `digest` = SHA-256 of the canonical JSON (`sort_keys=True, separators=(",", ":")`) of `components` only. Any change to any component changes `digest`. Approval binds to `digest`.
 
@@ -117,4 +118,6 @@ Identifies exactly what is evaluated, reviewed and shipped.
 
 - Onboard keeps `active` and `previous` approved bundles (manifest + files) on disk; activation only after the received manifest digest equals an approved digest from ground and every component `sha256` verifies.
 - Failed transfer, failed verification or a rejected candidate leaves `active` unchanged.
+- Transfer: ground serves `GET /medical-eval/approved/bundle` -> `{"candidate_id", "digest", "manifest", "files": {"<repo posix path>": "<base64>"}}` for the latest approved candidate only (404 when none). Onboard checks the digest against `GET /medical-eval/approved` and verifies every file before activation; a file not covered by a component hash is rejected.
+- Onboard routes: `POST /knowledge/sync`, `GET /knowledge/active`, `POST /knowledge/rollback` (409 without a previous version).
 - Assistant case reports record `knowledge_version` = active `{candidate_id, digest}`.
