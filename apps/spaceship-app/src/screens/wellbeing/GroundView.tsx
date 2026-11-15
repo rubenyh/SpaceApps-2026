@@ -58,7 +58,13 @@ const INCLUDES: { key: GroundInclude; label: string; hint: string }[] = [
   { key: "comments", label: "My private comments", hint: "Off by default" },
 ];
 
-const STATUS_LABELS = { queued: "Queued", withdrawn: "Withdrawn", sent: "Sent" } as const;
+// No code delivers packages and there is no delivery confirmation in the contract,
+// so nothing is ever labeled sent or delivered.
+const STATUS_LABELS = {
+  queued: "Queued, not delivered",
+  withdrawn: "Withdrawn",
+  sent: "Left the queue, delivery not confirmed",
+} as const;
 
 const errorText = (err: unknown) => {
   const e = toApiError(err);
@@ -412,6 +418,15 @@ function PreviewBody({ preview }: { preview: Preview | null }) {
       <dd>{p.include.includes("comments") ? "Included" : "Not included"}</dd>
       <dt>Data origin</dt>
       <dd>{a?.latest_origin ? <OriginMark origin={a.latest_origin} /> : "---"}</dd>
+      <dt>Status</dt>
+      <dd>{STATUS_LABELS[p.status]}</dd>
+      <dt>Exact content</dt>
+      <dd>
+        <details>
+          <summary>Show the package exactly as stored</summary>
+          <pre className="wb-preview__json">{JSON.stringify(c, null, 2)}</pre>
+        </details>
+      </dd>
     </dl>
   );
 }
@@ -432,7 +447,6 @@ function PackageItem({ pkg, tz, selected, onPreview, onWithdraw }: ItemProps) {
         <strong>{period(pkg.period_from, pkg.period_to)}</strong>
         <span className={`wb-status wb-status--${pkg.status}`}>
           {pkg.status === "queued" ? <WellbeingIcon kind="stale" size={16} /> : null}
-          {pkg.status === "sent" ? <WellbeingIcon kind="ok" size={16} /> : null}
           {STATUS_LABELS[pkg.status]}
         </span>
       </div>
