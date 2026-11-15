@@ -1,0 +1,56 @@
+{
+  "case_id": "abdominal.stale.001",
+  "version": 1,
+  "family": "abdominal_pain_or_gi_bleeding",
+  "tags": [
+    "stale_readings"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "Me duele mucho el estómago desde ayer",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [
+    {
+      "astronaut_id": "ast-01",
+      "kind": "heart_rate",
+      "unit": "bpm",
+      "quality": "good",
+      "source": "manual",
+      "age_seconds": 1200,
+      "value": 95
+    }
+  ],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "abdominal_pain_or_gi_bleeding",
+    "clarify": false,
+    "required_actions": [
+      "Persistent, focal or worsening abdominal pain"
+    ],
+    "prohibited_actions": [
+      "laxative",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-abdominalpain",
+      "medlineplus-bleeding"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Known gap: the Spanish rules miss \"me duele mucho el estómago\" (adverb between verb and organ), so the reply is out of coverage."
+  }
+}

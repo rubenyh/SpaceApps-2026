@@ -1,0 +1,46 @@
+{
+  "case_id": "loc.alarm.003",
+  "version": 1,
+  "family": "loss_of_consciousness_or_seizure",
+  "tags": [
+    "alarm"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "She is having a seizure",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "loss_of_consciousness_or_seizure",
+    "clarify": false,
+    "required_actions": [
+      "Observed seizure"
+    ],
+    "prohibited_actions": [
+      "restrain",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-fainting",
+      "medlineplus-seizures"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

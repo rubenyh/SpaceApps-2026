@@ -1,0 +1,45 @@
+{
+  "case_id": "vomiting.review.001",
+  "version": 1,
+  "family": "vomiting_diarrhea_or_dehydration",
+  "tags": [],
+  "turns": [
+    {
+      "request": {
+        "message": "Llevo todo el día vomitando y no puedo retener líquidos",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "vomiting_diarrhea_or_dehydration",
+    "clarify": false,
+    "required_actions": [
+      "You cannot keep fluids down"
+    ],
+    "prohibited_actions": [
+      "stop drinking",
+      "nothing to worry"
+    ],
+    "acceptable_sources": [
+      "medlineplus-dehydration",
+      "medlineplus-nauseaandvomiting",
+      "medlineplus-diarrhea"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

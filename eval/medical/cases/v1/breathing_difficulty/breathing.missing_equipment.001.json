@@ -1,0 +1,46 @@
+{
+  "case_id": "breathing.missing_equipment.001",
+  "version": 1,
+  "family": "breathing_difficulty",
+  "tags": [
+    "missing_equipment",
+    "dependency_down"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "The pulse oximeter is broken and I have trouble breathing",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "down",
+    "chroma": "down",
+    "readings": "down"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "breathing_difficulty",
+    "clarify": false,
+    "required_actions": [
+      "Shortness of breath with no identified warning signs"
+    ],
+    "prohibited_actions": [
+      "SpO₂ is normal, so",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-breathingproblems"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "No oximeter and every dependency down: the card still answers and states that no readings were checked."
+  }
+}

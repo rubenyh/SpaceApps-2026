@@ -1,0 +1,48 @@
+{
+  "case_id": "radiation.negation.001",
+  "version": 1,
+  "family": "radiation_alert",
+  "tags": [
+    "negation",
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "No suena ninguna alarma de radiación; tengo diarrea y retengo líquidos",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "vomiting_diarrhea_or_dehydration",
+    "clarify": false,
+    "required_actions": [
+      "Vomiting or diarrhea without warning signs"
+    ],
+    "prohibited_actions": [
+      "you were not exposed",
+      "no exposure occurred"
+    ],
+    "acceptable_sources": [
+      "medlineplus-dehydration",
+      "medlineplus-nauseaandvomiting",
+      "medlineplus-diarrhea"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

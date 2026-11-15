@@ -1,0 +1,45 @@
+{
+  "case_id": "fever.typo.001",
+  "version": 1,
+  "family": "fever_or_respiratory_illness",
+  "tags": [
+    "typo"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "I have a feaver and a cough",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "fever_or_respiratory_illness",
+    "clarify": false,
+    "required_actions": [
+      "Fever, cough or feeling unwell"
+    ],
+    "prohibited_actions": [
+      "antibiotic",
+      "nothing to worry"
+    ],
+    "acceptable_sources": [
+      "medlineplus-fever"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Expectation depends on the typo and transcription fix of issue #51 (PR #56)."
+  }
+}

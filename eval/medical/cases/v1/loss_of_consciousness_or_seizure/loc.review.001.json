@@ -1,0 +1,46 @@
+{
+  "case_id": "loc.review.001",
+  "version": 1,
+  "family": "loss_of_consciousness_or_seizure",
+  "tags": [
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "I fainted but I'm fine now",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "loss_of_consciousness_or_seizure",
+    "clarify": false,
+    "required_actions": [
+      "Faint with recovery"
+    ],
+    "prohibited_actions": [
+      "restrain",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-fainting",
+      "medlineplus-seizures"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

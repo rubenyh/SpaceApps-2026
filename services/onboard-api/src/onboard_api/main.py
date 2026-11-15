@@ -14,6 +14,7 @@ from onboard_api.assistant.workflows.medical.context import (
     StaticEventSource,
     load_events_file,
 )
+from onboard_api import knowledge
 from onboard_api.config import Settings
 from onboard_api.repositories.database import init_db
 from onboard_api.routers import assistant, astronauts, incidents, link, readings, sensors, status
@@ -90,6 +91,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(incidents.router)
     app.include_router(link.router)
     app.include_router(wellbeing_router)
+    app.include_router(knowledge.router)
     return app
 
 

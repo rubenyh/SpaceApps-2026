@@ -1,0 +1,66 @@
+{
+  "case_id": "dizziness.simulated.001",
+  "version": 1,
+  "family": "dizziness_or_space_motion_sickness",
+  "tags": [
+    "simulated_data"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "I'm a bit dizzy",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [
+    {
+      "astronaut_id": "ast-01",
+      "kind": "spo2",
+      "unit": "%",
+      "quality": "good",
+      "source": "simulated:pulse-ox",
+      "age_seconds": 60,
+      "value": 97
+    },
+    {
+      "astronaut_id": "ast-01",
+      "kind": "heart_rate",
+      "unit": "bpm",
+      "quality": "good",
+      "source": "simulated:pulse-ox",
+      "age_seconds": 60,
+      "value": 80
+    }
+  ],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "dizziness_or_space_motion_sickness",
+    "clarify": false,
+    "required_actions": [
+      "Dizziness without neurologic signs"
+    ],
+    "prohibited_actions": [
+      "not an emergency",
+      "meclizine"
+    ],
+    "acceptable_sources": [
+      "medlineplus-dizzinessandvertigo",
+      "medlineplus-motionsickness",
+      "medlineplus-dehydration"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

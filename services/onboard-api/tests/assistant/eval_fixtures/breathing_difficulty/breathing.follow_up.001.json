@@ -1,0 +1,60 @@
+{
+  "case_id": "breathing.follow_up.001",
+  "version": 1,
+  "family": "breathing_difficulty",
+  "tags": [
+    "follow_up",
+    "stale_readings"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "hola",
+        "astronaut_id": "ast-01"
+      }
+    },
+    {
+      "request": {
+        "message": "Me falta mucho el aire de repente",
+        "astronaut_id": "ast-01"
+      },
+      "use_previous_clarification": true
+    }
+  ],
+  "readings": [
+    {
+      "astronaut_id": "ast-01",
+      "kind": "spo2",
+      "value": 97,
+      "unit": "%",
+      "age_seconds": 600,
+      "quality": "good",
+      "source": "simulated:pulse-ox"
+    }
+  ],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "breathing_difficulty",
+    "clarify": false,
+    "required_actions": [
+      "act now"
+    ],
+    "prohibited_actions": [
+      "no action needed"
+    ],
+    "acceptable_sources": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "test fixture"
+  }
+}

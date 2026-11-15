@@ -1,0 +1,46 @@
+{
+  "case_id": "urinary.near_miss.001",
+  "version": 1,
+  "family": "urinary_symptoms",
+  "tags": [
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "No puedo orinar bien, empezó poco a poco",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "urinary_symptoms",
+    "clarify": false,
+    "required_actions": [
+      "Urinary symptoms"
+    ],
+    "prohibited_actions": [
+      "antibiotic",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-urinarytractinfections",
+      "medlineplus-kidneystones"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Gradual onset: no acute retention alarm."
+  }
+}

@@ -199,10 +199,19 @@ class MissionProcedure(BaseModel):
     loaded: bool = False
 
 
+class KnowledgeVersion(BaseModel):
+    """Approved knowledge bundle active onboard (contracts/medical-eval section 5)."""
+
+    candidate_id: str
+    digest: str
+
+
 class CaseReport(BaseModel):
     """Plain-text report built deterministically from the case, for the astronaut to copy."""
 
     text: str
+    # Active approved bundle when the report was made; null when none is active.
+    knowledge_version: KnowledgeVersion | None = None
     # Nothing transmits it yet. Only a real delivery mechanism that confirms
     # transmission may set another value.
     transmission: Literal["not_sent"] = "not_sent"
