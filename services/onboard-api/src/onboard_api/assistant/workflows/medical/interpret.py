@@ -25,11 +25,13 @@ def normalize(text: str) -> str:
 
 
 # (code, pattern, defaults). Patterns are written lowercase without accents.
+# Intensifier between "duele" and the body part ("me duele mucho el estómago").
+_INT = r"(mucho |muchisimo |bastante |un poco |algo )?"
 _P = [
     ("shortness_of_breath", r"\b(me |le |te )?falt(a|aba|o) (mucho |muchisimo |bastante |un poco )?(el |de )?aire|\b(me|le) cuesta (un poco |mucho |bastante )?respirar|dificultad (para|al) respirar|respir\w+ con dificultad|disnea|sin aliento|no me entra (el )?aire|me quedo sin aire", {}),
     ("shortness_of_breath", r"\bno (puedo|puede|podia) respirar|\b(me|se) ahog\w*", {"severity": "severe"}),
     ("abnormal_breathing", r"\bno respira|respira (raro|mal|entrecortad\w*|de forma anormal)|respiracion (anormal|irregular|agonica)|\bjadea", {}),
-    ("chest_pain", r"dolor (de|en el) pecho|dolor toracico|(me|le) duele (el|mucho el) pecho|molestia en el pecho", {}),
+    ("chest_pain", rf"dolor (de|en el) pecho|dolor toracico|(me|le) duele {_INT}el pecho|molestia en el pecho", {}),
     ("chest_pain", r"presion en el pecho|opresion (en el pecho|toracica)|pecho apretado|(me|le) aprieta el pecho", {"context": "pressure"}),
     ("cold_sweat", r"sudor frio|sudando frio|sudoracion fria", {}),
     ("palpitations", r"palpitacion\w*|el corazon (me |le )?(late|va) (muy )?(rapido|fuerte|acelerado|irregular)|corazon acelerado|taquicardi\w*|se (me|le) acelera el corazon|latidos (rapidos|irregulares|fuertes)", {}),
@@ -38,7 +40,7 @@ _P = [
     ("one_sided_weakness", r"debilidad (\w+ )?(en|de) (un|el|la|medio) (brazo|pierna|lado|mano|cuerpo)|debil de un lado|no (puedo|puede|podia) mover (el|la|un|una) (brazo|pierna|mano)|(brazo|pierna|mano) (dormid[oa]|sin fuerza|entumid[oa])|perd\w+ fuerza en (el|la|un|una)|se (me|le) durmio (el|la|un|una|medio|media) (brazo|pierna|mano|cara|lado|cuerpo)", {}),
     ("vision_loss", r"perd\w+ (la )?(vista|vision)|perdida (subita )?de (la )?vision|dej\w+ de ver|no (veo|ve) (de|por|con) un ojo|me quede ciego", {}),
     ("sudden_severe_headache", r"peor dolor de cabeza de (mi|su) vida|cefalea en trueno", {"onset": "sudden", "severity": "severe"}),
-    ("headache", r"dolor de cabeza|(me|le) duele (mucho )?la cabeza|cefalea|migran\w*|jaqueca", {}),
+    ("headache", rf"dolor de cabeza|(me|le) duele {_INT}la cabeza|cefalea|migran\w*|jaqueca", {}),
     ("unresponsive", r"\bno responde|\bno reacciona|inconsciente|\bno (se )?despierta", {}),
     ("fainting", r"desmay\w*|me desvaneci|sincope|perd\w+ (el conocimiento|la conciencia)", {}),
     ("seizure", r"convuls\w*|ataque epileptico|crisis epileptica", {}),
@@ -61,7 +63,7 @@ _P = [
     ("unable_to_keep_fluids", r"(tolero|retengo) (bien )?(los )?liquidos", {"status": "absent"}),
     ("low_urine_output", r"orino (muy )?poco|\bcasi no (he )?orina\w*|\bno he orinado|orina escasa|poca orina", {}),
     ("vomiting_blood", r"vomit\w* (con )?sangre|sangre en el vomito|hematemesis|posos de cafe", {}),
-    ("abdominal_pain", r"dolor (de|en el|en la) (estomago|abdomen|barriga|panza|vientre)|dolor abdominal|(me|le) duele (el|la) (estomago|abdomen|barriga|panza|vientre)", {}),
+    ("abdominal_pain", rf"dolor (de|en el|en la) (estomago|abdomen|barriga|panza|vientre)|dolor abdominal|(me|le) duele {_INT}(el|la) (estomago|abdomen|barriga|panza|vientre)", {}),
     ("black_stool", r"heces (negras|alquitranadas)|evacuaciones negras|melena", {}),
     ("blood_in_stool", r"sangre en (las )?heces|heces con sangre|sangrado rectal", {}),
     ("heat_exposure", r"\bcalor\b|sobrecalent\w*|acalorad[oa]", {}),
@@ -69,10 +71,10 @@ _P = [
     ("collapse", r"colaps\w*|desplom\w*", {}),
     ("urinary_burning", r"(ardor|dolor|escozor) al orinar|(me )?arde (al orinar|cuando orino)|duele al orinar|disuria", {}),
     ("urinary_urgency", r"urgencia (para|de|al) orinar|ganas (constantes|frecuentes) de orinar|orino (muy )?(seguido|a menudo)|necesidad urgente de orinar", {}),
-    ("flank_pain", r"dolor (de|en el) (costado|rinon|flanco)|(me|le) duele (el|un) (costado|rinon|flanco)|dolor lumbar|dolor en la espalda baja", {}),
+    ("flank_pain", rf"dolor (de|en el) (costado|rinon|flanco)|(me|le) duele {_INT}(el|un) (costado|rinon|flanco)|dolor lumbar|dolor en la espalda baja", {}),
     ("visible_blood_in_urine", r"sangre en (la )?orina|orina con sangre|orina (roja|rosada)|hematuria|orino sangre", {}),
     ("unable_to_urinate", r"\bno (puedo|puede|logro|consigo|podia) orinar|incapaz de orinar|\bno (me|le) sale la orina", {}),
-    ("muscle_pain", r"dolor muscular|(me|le) duelen (mucho )?los musculos|dolor (en|de) los musculos|mialgia|musculos adolorid\w*", {}),
+    ("muscle_pain", rf"dolor muscular|(me|le) duelen {_INT}los musculos|dolor (en|de) los musculos|mialgia|musculos adolorid\w*", {}),
     ("muscle_cramps", r"calambre\w*|espasmos? muscular\w*", {}),
     ("muscle_weakness", r"debilidad muscular|musculos debiles|sin fuerza en (los musculos|las piernas|los brazos)|debilidad (general|en las piernas|en los brazos)", {}),
     ("dark_urine", r"orina (de )?(color )?(a )?(cola|te|cafe|marron|oscura|negra|muy oscura)\b|orina como (cola|te|refresco)", {}),
@@ -139,6 +141,8 @@ _P += [
     ("severe_burn", r"(severe|bad|large|deep) burn", {"severity": "severe"}),
     ("cabin_alarm_reported", r"(co2|smoke|pressure|cabin|fire) alarm|smell(s)? (of )?smoke|pressure loss|air leak", {}),
     ("radiation_alert_reported", r"radiation (alarm|alert)|dosimeter (alarm|alert|is beeping)|solar (storm|particle event)", {}),
+    # Only counts with a health complaint in the same message (see interpret()).
+    ("multiple_crew_symptoms", r"\b(several|all|both|two|three|most|many) of us\b|\bwe (all|both)\b|\beveryone (here |on board |onboard )?(has|is|feels)\b|\bthe (whole|entire) crew\b|\b(several|multiple|other) crew ?(members|mates)\b", {}),
 ]
 _PATTERNS = [(code, re.compile(rx), extra) for code, rx, extra in _P]
 
@@ -557,6 +561,12 @@ def interpret(request: AssistantRequest) -> Interpretation:
             text = fixed
         else:
             corrections = ()
+
+    # "Several of us are going to dinner" is no alarm: several crew members only count
+    # with a symptom or a health complaint in the same message.
+    complaint = any(o.status == "present" and o.symptom != "multiple_crew_symptoms" for o in observations)
+    if not (complaint or _HEALTH.search(text) or VAGUE.search(text) or _UNWELL.search(text)):
+        observations = [o for o in observations if o.symptom != "multiple_crew_symptoms"]
 
     # sudden + severe headache is the neurologic red flag.
     for o in list(observations):
