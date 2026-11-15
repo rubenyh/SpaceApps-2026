@@ -241,14 +241,25 @@ def read_turn(
         return None
 
 
+# "no tengo síntomas" / "I have no symptoms" (normalized words): the interpreter may not add a
+# present symptom; only explicit rule text can (urinary.simulated.001: a reddish sample).
+_NO_SYMPTOMS = re.compile(
+    r"\b(no (tengo|siento|presento|hay) (ningun |otros? )?sintomas?|sin sintomas|asintomatic\w*|asymptomatic"
+    r"|no symptoms|(don t|do not) have (any )?symptoms)\b"
+)
+
+
 def accept(
     reading: LlmReading, request: AssistantRequest, question_id: str | None, subject: str
 ) -> tuple[list[Observation], str | None]:
     """Keep only observations backed by the new message and coherent with the rules."""
     message = f" {_words(request.message)} "
     asked = QUESTIONS[question_id][0] if question_id in QUESTIONS else ()
+    denied = bool(_NO_SYMPTOMS.search(message))
     kept: list[Observation] = []
     for o in reading.observations:
+        if denied and o.status == "present":
+            continue
         evidence = _words(o.evidence)
         if not evidence or f" {evidence} " not in message:
             continue  # not the user's words
