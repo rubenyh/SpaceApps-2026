@@ -16,7 +16,7 @@ from onboard_api.assistant.workflows.medical.context import (
 )
 from onboard_api.config import Settings
 from onboard_api.repositories.database import init_db
-from onboard_api.routers import assistant, astronauts, readings, sensors, status
+from onboard_api.routers import assistant, astronauts, incidents, readings, sensors, status
 from onboard_api.telemetry.publisher import TelemetryPublisher
 from onboard_api.wellbeing.router import router as wellbeing_router
 
@@ -87,6 +87,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(sensors.router)
     app.include_router(readings.router)
     app.include_router(assistant.router)
+    app.include_router(incidents.router)
     app.include_router(wellbeing_router)
     return app
 
