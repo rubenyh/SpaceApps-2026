@@ -101,7 +101,7 @@ Sit facing the camera, about 50 cm away, in good light. The process sends only d
 
 ### 5. Optional: Apple Watch (macOS + Xcode)
 
-The watch app shows the astronaut's readings and sends an SOS. Compose publishes onboard-api only on `127.0.0.1`, so a real watch cannot reach it: run onboard-api natively with `uv run fastapi dev --host 0.0.0.0` instead. Install and setup: [`apps/watch-app/README.md`](../apps/watch-app/README.md).
+The watch app shows the astronaut's readings and sends an SOS. `./run.sh` starts it in the watchOS simulator. Compose publishes onboard-api only on `127.0.0.1` by default, so a real watch cannot reach it. For a real watch, use `./run.sh --watch-device` (sets `ONBOARD_API_HOST=0.0.0.0`) or run onboard-api natively with `uv run fastapi dev --host 0.0.0.0`. Install and setup: [`apps/watch-app/README.md`](../apps/watch-app/README.md).
 
 ## Check the full flow
 
