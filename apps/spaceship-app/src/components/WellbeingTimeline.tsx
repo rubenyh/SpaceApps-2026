@@ -1,14 +1,30 @@
 import type { Origin, WellbeingTimeline as Timeline } from "../api/types";
 import { INDICATOR_KINDS } from "../api/types";
-import { barFraction, formatDay, formatDayLong, INDICATOR_LABELS, SUPPORT_LABELS } from "../lib/wellbeing";
+import {
+  barFraction,
+  dayRange,
+  formatDay,
+  formatDayLong,
+  INDICATOR_LABELS,
+  SUPPORT_LABELS,
+  timelineRanges,
+} from "../lib/wellbeing";
 import { Panel } from "./Panel";
 import { WellbeingIcon } from "./WellbeingMarks";
 
 const ORIGIN_LETTER: Record<Origin, string> = { simulated: "S", live: "L", mixed: "M" };
 
 /** One column per day: origin, level and the six indicator strips (bar = min(z, 4) / 4). */
-export function WellbeingTimeline({ timeline }: { timeline: Timeline }) {
+export function WellbeingTimeline({ timeline, sustainDays }: { timeline: Timeline; sustainDays?: number }) {
   const { days, onset_date, z_threshold } = timeline;
+  const { beforeData, baseline } = timelineRanges(days);
+  const footnote = [
+    beforeData ? `${dayRange(...beforeData)}: before monitoring started.` : null,
+    baseline ? `${dayRange(...baseline)}: building your personal baseline.` : null,
+    sustainDays !== undefined
+      ? `Threshold z ${z_threshold} and ${sustainDays} sustained days are provisional design values.`
+      : null,
+  ].filter((x) => x !== null);
   const last = days[days.length - 1] as (typeof days)[number] | undefined;
   const thresholdPct = `${barFraction(z_threshold) * 100}%`;
   const summary = `${days.length} days shown. ${
@@ -98,6 +114,7 @@ export function WellbeingTimeline({ timeline }: { timeline: Timeline }) {
           );
         })}
       </div>
+      {footnote.length > 0 ? <p className="wellbeing__faint">{footnote.join(" ")}</p> : null}
     </Panel>
   );
 }
