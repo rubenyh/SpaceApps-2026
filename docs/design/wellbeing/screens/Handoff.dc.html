@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wellbeing — handoff</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+:root{--color-bg:#0A1020;--color-surface:#111A2E;--color-surface-2:#17223A;--color-border:#2A3854;--color-text:#F1F4F9;--color-text-muted:#A7B2C6;--color-text-faint:#8592AA;--color-accent:#6EA2FF;--font-sans:"Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;--font-mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace}
+body{margin:0;background:#0A1020;color:#F1F4F9;font-family:var(--font-sans)}
+a{color:#6EA2FF}a:hover{color:#F1F4F9}
+td,th{padding:8px 10px;text-align:left;vertical-align:top;border-top:1px solid #2A3854}
+th{font-weight:400;color:#8592AA;font-size:14px}
+code{font-family:var(--font-mono);font-size:14px;color:#6EA2FF}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 2300px; background: var(--color-bg); font-family: var(--font-sans); color: var(--color-text); font-size: 15px; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; line-height: 1.4">
+<div><h1 style="margin: 0; font-size: 28px">Handoff · Wellbeing tab</h1><p style="margin: 4px 0 0; color: var(--color-text-muted)">For Cedric · React 19 + Vite + Tauri · tokens.css only, no new colors</p></div>
+
+<section style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px">
+<h2 style="margin: 0 0 12px; font-size: 19px">1 · SupportLevel → style</h2>
+<table style="width: 100%; border-collapse: collapse">
+<thead><tr><th>level</th><th>Label</th><th>Color</th><th>Border</th><th>Icon</th><th>Notes</th></tr></thead>
+<tbody><sc-for list="{{levels}}" as="r" hint-placeholder-count="6"><tr><td><code>{{r.k}}</code></td><td>{{r.l}}</td><td><code>{{r.c}}</code></td><td><code>{{r.b}}</code></td><td>{{r.i}}</td><td style="color: var(--color-text-muted)">{{r.n}}</td></tr></sc-for></tbody>
+</table>
+<p style="margin: 12px 0 0; color: var(--color-text-muted)">IndicatorStatus reuses the same map but <code>attention</code> reads "Changed vs. usual" and <code>ok</code> reads "Within usual". No <code>--alert-pulse</code> anywhere in Wellbeing. No alert/stale flag on the Wellbeing tab in TabBar.</p>
+</section>
+
+<section style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px">
+<h2 style="margin: 0 0 12px; font-size: 19px">2 · Origin → style</h2>
+<table style="width: 100%; border-collapse: collapse">
+<thead><tr><th>origin</th><th>Chip text</th><th>Chip style</th><th>Timeline cell</th></tr></thead>
+<tbody>
+<tr><td><code>live</code></td><td>LIVE</td><td>accent text, 1px solid accent, filled dot, bold</td><td>solid accent fill + "L"</td></tr>
+<tr><td><code>simulated</code></td><td>SIMULATED</td><td>text-faint, 1px dashed text-faint</td><td>45° hatch (text-faint 35%) + "S"</td></tr>
+<tr><td><code>mixed</code></td><td>MIXED</td><td>text-muted, 1px solid, half-filled dot</td><td>half hatch / half accent + "M"</td></tr>
+<tr><td><code>null</code></td><td>(no chip)</td><td>—</td><td>2px dotted nodata, empty</td></tr>
+</tbody>
+</table>
+</section>
+
+<section style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px">
+<h2 style="margin: 0 0 12px; font-size: 19px">3 · Element → component → contract field</h2>
+<table style="width: 100%; border-collapse: collapse">
+<thead><tr><th>Screen · element</th><th>Reuse</th><th>Field(s)</th></tr></thead>
+<tbody><sc-for list="{{map}}" as="r" hint-placeholder-count="20"><tr><td>{{r.e}}</td><td><code>{{r.c}}</code></td><td style="font-family: var(--font-mono); font-size: 14px; color: var(--color-text-muted)">{{r.f}}</td></tr></sc-for></tbody>
+</table>
+</section>
+
+<section style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px">
+<h2 style="margin: 0 0 12px; font-size: 19px">4 · New components (suggested props)</h2>
+<table style="width: 100%; border-collapse: collapse">
+<thead><tr><th>Component</th><th>Props</th><th>Notes</th></tr></thead>
+<tbody><sc-for list="{{comps}}" as="r" hint-placeholder-count="8"><tr><td><code>{{r.n}}</code></td><td style="font-family: var(--font-mono); font-size: 14px">{{r.p}}</td><td style="color: var(--color-text-muted)">{{r.d}}</td></tr></sc-for></tbody>
+</table>
+</section>
+
+<section style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px">
+<h2 style="margin: 0 0 12px; font-size: 19px">5 · Open decisions / gaps in the contract</h2>
+<ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{open}}" as="o" hint-placeholder-count="7"><li>{{o}}</li></sc-for>
+</ol>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      levels: [
+        { k: 'ok', l: 'Doing well', c: '--state-normal', b: '--border-normal', i: 'circle + check', n: 'Same as physical normal.' },
+        { k: 'attention', l: 'Attention', c: '--state-stale', b: '2px solid', i: 'circle + wave', n: 'Solid (not dashed) so it never reads as "Old data".' },
+        { k: 'needs_support', l: 'Needs support', c: '--state-alert + --state-alert-tint bg', b: '--border-alert', i: 'heart (not triangle)', n: 'No pulse. Card shows a support action, never "!"' },
+        { k: 'baseline_pending', l: 'Calibrating', c: '--state-norange', b: '--border-norange (3px double)', i: 'dotted circle + dot', n: 'Copy: "Building personal baseline".' },
+        { k: 'stale', l: 'No recent data', c: '--state-stale', b: '--border-stale (dashed)', i: 'clock', n: 'Show last day: latest_day.' },
+        { k: 'no_data', l: 'No data', c: '--state-nodata', b: '--border-nodata (dotted)', i: 'dotted circle + slash', n: 'Values render as ---.' }
+      ],
+      map: [
+        { e: 'All · view switch Crew/Personal', c: 'SegmentedControl', f: 'Personal uses Header astronaut id' },
+        { e: 'All · demo honesty banner', c: 'banner banner--empty / infobox', f: 'provisional, live_days, simulated_days' },
+        { e: 'All · PROV. tag', c: '.prov', f: 'provisional' },
+        { e: 'Crew · card wrapper', c: 'Panel (surface-2)', f: 'members[]' },
+        { e: 'Crew · name', c: '—', f: 'display_name' },
+        { e: 'Crew · level pill', c: 'WellbeingPill (new)', f: 'level' },
+        { e: 'Crew · trend', c: 'TrendMark (new)', f: 'trend' },
+        { e: 'Crew · LIVE chip', c: 'OriginMark (new)', f: 'latest_origin (show if live|mixed; SIMULATED otherwise)' },
+        { e: 'Crew · support actions', c: 'Panel', f: 'members where level in (attention, needs_support)' },
+        { e: 'Crew · updated time', c: '.caption', f: 'generated_at' },
+        { e: 'Personal · big level', c: 'WellbeingPill size=lg', f: 'level, provisional' },
+        { e: 'Personal · Since / Sustained', c: '.stats / .stat', f: 'onset_date, sustained_days (hide if onset_date null)' },
+        { e: 'Personal · trend / confidence', c: 'TrendMark, ConfidenceMeter (new)', f: 'trend, confidence' },
+        { e: 'Personal · agreeing sources', c: '.caption', f: 'sustained_sources' },
+        { e: 'Personal · discrepancy note', c: 'infobox (border-dubious)', f: 'discrepancy, sustained_sources' },
+        { e: 'Personal · What might help', c: 'Panel', f: 'support_notes[]' },
+        { e: 'Personal · data notices', c: 'QualityMark + .caption', f: 'data_notices[]' },
+        { e: 'Personal · indicator row', c: 'IndicatorRow (new)', f: 'indicators[] (always 6, fixed order)' },
+        { e: 'Personal · z track', c: 'RangeTrack (extend: threshold mark)', f: 'z, z_threshold (from timeline)' },
+        { e: 'Personal · components table', c: 'table in IndicatorRow', f: 'components[]: component, source, latest_value+unit, baseline_median, z, baseline_from/to, latest_origin' },
+        { e: 'Timeline · columns', c: 'WellbeingTimeline (new)', f: 'days[]: day, level, has_data, origin, indicators{}' },
+        { e: 'Timeline · onset marker', c: 'WellbeingTimeline', f: 'onset_date' },
+        { e: 'Check-in · items', c: 'ScaleInput / HoursStepper (new)', f: 'CheckinForm.items[] (prompt, min/max/step, labels, higher_is_better)' },
+        { e: 'Check-in · save', c: 'btn', f: 'PUT /astronauts/{id}/wellbeing/checkins/{day}' },
+        { e: 'Ground · form', c: 'SegmentedControl, field, btn', f: 'GroundPackageCreate' },
+        { e: 'Ground · consent checkbox', c: 'field (2px accent)', f: 'consent.astronaut_confirmed, statement_version' },
+        { e: 'Ground · preview', c: 'Panel + dl', f: 'GET …/content' },
+        { e: 'Ground · package list', c: 'Panel', f: 'GroundPackage[]: status, requested_by, consent_recorded_at' },
+        { e: 'States · service error', c: 'ServiceBanner', f: 'fetch error; keep last data as stale' }
+      ],
+      comps: [
+        { n: 'WellbeingPill', p: '{ level: SupportLevel | IndicatorStatus; kind?: "support"|"indicator"; size?: "sm"|"md"|"lg" }', d: 'Wraps StatusPill logic; own icon set (heart, wave, dotted target).' },
+        { n: 'OriginMark', p: '{ origin: Origin | null }', d: 'Text always present. null → nothing.' },
+        { n: 'TrendMark', p: '{ trend: Trend }', d: 'Arrow icon + word. unknown → "—".' },
+        { n: 'ConfidenceMeter', p: '{ confidence: Confidence }', d: '3 bars + word (1/2/3 filled).' },
+        { n: 'IndicatorRow', p: '{ indicator: IndicatorState; threshold: number; expanded: boolean; onToggle(): void }', d: 'Grid row; expands to components table. Toggle button ≥44px, aria-expanded.' },
+        { n: 'ZTrack', p: '{ z: number | null; threshold: number; min?: -2; max?: 4 }', d: 'RangeTrack variant. Zone 0..threshold = --range-zone. null → dotted empty track + ---.' },
+        { n: 'WellbeingTimeline', p: '{ timeline: WellbeingTimeline }', d: 'One column per day; hatch for simulated; dotted for !has_data; onset = 2px left rule + label.' },
+        { n: 'ScaleInput', p: '{ item: CheckinFormItem; value: number | null; onChange(v): void }', d: '5 buttons 60×52, aria-pressed, end labels from min_label/max_label.' },
+        { n: 'PersonalLock', p: '{ astronautId: string; onUnlock(): void }', d: 'Gate before Personal, Check-in, Ground.' }
+      ],
+      open: [
+        'Privacy: Personal is only private if gated per astronaut (PIN or similar). Without it, anyone using the Header selector sees the detail. PersonalLock is a must-have.',
+        'Crew view must never show discrepancy, support_notes, data_notices or indicators — use only CrewMemberSummary.',
+        'Timeline is 30 days but the demo has 21 days of history: first 9 days render as no data. Option: days=21 for the demo.',
+        'Number of days needed to finish the baseline is not in the contract (Calibrating progress). Add min_baseline_days or drop the progress bar.',
+        'z_threshold only comes in WellbeingTimeline; Personal needs it too. Fetch both, or add it to WellbeingAssessment.',
+        'Indicator sources shown in drafts are examples; render from indicators[].sources.',
+        'Footer legend switches to the wellbeing legend while this tab is active.'
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
