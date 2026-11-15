@@ -150,3 +150,41 @@ def test_telemetry_queue_and_ground_delivery(crew, db_path) -> None:
     assert incident.ground_delivery == "delivered"
     assert incident.events[0].delivered_at == T0 + timedelta(seconds=5)
     conn.close()
+
+
+def test_acknowledgment_is_stored_idempotent_and_separate_from_ground(crew, db_path, clock) -> None:
+    assert crew.app.state.settings.telemetry_enabled is False  # ground unreachable / off
+    incident_id = ask(crew, db_path, "I can't breathe")["incident"]["id"]
+    url = f"/incidents/{incident_id}/acknowledgments"
+
+    clock.now = T0 + timedelta(minutes=1)
+    first = crew.post(url, json={"acknowledged_by": "ben"})
+    assert first.status_code == 201
+    body = first.json()
+    assert body["acknowledgments"] == [
+        {"acknowledged_by": "ben", "acknowledged_at": "2026-11-14T12:01:00Z"}
+    ]
+    ack = body["events"][-1]
+    assert ack["type"] == "acknowledged" and ack["acknowledged_by"] == "ben"
+    assert ack["occurred_at"] == "2026-11-14T12:01:00Z" and ack["delivered_at"] is None
+    assert body["ground_delivery"] == "disabled"
+
+    clock.now = T0 + timedelta(minutes=2)
+    repeat = crew.post(url, json={"acknowledged_by": "ben"})
+    assert repeat.status_code == 200 and repeat.json() == body
+    assert count(db_path, "incident_events") == 2
+
+    other = crew.post(url, json={"acknowledged_by": "ana"})
+    assert other.status_code == 201
+    assert [a["acknowledged_by"] for a in other.json()["acknowledgments"]] == ["ben", "ana"]
+    assert count(db_path, "incident_events") == 3
+    assert crew.get(f"/incidents/{incident_id}").json() == other.json()  # same state on reload
+
+
+def test_acknowledgment_errors(crew, db_path) -> None:
+    incident_id = ask(crew, db_path, "SOS")["incident"]["id"]
+    missing = crew.post("/incidents/missing/acknowledgments", json={"acknowledged_by": "ben"})
+    assert missing.status_code == 404
+    unknown = crew.post(f"/incidents/{incident_id}/acknowledgments", json={"acknowledged_by": "zoe"})
+    assert unknown.status_code == 422
+    assert count(db_path, "incident_events") == 1

@@ -134,6 +134,16 @@ class IncidentRepository:
             raise
         return cursor.rowcount == 1
 
+    def acknowledge(self, incident_id: str, acknowledged_by: str, at: datetime) -> bool:
+        """Record an `acknowledged` event. False when this person already acknowledged
+        (the partial unique index makes the repeat a no-op)."""
+        cursor = self._conn.execute(
+            "INSERT INTO incident_events (id, incident_id, type, occurred_at, acknowledged_by)"
+            " VALUES (?, ?, 'acknowledged', ?, ?) ON CONFLICT DO NOTHING",
+            (str(uuid.uuid4()), incident_id, to_db_timestamp(at), acknowledged_by),
+        )
+        return cursor.rowcount == 1
+
     def _add_event(
         self, incident_id: str, type_: IncidentEventType, at: str, acknowledged_by: str | None = None
     ) -> None:

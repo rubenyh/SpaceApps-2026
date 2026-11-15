@@ -34,6 +34,10 @@ class Acknowledgment(BaseModel):
     acknowledged_at: AwareDatetime
 
 
+class AcknowledgmentCreate(BaseModel):
+    acknowledged_by: str  # an existing astronaut id
+
+
 class Incident(BaseModel):
     id: str
     status: IncidentStatus
