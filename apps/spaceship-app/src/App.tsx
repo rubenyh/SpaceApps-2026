@@ -15,8 +15,11 @@ import { MusculoScreen } from "./screens/MusculoScreen";
 import { OrinaScreen } from "./screens/OrinaScreen";
 import { RegistrosScreen } from "./screens/RegistrosScreen";
 import { VitalesScreen } from "./screens/VitalesScreen";
+import { WellbeingScreen } from "./screens/WellbeingScreen";
+import { WellbeingIcon } from "./components/WellbeingMarks";
+import { SUPPORT_LABELS } from "./lib/wellbeing";
 
-type TabKey = "estado" | "vitales" | "musculo" | "orina" | "asistente" | "registros";
+type TabKey = "estado" | "vitales" | "musculo" | "orina" | "asistente" | "registros" | "wellbeing";
 
 const TABS: TabDef<TabKey>[] = [
   { key: "estado", label: "Status" },
@@ -25,9 +28,12 @@ const TABS: TabDef<TabKey>[] = [
   { key: "orina", label: "Urine" },
   { key: "asistente", label: "Assistant" },
   { key: "registros", label: "Records" },
+  // No alert or stale flag: wellbeing is personal and never raises a tab alarm.
+  { key: "wellbeing", label: "Wellbeing" },
 ];
 
 const LEGEND = ["alert", "stale", "no_data", "no_range", "normal"] as const;
+const WELLBEING_LEGEND = ["ok", "attention", "needs_support", "baseline_pending", "stale", "no_data"] as const;
 const STORAGE_KEY = "consola-medica.astronaut";
 
 function readStoredAstronaut(): string | null {
@@ -69,6 +75,8 @@ function CrewScreen({ tab, astronautId, astronauts, onNavigate, status, statusUp
       return <AsistenteScreen astronautId={astronautId} astronauts={astronauts} status={status} statusUpdatedAt={statusUpdatedAt} />;
     case "registros":
       return <RegistrosScreen astronautId={astronautId} />;
+    case "wellbeing":
+      return <WellbeingScreen astronautId={astronautId} astronauts={astronauts} />;
   }
 }
 
@@ -184,20 +192,36 @@ function Console({ connection }: { connection: ConnectionState }) {
         {content}
       </main>
       <footer className="footer">
-        <div className="footer__legend">
-          <span>States:</span>
-          {LEGEND.map((s) => (
-            <span key={s} className={`footer__state footer__state--${s}`}>
-              <StateIcon state={s} size={15} />
-              {STATE_LABELS[s]}
+        {tab === "wellbeing" && selected ? (
+          <>
+            <div className="footer__legend">
+              {WELLBEING_LEGEND.map((s) => (
+                <span key={s} className={`footer__state footer__state--wb-${s}`}>
+                  <WellbeingIcon kind={s} size={16} />
+                  {SUPPORT_LABELS[s]}
+                </span>
+              ))}
+            </div>
+            <span>LIVE · SIMULATED · MIXED · PROV. = provisional</span>
+          </>
+        ) : (
+          <>
+            <div className="footer__legend">
+              <span>States:</span>
+              {LEGEND.map((s) => (
+                <span key={s} className={`footer__state footer__state--${s}`}>
+                  <StateIcon state={s} size={15} />
+                  {STATE_LABELS[s]}
+                </span>
+              ))}
+            </div>
+            <span>
+              {selected
+                ? "Ranges marked PROV. are provisional"
+                : "Tabs become available once there is a crew member"}
             </span>
-          ))}
-        </div>
-        <span>
-          {selected
-            ? "Ranges marked PROV. are provisional"
-            : "Tabs become available once there is a crew member"}
-        </span>
+          </>
+        )}
       </footer>
     </div>
   );

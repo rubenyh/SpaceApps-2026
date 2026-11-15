@@ -22,12 +22,12 @@ export function Alertas({ alerts, limit, crew, offline }: Props) {
   return (
     <>
       <div className="toolbar">
-        <h1 className="sr-only">Registro de alertas</h1>
+        <h1 className="sr-only">Alert log</h1>
         <label className="toolbar__label" htmlFor="alert-filter">
-          Astronauta
+          Astronaut
         </label>
         <select id="alert-filter" value={who} onChange={(e) => setWho(e.target.value)}>
-          <option value="">Toda la tripulación</option>
+          <option value="">All crew</option>
           {ids.map((id) => (
             <option key={id} value={id}>
               {nameOf(id)} ({id})
@@ -35,22 +35,22 @@ export function Alertas({ alerts, limit, crew, offline }: Props) {
           ))}
         </select>
         <span className="toolbar__meta">
-          Más recientes primero · últimas {limit} recibidas en tierra
+          Newest first · last {limit} received on ground
         </span>
       </div>
 
       <table className="log log--alerts">
         <thead>
           <tr>
-            <th scope="col">Nº</th>
-            <th scope="col">Astronauta</th>
+            <th scope="col">No.</th>
+            <th scope="col">Astronaut</th>
             <th scope="col">Sensor</th>
-            <th scope="col">Valor</th>
-            <th scope="col">Lado</th>
-            <th scope="col">Rango</th>
-            <th scope="col">Registrado (nave)</th>
-            <th scope="col">Recibido (tierra)</th>
-            <th scope="col">Retraso</th>
+            <th scope="col">Value</th>
+            <th scope="col">Side</th>
+            <th scope="col">Range</th>
+            <th scope="col">Recorded (ship)</th>
+            <th scope="col">Received (ground)</th>
+            <th scope="col">Delay</th>
           </tr>
         </thead>
         <tbody>
@@ -79,9 +79,9 @@ export function Alertas({ alerts, limit, crew, offline }: Props) {
                   {readingValueText(r)} {r.unit}
                 </td>
                 <td>
-                  <Flap text={a.side === "high" ? "Alto" : "Bajo"} className="flap--text flap--red" />
+                  <Flap text={a.side === "high" ? "High" : "Low"} className="flap--text flap--red" />
                 </td>
-                <td>{rangeText(a.normal_min, a.normal_max, r.unit) ?? "Sin rango"}</td>
+                <td>{rangeText(a.normal_min, a.normal_max, r.unit) ?? "No range"}</td>
                 <td>{utcStamp(r.recorded_at)}</td>
                 <td>{utcStamp(r.ground_received_at)}</td>
                 <td className="num">{delay === null ? "--" : formatDuration(delay)}</td>
@@ -92,18 +92,18 @@ export function Alertas({ alerts, limit, crew, offline }: Props) {
       </table>
 
       {alerts === null && offline ? (
-        <p className="empty">Sin registro de alertas: el servicio de tierra no responde.</p>
+        <p className="empty">No alert log: the ground service is not answering.</p>
       ) : null}
       {alerts !== null && rows.length === 0 ? (
         <div className="empty">
           <p>
             {who
-              ? `No hay alertas de ${nameOf(who)} entre las últimas ${limit}.`
-              : "No hay alertas registradas en tierra."}
+              ? `No alerts for ${nameOf(who)} in the last ${limit}.`
+              : "No alerts recorded on ground."}
           </p>
           <p className="hint">
-            Una alerta se registra cuando una lectura llega fuera de su rango de salud. Los rangos de
-            validez de muestra y el marcador de radiación no generan alertas.
+            An alert is recorded when a reading arrives outside its health range. Sample validity
+            ranges and the radiation marker never raise alerts.
           </p>
         </div>
       ) : null}

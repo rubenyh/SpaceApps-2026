@@ -50,7 +50,13 @@ QUESTIONS: dict[str, tuple[tuple[str, ...], str, str]] = {
 _ANSWER_WORDS = {
     "si", "no", "un", "poco", "poquito", "algo", "mucho", "muy", "nada", "bastante", "claro",
     "creo", "que", "tal", "vez", "quizas", "a", "veces", "ya", "todavia", "aun", "se", "lo",
+    # English short replies ("yes, a little", "no", "not sure").
+    "yes", "yeah", "yep", "nope", "not", "really", "little", "bit", "lot", "very", "much",
+    "slightly", "somewhat", "kind", "of", "i", "think", "maybe", "perhaps", "don", "t", "know",
+    "sure", "unsure", "still", "some", "nothing", "none", "at", "all",
 }
+_UNSURE = {"creo", "tal", "quizas", "think", "maybe", "perhaps", "unsure"}
+_NO = {"no", "nada", "nope", "not", "nothing", "none"}
 
 
 class LlmObservation(BaseModel):
@@ -107,9 +113,9 @@ def bare_answer(message: str, question_id: str, subject: str) -> list[Observatio
         return []
     codes, yes_status, joiner = QUESTIONS[question_id]
     no_status = "absent" if yes_status == "present" else "present"
-    if {"no", "se"} <= words or words & {"creo", "tal", "quizas"}:
+    if {"no", "se"} <= words or {"don", "know"} <= words or {"not", "sure"} <= words or words & _UNSURE:
         status = "unknown"
-    elif words & {"no", "nada"}:
+    elif words & _NO:
         if joiner == "and" and len(codes) > 1:
             return []  # "no" to "A and B?": which one is unknown
         status = no_status

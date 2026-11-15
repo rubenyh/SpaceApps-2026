@@ -4,10 +4,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal, Protocol, TypedDict
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from onboard_api.assistant.integrations import GuideChunk
 from onboard_api.schemas.assistant import (
+    ActionStep,
     AssistantRequest,
     AssistantResponse,
     CandidateStatus,
@@ -15,6 +16,7 @@ from onboard_api.schemas.assistant import (
     Finding,
     GuideSource,
     MatchedRule,
+    MissionProcedure,
     OperationalEvent,
     PossibleCause,
     SymptomCode,
@@ -76,7 +78,7 @@ class ReadingsContext:
     # False when the repository could not be read (missing DB, error, no astronaut_id).
     available: bool
     latest: dict[str, VitalReading] = field(default_factory=dict)  # by sensor kind
-    warnings: list[str] = field(default_factory=list)  # Spanish, for data_notices
+    warnings: list[str] = field(default_factory=list)  # English, for data_notices
     # Which of `warnings` belong to one sensor kind; the rest are general.
     kind_warnings: dict[str, list[str]] = field(default_factory=dict)
 
@@ -110,10 +112,25 @@ class ProtocolSource(BaseModel):
     url: str
 
 
+class ProtocolStep(BaseModel):
+    text: str
+    # self: one awake astronaut can do it alone. crew: needs another crew member.
+    # equipment: needs a device or kit item.
+    who: Literal["self", "crew", "equipment"]
+    # Ids in the card's `sources`; a step without a source is not allowed.
+    source_ids: list[str] = Field(min_length=1)
+
+
 class ProtocolAction(BaseModel):
     urgency: Urgency
     text: str
     notify: list[str] = []
+    steps: list[ProtocolStep] = []
+    # Title of the mission procedure this action points to. None is loaded in the
+    # assistant yet, so the response names it and marks it as not loaded.
+    mission_procedure: str | None = None
+    # Guidance the card cannot give, stated instead of filled in.
+    missing_guidance: list[str] = []
 
 
 class ProtocolCandidate(BaseModel):
@@ -158,6 +175,10 @@ class Decision:
     summary: str
     # "<protocol_id>.<question_key>" of clarifying_question.
     question_id: str | None = None
+    # Cited checklist of the lead actions, mission procedures they point to, gaps.
+    steps: list[ActionStep] = field(default_factory=list)
+    mission_procedures: list[MissionProcedure] = field(default_factory=list)
+    missing_guidance: list[str] = field(default_factory=list)
 
 
 # --- Injected dependencies ---

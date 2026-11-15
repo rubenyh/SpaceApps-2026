@@ -85,7 +85,7 @@ export function buildPath(path: string, query?: Record<string, QueryValue>): str
 }
 
 export interface RequestOptions {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PUT";
   body?: unknown;
   signal?: AbortSignal;
   /** Default 10 s. */

@@ -1,23 +1,52 @@
 {
   "id": "severe_allergic_reaction",
-  "version": "1.0.0",
-  "title": "Reacción alérgica grave",
+  "version": "2.1.0",
+  "title": "Severe allergic reaction",
   "priority": 50,
-  "summary": "Hinchazón de lengua o garganta, dificultad respiratoria u otros signos de reacción grave tras una posible exposición. La anafilaxia es posible cuando el cuadro es compatible. Mostrar la ficha autorizada de la misión cuando exista. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Swelling of the tongue or throat, difficulty breathing or other signs of a severe reaction after a possible exposure. Anaphylaxis is possible when the presentation is compatible. Show the mission's authorized card when one exists. Informational support only: not a diagnosis or a treatment decision. There are no clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo y seguir la ficha autorizada de reacción alérgica grave de la misión.",
+      "text": "Possible severe allergic reaction: emergency.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "crew",
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "equipment",
+          "text": "If there is an epinephrine (adrenaline) auto-injector in the medical kit, use it immediately.",
+          "source_ids": [
+            "medlineplus_anaphylaxis"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Call for emergency help now using the mission's means (ship alarm, crew, mission control if the link is up). Do not wait to see if it improves.",
+          "source_ids": [
+            "medlineplus_anaphylaxis"
+          ]
+        }
+      ],
+      "mission_procedure": "Mission authorized severe allergic reaction procedure"
     },
     "limited": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo por síntomas alérgicos limitados. Avisar de inmediato si aparece hinchazón de garganta o lengua o dificultad para respirar.",
+      "text": "Limited allergic symptoms: watch your breathing and throat.",
       "notify": [
-        "responsable médico a bordo"
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "If throat or tongue swelling or difficulty breathing appears, use the auto-injector if there is one and treat it as an emergency.",
+          "source_ids": [
+            "medlineplus_anaphylaxis"
+          ]
+        }
+      ],
+      "missing_guidance": [
+        "The card's sources do not give steps for mild allergic symptoms (for example, antihistamines): it depends on the mission procedure."
       ]
     }
   },
@@ -25,8 +54,8 @@
   "candidates": [
     {
       "id": "anaphylaxis",
-      "label": "Anafilaxia",
-      "minimum_evidence": "Compromiso de garganta o respiratorio, con exposición posible o ronchas para considerarla compatible.",
+      "label": "Anaphylaxis",
+      "minimum_evidence": "Throat or breathing involvement, with possible exposure or hives to consider it compatible.",
       "source_ids": [
         "medlineplus_anaphylaxis"
       ]
@@ -36,7 +65,7 @@
     {
       "id": "medlineplus_anaphylaxis",
       "title": "MedlinePlus: Anaphylaxis",
-      "section": "Resumen",
+      "section": "Summary",
       "url": "https://medlineplus.gov/anaphylaxis.html"
     }
   ],

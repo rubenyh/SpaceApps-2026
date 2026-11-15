@@ -58,6 +58,17 @@ export function linear(d0: number, d1: number, r0: number, r1: number) {
   return (x: number) => r0 + (x - d0) * k;
 }
 
+/** One point per UTC day: mean value, placed at the mean time of that day's readings. Input is chronological. */
+export function dailyMean(points: Point[]): Point[] {
+  const days = new Map<number, Point[]>();
+  for (const p of points) {
+    const d = Math.floor(p.t / 86_400_000);
+    days.set(d, [...(days.get(d) ?? []), p]);
+  }
+  const mean = (ps: Point[], k: "t" | "v") => ps.reduce((s, p) => s + p[k], 0) / ps.length;
+  return [...days.values()].map((ps) => ({ t: mean(ps, "t"), v: mean(ps, "v") }));
+}
+
 /** Splits a time series where a gap is more than `factor` × the median interval (and at least `minGap`). */
 export function splitGaps(points: Point[], factor = 3, minGap = 0): Point[][] {
   if (points.length < 3) return points.length ? [points] : [];

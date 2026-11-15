@@ -1,34 +1,70 @@
 {
   "id": "neurologic_red_flags",
-  "version": "1.0.0",
-  "title": "Señales neurológicas de alarma",
+  "version": "2.1.0",
+  "title": "Neurological warning signs",
   "priority": 60,
-  "summary": "Alteración súbita del habla, asimetría facial, debilidad de un lado, pérdida súbita de visión o dolor de cabeza súbito e intenso pueden indicar un evento neurológico agudo. Ictus o AIT requieren descarte ante señales focales, aunque ya hayan cedido. Un dolor de cabeza sin esas señales se valora por su propio contexto o por la ruta de cabina. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Sudden speech disturbance, facial asymmetry, weakness on one side, sudden loss of vision or a sudden severe headache may indicate an acute neurological event. Stroke or TIA must be ruled out when focal signs are present, even if they have already resolved. A headache without those signs is assessed in its own context or through the cabin route. Informational support only: not a diagnosis or a treatment decision. There are no clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo y seguir la ficha neurológica de la misión, aunque los signos ya hayan cedido. Registrar la hora conocida de inicio si está disponible, sin demorar el aviso.",
+      "text": "Possible stroke signs: emergency, even if the signs have already resolved.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
+        "crew",
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Call for emergency help now using the mission's means (ship alarm, crew, mission control if the link is up). Do not wait to see if it improves.",
+          "source_ids": [
+            "cdc_stroke_signs"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Note the time the first symptoms started.",
+          "source_ids": [
+            "cdc_stroke_signs"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Another crew member: do the B.E. F.A.S.T. check (balance, eyes, face, arms, speech) and note the time.",
+          "source_ids": [
+            "cdc_stroke_signs"
+          ]
+        }
+      ],
+      "mission_procedure": "Mission neurological procedure",
+      "missing_guidance": [
+        "The card's sources do not give onboard treatment: it depends on the mission procedure."
       ]
     },
     "headache_check": {
       "urgency": "undetermined",
-      "text": "Dolor de cabeza sin datos de inicio e intensidad: confirmar si hay señales de alarma neurológica.",
+      "text": "Headache with unknown onset and severity: check for neurological warning signs.",
       "notify": [
-        "responsable médico a bordo"
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Check: did it start suddenly and is it very severe? Is it hard to speak, is your vision impaired, is one side of your face drooping, or are you losing strength on one side? If so, treat it as an emergency.",
+          "source_ids": [
+            "cdc_stroke_signs"
+          ]
+        }
       ]
     }
   },
   "questions": {
-    "headache_red_flags": "¿El dolor de cabeza empezó de repente y es muy intenso, o se acompaña de alteración del habla, cara caída, debilidad de un lado o pérdida de visión?"
+    "headache_red_flags": "Did the headache start suddenly and is it very severe, or does it come with speech disturbance, facial drooping, weakness on one side or loss of vision?"
   },
   "candidates": [
     {
       "id": "stroke_tia",
-      "label": "Ictus o accidente isquémico transitorio (requiere descarte)",
-      "minimum_evidence": "Al menos una señal focal súbita (habla, cara, debilidad de un lado, visión) o dolor de cabeza súbito e intenso, actual o ya cedido.",
+      "label": "Stroke or transient ischemic attack (must be ruled out)",
+      "minimum_evidence": "At least one sudden focal sign (speech, face, weakness on one side, vision) or a sudden severe headache, current or already resolved.",
       "source_ids": [
         "cdc_stroke_signs"
       ]
@@ -38,13 +74,13 @@
     {
       "id": "cdc_stroke_signs",
       "title": "CDC: Signs and Symptoms of Stroke",
-      "section": "Señales de ictus",
+      "section": "Stroke signs",
       "url": "https://www.cdc.gov/stroke/signs-symptoms/"
     },
     {
       "id": "medlineplus_headache",
       "title": "MedlinePlus: Headache",
-      "section": "Resumen",
+      "section": "Summary",
       "url": "https://medlineplus.gov/headache.html"
     }
   ],

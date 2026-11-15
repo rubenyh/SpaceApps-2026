@@ -1,46 +1,149 @@
 {
   "id": "breathing_difficulty",
-  "version": "1.0.0",
-  "title": "Dificultad para respirar",
+  "version": "2.1.0",
+  "title": "Breathing difficulty",
   "priority": 20,
-  "summary": "Falta de aire real: importan el inicio, la intensidad, la progresión y el contexto. Una SpO₂ baja es un hallazgo, no una causa. Una lectura normal (por ejemplo 97 %), vieja o ausente no cancela una falta de aire intensa o repentina. El oxímetro estima la saturación y su lectura puede alterarse por movimiento, mala colocación o señal pobre. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Actual shortness of breath: onset, intensity, progression and context matter. A low SpO₂ is a finding, not a cause. A normal (for example 97 %), old or missing reading does not cancel severe or sudden shortness of breath. The oximeter estimates saturation and its reading can be affected by movement, poor placement or a weak signal. Informational support only: not a diagnosis or a treatment decision. No clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo y seguir la ficha de emergencia respiratoria de la misión. Una SpO₂ normal, vieja o ausente no cancela este aviso.",
+      "text": "Respiratory emergency: act now. A normal, old, simulated or missing SpO₂ does not cancel this alarm.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "crew",
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Call for emergency help now using the mission's means (ship alarm, crew, mission control if the link is up). Do not wait to see if it gets better.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Loosen tight clothing.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "If you have medication or oxygen prescribed for you in the medical kit, use it as prescribed.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Do not eat or drink while you are short of breath.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Keep the oximeter on and monitor pulse and SpO₂; a normal number does not mean you are getting better.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid",
+            "fda_pulse_oximeters"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Another crew member: check airway, breathing and pulse; start CPR if needed, and keep monitoring breathing.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        }
+      ],
+      "mission_procedure": "Mission respiratory emergency procedure"
     },
     "new_no_red_flags": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo por falta de aire nueva sin señales de alarma identificadas. Avisar de inmediato si empeora, aparece de repente o se vuelve intensa.",
+      "text": "Shortness of breath with no identified warning signs: follow these steps and monitor. If it becomes severe, starts suddenly or gets worse, treat it as an emergency.",
       "notify": [
-        "responsable médico a bordo"
-      ]
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Loosen tight clothing.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Repeat the SpO₂ measurement at rest, following the oximeter instructions; do not rely on the number alone.",
+          "source_ids": [
+            "fda_pulse_oximeters"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "If you have medication prescribed for you (for example, an inhaler) in the medical kit, use it as prescribed.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Monitor your symptoms: if they get worse, are severe or the shortness of breath keeps you from sleeping, treat it as an emergency.",
+          "source_ids": [
+            "fda_pulse_oximeters",
+            "medlineplus_breathing_first_aid"
+          ]
+        }
+      ],
+      "mission_procedure": "Mission medical procedure for shortness of breath"
     },
     "reading_check": {
       "urgency": "undetermined",
-      "text": "Lectura aislada sin síntomas conocidos: confirmar síntomas y repetir la medición antes de interpretarla.",
+      "text": "Isolated reading with no known symptoms: confirm symptoms and repeat the measurement before interpreting it.",
       "notify": [
-        "responsable médico a bordo"
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "equipment",
+          "text": "Repeat the measurement at rest, with the sensor placed correctly according to the oximeter instructions.",
+          "source_ids": [
+            "fda_pulse_oximeters"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Pay attention to how you feel: the number alone neither confirms nor rules out anything.",
+          "source_ids": [
+            "fda_pulse_oximeters"
+          ]
+        }
       ]
     },
     "reading_reference": {
       "urgency": "informational",
-      "text": "La lectura está dentro de la referencia visual; si aparecen síntomas, comentarlos con el responsable médico a bordo.",
-      "notify": []
+      "text": "The reading is within the visual reference. If symptoms appear, describe them here.",
+      "notify": [],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Monitor your symptoms as well as the number.",
+          "source_ids": [
+            "fda_pulse_oximeters"
+          ]
+        }
+      ]
     }
   },
   "questions": {
-    "symptoms_and_repeat": "¿Tiene ahora falta de aire u otro síntoma? Repita la medición en reposo, con el sensor bien colocado según las instrucciones del oxímetro, y comparta el resultado."
+    "symptoms_and_repeat": "Do you have shortness of breath or any other symptom right now? Repeat the measurement at rest, with the sensor placed correctly according to the oximeter instructions, and share the result."
   },
   "candidates": [
     {
       "id": "respiratory_cause",
-      "label": "Causa respiratoria a valorar",
-      "minimum_evidence": "Falta de aire con tos o fiebre reportadas.",
+      "label": "Respiratory cause to be assessed",
+      "minimum_evidence": "Shortness of breath with reported cough or fever.",
       "source_ids": [
         "medlineplus_breathing_first_aid"
       ]
@@ -49,14 +152,14 @@
   "sources": [
     {
       "id": "medlineplus_breathing_first_aid",
-      "title": "MedlinePlus: Problemas respiratorios - primeros auxilios",
-      "section": "Síntomas y cuándo pedir ayuda",
+      "title": "MedlinePlus: Breathing problems - first aid",
+      "section": "Symptoms and when to get help",
       "url": "https://medlineplus.gov/ency/article/000007.htm"
     },
     {
       "id": "fda_pulse_oximeters",
       "title": "FDA: Pulse Oximeters",
-      "section": "Limitaciones y precisión",
+      "section": "Limitations and accuracy",
       "url": "https://www.fda.gov/medical-devices/products-and-medical-procedures/pulse-oximeters"
     }
   ],

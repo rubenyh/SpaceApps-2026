@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wellbeing — Personal view</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+:root{--color-bg:#0A1020;--color-surface:#111A2E;--color-surface-2:#17223A;--color-border:#2A3854;--color-brand:#0B3D91;--color-brand-rule:#C8301A;--color-text:#F1F4F9;--color-text-muted:#A7B2C6;--color-text-faint:#8592AA;--color-accent:#6EA2FF;--state-alert:#FF6A4D;--state-alert-fill:#C8301A;--state-alert-tint:rgba(255,106,77,0.08);--state-normal:#3DD68C;--state-stale:#F5B841;--state-nodata:#8592AA;--state-norange:#8AB4FF;--range-zone:rgba(61,214,140,0.18);--font-sans:"Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;--font-mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace}
+body{margin:0;background:#0A1020;color:#F1F4F9;font-family:var(--font-sans)}
+a{color:#6EA2FF}a:hover{color:#F1F4F9}
+.num{font-variant-numeric:tabular-nums}
+.sim{background:repeating-linear-gradient(45deg,rgba(133,146,170,.35) 0 2px,transparent 2px 6px)}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1780px; display: flex; flex-direction: column; background: var(--color-bg); font-family: var(--font-sans); color: var(--color-text); font-size: 16px">
+
+<header style="height: 60px; background: var(--color-brand); border-bottom: 3px solid var(--color-brand-rule); display: flex; align-items: center; gap: 20px; padding: 0 20px; box-sizing: border-box">
+<strong style="font-size: 19px; letter-spacing: 0.02em">Spaceship Console</strong>
+<div style="flex: 1"></div>
+<label style="display: flex; align-items: center; gap: 8px; font-size: 15px">Astronaut
+<select style="height: 44px; min-width: 200px; background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); border-radius: 8px; font-size: 16px; padding: 0 12px"><option>Ana Sorensen (ast-02)</option></select></label>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 15px; color: var(--state-normal)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.5 2.5L16 9.5"></path></svg>Connected</span>
+</header>
+<nav aria-label="Console sections" style="height: 52px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); display: flex; align-items: stretch; padding: 0 20px; gap: 4px; overflow-x: auto">
+<a href="#" style="display: flex; align-items: center; padding: 0 16px; color: var(--color-text-muted); text-decoration: none">Status</a>
+<a href="#" style="display: flex; align-items: center; padding: 0 16px; color: var(--color-text-muted); text-decoration: none">Vital signs</a>
+<a href="#" style="display: flex; align-items: center; padding: 0 16px; color: var(--color-text-muted); text-decoration: none">Muscle</a>
+<a href="#" style="display: flex; align-items: center; padding: 0 16px; color: var(--color-text-muted); text-decoration: none">Urine</a>
+<a href="#" style="display: flex; align-items: center; padding: 0 16px; color: var(--color-text-muted); text-decoration: none">Assistant</a>
+<a href="#" style="display: flex; align-items: center; padding: 0 16px; color: var(--color-text-muted); text-decoration: none">Records</a>
+<a href="#" aria-current="page" style="display: flex; align-items: center; padding: 0 16px; color: var(--color-text); text-decoration: none; font-weight: 700; border-bottom: 3px solid var(--color-accent)">Wellbeing</a>
+</nav>
+
+<main style="flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 16px; box-sizing: border-box">
+
+<div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap">
+<div role="group" aria-label="Wellbeing view" style="display: flex; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden">
+<button aria-pressed="false" style="height: 44px; padding: 0 20px; background: transparent; color: var(--color-text-muted); border: 0; font-size: 16px; font-family: inherit">Crew</button>
+<button aria-pressed="true" style="height: 44px; padding: 0 20px; background: var(--color-surface-2); color: var(--color-text); border: 0; border-left: 1px solid var(--color-border); font-size: 16px; font-weight: 700; font-family: inherit">Personal</button>
+</div>
+<span style="display: inline-flex; align-items: center; gap: 8px; font-size: 15px; color: var(--color-text)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg><strong>Private: only you can see this detail</strong><span style="color: var(--color-text-muted)">· signed in as Ana Sorensen</span></span>
+<div style="flex: 1"></div>
+<a href="Checkin.dc.html" style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); text-decoration: none; font-size: 16px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--state-normal)" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.5 2.5L16 9.5"></path></svg>Check-in done 08:12 · Edit</a>
+<a href="Ground.dc.html" style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; background: var(--color-surface-2); border: 1px solid var(--color-accent); border-radius: 8px; color: var(--color-text); text-decoration: none; font-size: 16px">Share with ground psychologist…</a>
+<button aria-label="Lock personal view" style="width: 44px; height: 44px; background: transparent; border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text-muted)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></button>
+</div>
+
+<!-- Summary -->
+<section aria-labelledby="sumh" style="background: var(--color-surface); border: 2px solid var(--state-alert); border-radius: 12px; padding: 20px; display: flex; gap: 24px; flex-wrap: wrap">
+<div style="flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<h2 id="sumh" style="margin: 0; font-size: 14px; color: var(--color-text-muted); font-weight: 400; text-transform: uppercase; letter-spacing: 0.06em">Your wellbeing · compared with your own usual</h2>
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+<span style="display: inline-flex; align-items: center; gap: 10px; height: 52px; padding: 0 18px; border: 2px solid var(--state-alert); background: var(--state-alert-tint); border-radius: 999px; color: var(--state-alert); font-size: 22px; font-weight: 700"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg>Needs support</span>
+<span style="font-family: var(--font-mono); font-size: 14px; padding: 4px 8px; border: 1px solid var(--color-text-muted); border-radius: 6px; color: var(--color-text-muted)">PROV.</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--color-text-faint); border: 1px dashed var(--color-text-faint); border-radius: 999px; padding: 2px 10px">SIMULATED</span>
+</div>
+<p style="margin: 0; font-size: 19px; line-height: 1.4">Several signals have stayed away from your usual for <strong>8 days</strong>, <strong>since Sat, Nov 7</strong>.</p>
+<div style="display: flex; gap: 24px; flex-wrap: wrap; font-size: 15px">
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="color: var(--color-text-faint); font-size: 14px">Since</span><strong class="num" style="font-size: 22px">Nov 7</strong></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="color: var(--color-text-faint); font-size: 14px">Sustained</span><strong class="num" style="font-size: 22px">8 days</strong></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="color: var(--color-text-faint); font-size: 14px">Trend</span><strong style="font-size: 22px; display: inline-flex; align-items: center; gap: 6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 7l10 10M17 9v8H9"></path></svg>Worsening</strong></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="color: var(--color-text-faint); font-size: 14px">Confidence</span><span style="display: inline-flex; align-items: center; gap: 8px; height: 30px"><span aria-hidden="true" style="display: inline-flex; gap: 3px"><span style="width: 10px; height: 18px; background: var(--color-text); border-radius: 2px"></span><span style="width: 10px; height: 18px; background: var(--color-text); border-radius: 2px"></span><span style="width: 10px; height: 18px; background: var(--color-text); border-radius: 2px"></span></span><strong style="font-size: 19px">High</strong></span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="color: var(--color-text-faint); font-size: 14px">Agreeing sources</span><span style="font-size: 15px">Check-in · Vision · Physiology · Social</span></div>
+</div>
+</div>
+<div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<div style="background: var(--color-surface-2); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+<strong style="font-size: 16px">What might help</strong>
+<ul style="margin: 0; padding-left: 20px; font-size: 15px; line-height: 1.5; color: var(--color-text)">
+<li>Your sleep has been shorter than usual. A wind-down routine before rest may help.</li>
+<li>You have spent less time with the crew this week. Consider joining the next shared meal.</li>
+<li>If you'd like, you can share this with the ground psychologist. Only you decide.</li>
+</ul>
+</div>
+<div role="note" style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--color-text-muted); padding: 0 4px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="flex: none; margin-top: 2px"><circle cx="12" cy="12" r="9"></circle><path d="M12 8h.01M11 12h1v5h1"></path></svg>
+<span>No watch data on Nov 11; sleep and activation are missing for that day.</span>
+</div>
+</div>
+</section>
+
+<!-- Indicators -->
+<section aria-labelledby="indh" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px">
+<h2 id="indh" style="margin: 0; font-size: 19px">Indicators</h2>
+<span style="font-size: 14px; color: var(--color-text-faint)">Green band = your usual range · dashed line = threshold z 1.5 (PROV.) · right = further from your usual</span>
+</div>
+<div style="display: grid; grid-template-columns: 120px 200px minmax(0, 1fr) 76px 230px 116px 44px; gap: 12px; align-items: center; font-size: 14px; color: var(--color-text-faint); padding: 0 12px">
+<span>Indicator</span><span>Status</span><span>Today vs. your baseline</span><span style="text-align: right">z</span><span>Sources</span><span>Origin</span><span></span>
+</div>
+
+<!-- Row template repeated: sleep -->
+<div style="display: grid; grid-template-columns: 120px 200px minmax(0, 1fr) 76px 230px 116px 44px; gap: 12px; align-items: center; min-height: 56px; padding: 0 12px; border-top: 1px solid var(--color-border)">
+<strong>Sleep</strong>
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 2px solid var(--state-stale); border-radius: 999px; color: var(--state-stale); font-size: 15px; justify-self: start"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M7 13c1.5-2 3-2 5 0s3.5 2 5 0"></path></svg>Changed vs. usual</span>
+<div style="position: relative; height: 12px; background: var(--color-surface-2); border-radius: 999px"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 58.3%; background: var(--range-zone); border-radius: 999px 0 0 999px"></div><div style="position: absolute; left: 58.3%; top: -6px; bottom: -6px; border-left: 2px dashed var(--color-text-muted)"></div><div style="position: absolute; left: 70%; top: -4px; width: 20px; height: 20px; margin-left: -10px; background: var(--state-stale); border: 2px solid var(--color-bg); box-sizing: border-box; border-radius: 50%"></div></div>
+<span class="num" style="font-family: var(--font-mono); text-align: right">+2.2</span>
+<span style="font-size: 14px; color: var(--color-text-muted)">Check-in · Physiology</span>
+<span style="font-size: 14px; color: var(--color-text-faint); border: 1px dashed var(--color-text-faint); border-radius: 999px; padding: 2px 10px; justify-self: start">SIMULATED</span>
+<button aria-label="Show sleep components" aria-expanded="false" style="width: 44px; height: 44px; background: transparent; border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text-muted)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+</div>
+
+<!-- fatigue -->
+<div style="display: grid; grid-template-columns: 120px 200px minmax(0, 1fr) 76px 230px 116px 44px; gap: 12px; align-items: center; min-height: 56px; padding: 0 12px; border-top: 1px solid var(--color-border)">
+<strong>Fatigue</strong>
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 2px solid var(--state-stale); border-radius: 999px; color: var(--state-stale); font-size: 15px; justify-self: start"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M7 13c1.5-2 3-2 5 0s3.5 2 5 0"></path></svg>Changed vs. usual</span>
+<div style="position: relative; height: 12px; background: var(--color-surface-2); border-radius: 999px"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 58.3%; background: var(--range-zone); border-radius: 999px 0 0 999px"></div><div style="position: absolute; left: 58.3%; top: -6px; bottom: -6px; border-left: 2px dashed var(--color-text-muted)"></div><div style="position: absolute; left: 75%; top: -4px; width: 20px; height: 20px; margin-left: -10px; background: var(--state-stale); border: 2px solid var(--color-bg); box-sizing: border-box; border-radius: 50%"></div></div>
+<span class="num" style="font-family: var(--font-mono); text-align: right">+2.5</span>
+<span style="font-size: 14px; color: var(--color-text-muted)">Vision · Check-in</span>
+<span style="font-size: 14px; color: var(--color-text-faint); border: 1px dashed var(--color-text-faint); border-radius: 999px; padding: 2px 10px; justify-self: start">SIMULATED</span>
+<button aria-label="Show fatigue components" aria-expanded="false" style="width: 44px; height: 44px; background: transparent; border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text-muted)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+</div>
+
+<!-- stress (expanded) -->
+<div style="border-top: 1px solid var(--color-border); background: var(--color-surface-2); border-radius: 8px">
+<div style="display: grid; grid-template-columns: 120px 200px minmax(0, 1fr) 76px 230px 116px 44px; gap: 12px; align-items: center; min-height: 56px; padding: 0 12px">
+<strong>Stress</strong>
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 2px solid var(--state-stale); border-radius: 999px; color: var(--state-stale); font-size: 15px; justify-self: start"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M7 13c1.5-2 3-2 5 0s3.5 2 5 0"></path></svg>Changed vs. usual</span>
+<div style="position: relative; height: 12px; background: var(--color-bg); border-radius: 999px"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 58.3%; background: var(--range-zone); border-radius: 999px 0 0 999px"></div><div style="position: absolute; left: 58.3%; top: -6px; bottom: -6px; border-left: 2px dashed var(--color-text-muted)"></div><div style="position: absolute; left: 78.3%; top: -4px; width: 20px; height: 20px; margin-left: -10px; background: var(--state-stale); border: 2px solid var(--color-bg); box-sizing: border-box; border-radius: 50%"></div></div>
+<span class="num" style="font-family: var(--font-mono); text-align: right">+2.7</span>
+<span style="font-size: 14px; color: var(--color-text-muted)">Physiology · Vision · Check-in</span>
+<span style="font-size: 14px; color: var(--color-text-faint); border: 1px dashed var(--color-text-faint); border-radius: 999px; padding: 2px 10px; justify-self: start">SIMULATED</span>
+<button aria-label="Hide stress components" aria-expanded="true" style="width: 44px; height: 44px; background: transparent; border: 1px solid var(--color-accent); border-radius: 8px; color: var(--color-text)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg></button>
+</div>
+<div style="padding: 4px 12px 16px 144px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 14px; color: var(--color-text-faint)">Deviating since Nov 7 · baseline built from 7 days, Oct 25 – Oct 31</span>
+<table style="width: 100%; border-collapse: collapse; font-size: 15px">
+<thead><tr style="color: var(--color-text-faint); font-size: 14px; text-align: left"><th style="font-weight: 400; padding: 6px 8px">Component</th><th style="font-weight: 400; padding: 6px 8px">Source</th><th style="font-weight: 400; padding: 6px 8px; text-align: right">Latest</th><th style="font-weight: 400; padding: 6px 8px; text-align: right">Your usual (median)</th><th style="font-weight: 400; padding: 6px 8px; text-align: right">z</th><th style="font-weight: 400; padding: 6px 8px">Day · origin</th></tr></thead>
+<tbody class="num">
+<tr style="border-top: 1px solid var(--color-border)"><td style="padding: 8px">HRV (RMSSD)</td><td style="padding: 8px; color: var(--color-text-muted)">Physiology</td><td style="padding: 8px; text-align: right; font-family: var(--font-mono)">31 ms</td><td style="padding: 8px; text-align: right; font-family: var(--font-mono); color: var(--color-text-muted)">44 ms</td><td style="padding: 8px; text-align: right; font-family: var(--font-mono)">+2.4</td><td style="padding: 8px; color: var(--color-text-faint)">Nov 14 · SIMULATED</td></tr>
+<tr style="border-top: 1px solid var(--color-border)"><td style="padding: 8px">Resting heart rate</td><td style="padding: 8px; color: var(--color-text-muted)">Physiology</td><td style="padding: 8px; text-align: right; font-family: var(--font-mono)">68 bpm</td><td style="padding: 8px; text-align: right; font-family: var(--font-mono); color: var(--color-text-muted)">61 bpm</td><td style="padding: 8px; text-align: right; font-family: var(--font-mono)">+2.0</td><td style="padding: 8px; color: var(--color-text-faint)">Nov 14 · SIMULATED</td></tr>
+<tr style="border-top: 1px solid var(--color-border)"><td style="padding: 8px">Facial tension</td><td style="padding: 8px; color: var(--color-text-muted)">Vision</td><td style="padding: 8px; text-align: right; font-family: var(--font-mono)">0.62</td><td style="padding: 8px; text-align: right; font-family: var(--font-mono); color: var(--color-text-muted)">0.41</td><td style="padding: 8px; text-align: right; font-family: var(--font-mono)">+2.9</td><td style="padding: 8px; color: var(--color-text-faint)">Nov 14 · SIMULATED</td></tr>
+<tr style="border-top: 1px solid var(--color-border)"><td style="padding: 8px">Self-reported stress</td><td style="padding: 8px; color: var(--color-text-muted)">Check-in</td><td style="padding: 8px; text-align: right; font-family: var(--font-mono)">3 / 4</td><td style="padding: 8px; text-align: right; font-family: var(--font-mono); color: var(--color-text-muted)">1 / 4</td><td style="padding: 8px; text-align: right; font-family: var(--font-mono)">+2.6</td><td style="padding: 8px; color: var(--color-text-faint)">Nov 14 · SIMULATED</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- activation ok -->
+<div style="display: grid; grid-template-columns: 120px 200px minmax(0, 1fr) 76px 230px 116px 44px; gap: 12px; align-items: center; min-height: 56px; padding: 0 12px; border-top: 1px solid var(--color-border)">
+<strong>Activation</strong>
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px solid var(--color-border); border-radius: 999px; color: var(--state-normal); font-size: 15px; justify-self: start"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.5 2.5L16 9.5"></path></svg>Within usual</span>
+<div style="position: relative; height: 12px; background: var(--color-surface-2); border-radius: 999px"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 58.3%; background: var(--range-zone); border-radius: 999px 0 0 999px"></div><div style="position: absolute; left: 58.3%; top: -6px; bottom: -6px; border-left: 2px dashed var(--color-text-muted)"></div><div style="position: absolute; left: 46.7%; top: -4px; width: 20px; height: 20px; margin-left: -10px; background: var(--color-text); border: 2px solid var(--color-bg); box-sizing: border-box; border-radius: 50%"></div></div>
+<span class="num" style="font-family: var(--font-mono); text-align: right">+0.8</span>
+<span style="font-size: 14px; color: var(--color-text-muted)">Physiology</span>
+<span style="font-size: 14px; color: var(--color-text-faint); border: 1px dashed var(--color-text-faint); border-radius: 999px; padding: 2px 10px; justify-self: start">SIMULATED</span>
+<button aria-label="Show activation components" aria-expanded="false" style="width: 44px; height: 44px; background: transparent; border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text-muted)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+</div>
+
+<!-- social -->
+<div style="display: grid; grid-template-columns: 120px 200px minmax(0, 1fr) 76px 230px 116px 44px; gap: 12px; align-items: center; min-height: 56px; padding: 0 12px; border-top: 1px solid var(--color-border)">
+<strong>Social</strong>
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 2px solid var(--state-stale); border-radius: 999px; color: var(--state-stale); font-size: 15px; justify-self: start"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M7 13c1.5-2 3-2 5 0s3.5 2 5 0"></path></svg>Changed vs. usual</span>
+<div style="position: relative; height: 12px; background: var(--color-surface-2); border-radius: 999px"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 58.3%; background: var(--range-zone); border-radius: 999px 0 0 999px"></div><div style="position: absolute; left: 58.3%; top: -6px; bottom: -6px; border-left: 2px dashed var(--color-text-muted)"></div><div style="position: absolute; left: 65%; top: -4px; width: 20px; height: 20px; margin-left: -10px; background: var(--state-stale); border: 2px solid var(--color-bg); box-sizing: border-box; border-radius: 50%"></div></div>
+<span class="num" style="font-family: var(--font-mono); text-align: right">+1.9</span>
+<span style="font-size: 14px; color: var(--color-text-muted)">Social · Check-in</span>
+<span style="font-size: 14px; color: var(--color-text-faint); border: 1px dashed var(--color-text-faint); border-radius: 999px; padding: 2px 10px; justify-self: start">SIMULATED</span>
+<button aria-label="Show social components" aria-expanded="false" style="width: 44px; height: 44px; background: transparent; border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text-muted)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+</div>
+
+<!-- mood -->
+<div style="display: grid; grid-template-columns: 120px 200px minmax(0, 1fr) 76px 230px 116px 44px; gap: 12px; align-items: center; min-height: 56px; padding: 0 12px; border-top: 1px solid var(--color-border)">
+<strong>Mood</strong>
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 2px solid var(--state-stale); border-radius: 999px; color: var(--state-stale); font-size: 15px; justify-self: start"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M7 13c1.5-2 3-2 5 0s3.5 2 5 0"></path></svg>Changed vs. usual</span>
+<div style="position: relative; height: 12px; background: var(--color-surface-2); border-radius: 999px"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 58.3%; background: var(--range-zone); border-radius: 999px 0 0 999px"></div><div style="position: absolute; left: 58.3%; top: -6px; bottom: -6px; border-left: 2px dashed var(--color-text-muted)"></div><div style="position: absolute; left: 61.7%; top: -4px; width: 20px; height: 20px; margin-left: -10px; background: var(--state-stale); border: 2px solid var(--color-bg); box-sizing: border-box; border-radius: 50%"></div></div>
+<span class="num" style="font-family: var(--font-mono); text-align: right">+1.7</span>
+<span style="font-size: 14px; color: var(--color-text-muted)">Check-in</span>
+<span style="font-size: 14px; color: var(--color-text-faint); border: 1px dashed var(--color-text-faint); border-radius: 999px; padding: 2px 10px; justify-self: start">SIMULATED</span>
+<button aria-label="Show mood components" aria-expanded="false" style="width: 44px; height: 44px; background: transparent; border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text-muted)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+</div>
+</section>
+
+<!-- Timeline -->
+<section aria-labelledby="tlh" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap">
+<h2 id="tlh" style="margin: 0; font-size: 19px">Last 30 days</h2>
+<span style="font-size: 14px; color: var(--color-text-faint)">Bar height = distance from your usual (z, 0–4). Solid amber bar = beyond threshold. Dotted cell = no data.</span>
+<div style="flex: 1"></div>
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--color-text-muted)"><span class="sim" style="width: 18px; height: 14px; border: 1px solid var(--color-text-faint)"></span>S = simulated</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--color-accent)"><span style="width: 18px; height: 14px; background: var(--color-accent)"></span>L = live</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--color-text-muted)"><span style="width: 18px; height: 14px; border: 2px dotted var(--state-nodata); box-sizing: border-box"></span>No data</span>
+</div>
+
+<div style="display: flex; gap: 0; overflow-x: auto">
+<!-- Row labels -->
+<div style="flex: none; width: 120px; display: flex; flex-direction: column; font-size: 14px; color: var(--color-text-muted)">
+<div style="height: 30px"></div>
+<div style="height: 24px; display: flex; align-items: center">Date</div>
+<div style="height: 30px; display: flex; align-items: center">Origin</div>
+<div style="height: 36px; display: flex; align-items: center; color: var(--color-text); font-weight: 700">Level</div>
+<div style="height: 40px; display: flex; align-items: center">Sleep</div>
+<div style="height: 40px; display: flex; align-items: center">Fatigue</div>
+<div style="height: 40px; display: flex; align-items: center">Stress</div>
+<div style="height: 40px; display: flex; align-items: center">Activation</div>
+<div style="height: 40px; display: flex; align-items: center">Social</div>
+<div style="height: 40px; display: flex; align-items: center">Mood</div>
+</div>
+
+<sc-for list="{{days}}" as="d" hint-placeholder-count="30">
+<div style="{{d.colStyle}}">
+<div style="height: 30px; position: relative">
+<sc-if value="{{d.isOnset}}" hint-placeholder-val="{{false}}">
+<span style="position: absolute; left: -2px; top: 2px; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: var(--color-text); color: var(--color-bg); font-size: 14px; font-weight: 700; border-radius: 0 6px 6px 0">Since Nov 7</span>
+</sc-if>
+<sc-if value="{{d.isToday}}" hint-placeholder-val="{{false}}">
+<span style="position: absolute; right: 0; top: 4px; font-size: 14px; color: var(--color-text)">Today</span>
+</sc-if>
+</div>
+<div class="num" style="height: 24px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 14px; color: var(--color-text-faint)">{{d.label}}</div>
+<div style="height: 30px; padding: 2px; box-sizing: border-box">
+<sc-if value="{{d.sim}}" hint-placeholder-val="{{true}}"><div class="sim" style="height: 100%; border: 1px solid var(--color-text-faint); box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--color-text)">S</div></sc-if>
+<sc-if value="{{d.none}}" hint-placeholder-val="{{false}}"><div style="height: 100%; border: 2px dotted var(--state-nodata); box-sizing: border-box"></div></sc-if>
+</div>
+<div style="height: 36px; display: flex; align-items: center; justify-content: center">
+<sc-if value="{{d.lvOk}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--state-normal)" stroke-width="2" role="img" aria-label="Doing well"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.5 2.5L16 9.5"></path></svg></sc-if>
+<sc-if value="{{d.lvAtt}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--state-stale)" stroke-width="2" role="img" aria-label="Attention"><circle cx="12" cy="12" r="9"></circle><path d="M7 13c1.5-2 3-2 5 0s3.5 2 5 0"></path></svg></sc-if>
+<sc-if value="{{d.lvSup}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--state-alert)" stroke-width="2" role="img" aria-label="Needs support"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg></sc-if>
+<sc-if value="{{d.lvCal}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--state-norange)" stroke-width="2" role="img" aria-label="Calibrating"><circle cx="12" cy="12" r="9" stroke-dasharray="2 3"></circle><circle cx="12" cy="12" r="3"></circle></svg></sc-if>
+<sc-if value="{{d.none}}" hint-placeholder-val="{{false}}"><span style="color: var(--state-nodata); font-family: var(--font-mono); font-size: 14px">---</span></sc-if>
+</div>
+<sc-for list="{{d.ind}}" as="c" hint-placeholder-count="6">
+<div style="height: 40px; padding: 2px; box-sizing: border-box">
+<div style="position: relative; height: 100%; background: var(--color-bg); display: flex; align-items: flex-end; justify-content: center">
+<sc-if value="{{c.isNull}}" hint-placeholder-val="{{false}}"><div style="position: absolute; inset: 0; border: 2px dotted var(--state-nodata)"></div></sc-if>
+<sc-if value="{{c.hasZ}}" hint-placeholder-val="{{true}}"><div style="{{c.barStyle}}"></div></sc-if>
+<div style="position: absolute; left: 0; right: 0; bottom: 13px; border-top: 1px dashed var(--color-text-faint)"></div>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+<p style="margin: 0; font-size: 14px; color: var(--color-text-faint)">Oct 16–24: before monitoring started. Oct 25–31: building your personal baseline. Threshold z 1.5 and 3 sustained days are provisional design values.</p>
+</section>
+
+</main>
+
+<footer style="height: 40px; border-top: 1px solid var(--color-border); background: var(--color-surface); display: flex; align-items: center; gap: 20px; padding: 0 20px; font-size: 14px; color: var(--color-text-muted); white-space: nowrap; overflow-x: auto">
+<span style="color: var(--state-normal)">Doing well</span><span style="color: var(--state-stale)">Attention</span><span style="color: var(--state-alert)">Needs support</span><span style="color: var(--state-norange)">Calibrating</span><span style="color: var(--state-stale)">No recent data</span><span style="color: var(--state-nodata)">No data</span><span style="flex: 1"></span><span>LIVE · SIMULATED · MIXED · PROV. = provisional</span>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1780}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var days = [];
+    var base = [2.0, 2.3, 2.4, 0.6, 1.8, 1.6];
+    for (var i = 0; i < 30; i++) {
+      var dt = new Date(2026, 9, 16 + i);
+      var md = i - 8;
+      var none = md < 1;
+      var lv = none ? 'none' : md <= 7 ? 'cal' : md <= 13 ? 'ok' : md <= 15 ? 'att' : 'sup';
+      var ind = [];
+      for (var k = 0; k < 6; k++) {
+        var z = null;
+        if (md >= 8) {
+          var noise = ((md * 37 + k * 11) % 10) / 10 * 0.8;
+          z = md >= 14 ? base[k] + (md - 14) * 0.06 + noise * 0.4 - 0.2 : noise;
+          if (md === 18 && (k === 0 || k === 3)) z = null;
+        }
+        var over = z !== null && z >= 1.5;
+        var h = z === null ? 0 : Math.max(3, Math.min(z, 4) / 4 * 34);
+        ind.push({
+          isNull: md >= 8 && z === null,
+          hasZ: z !== null,
+          barStyle: 'width: 60%; height: ' + h + 'px; box-sizing: border-box; ' + (over ? 'background: var(--state-stale);' : 'background: var(--range-zone); border: 1px solid var(--state-normal);')
+        });
+      }
+      var isOnset = i === 22;
+      days.push({
+        label: dt.getDate(),
+        none: none, sim: !none,
+        lvOk: lv === 'ok', lvAtt: lv === 'att', lvSup: lv === 'sup', lvCal: lv === 'cal',
+        isOnset: isOnset, isToday: i === 29,
+        ind: ind,
+        colStyle: 'flex: 1 0 34px; min-width: 34px; display: flex; flex-direction: column; box-sizing: border-box; ' + (isOnset ? 'border-left: 2px solid var(--color-text);' : i === 29 ? 'background: var(--color-surface-2);' : '')
+      });
+    }
+    return { days: days };
+  }
+}
+</script>
+</body>
+</html>

@@ -20,3 +20,5 @@ class Settings(BaseSettings):
 
     db_path: Path = Path("data/ground.db")
     cors_origins: list[str] = DEFAULT_CORS_ORIGINS
+    # DELETE /demo/incidents for the outage demo (docs/demo-outage.md). Off by default.
+    demo_controls_enabled: bool = False

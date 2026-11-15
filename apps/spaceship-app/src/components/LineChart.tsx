@@ -1,7 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import type { ReadingStatus } from "../api/types";
 import { formatNumber, formatUtcDay, formatUtcTime } from "../lib/format";
-import { linear, niceScale, splitGaps, stepDecimals, type Point } from "./chartScale";
+import { dailyMean, linear, niceScale, splitGaps, stepDecimals, type Point } from "./chartScale";
 
 interface Props {
   points: Point[];
@@ -84,7 +84,10 @@ export function LineChart({
   const clipId = `lc${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const X1 = W - RIGHT;
   const Y0 = H - 30;
-  const visible = points.filter((p) => p.t >= start && p.t <= end);
+  const span = end - start;
+  const inWindow = points.filter((p) => p.t >= start && p.t <= end);
+  // Day-scale windows: live samples every few minutes would pile up at the right edge as a smear.
+  const visible = span > 2 * DAY ? dailyMean(inWindow) : inWindow;
   const scale = niceScale(
     visible.map((p) => p.v),
     [normalMin, normalMax, baseline],
@@ -94,7 +97,6 @@ export function LineChart({
   const decimals = stepDecimals(scale.step);
   const x = linear(start, end, X0, X1);
   const y = linear(scale.lo, scale.hi, Y0, Y1);
-  const span = end - start;
   const xTicks = Array.from({ length: X_TICKS }, (_, i) => start + (span * i) / (X_TICKS - 1));
   const tickText = (t: number) => (span <= 2 * DAY ? formatUtcTime(t) : formatUtcDay(t));
   const last = visible[visible.length - 1];
@@ -131,14 +133,7 @@ export function LineChart({
       {visible.length > 0 ? <path className="linechart__line" d={linePath} /> : null}
       {showPoints
         ? visible.map((p, i) => (
-            <rect
-              key={`${p.t}-${i}`}
-              className="linechart__point"
-              x={x(p.t) - 1.5}
-              y={y(p.v) - 1.5}
-              width={3}
-              height={3}
-            />
+            <circle key={`${p.t}-${i}`} className="linechart__point" cx={x(p.t)} cy={y(p.v)} r={2.5} />
           ))
         : null}
     </>

@@ -1,5 +1,7 @@
 import type {
+  ActionStep,
   AssistantRequest,
+  AssistantResponse,
   CandidateStatus,
   ReportedSymptom,
   SymptomCode,
@@ -7,7 +9,7 @@ import type {
   Urgency,
 } from "../api/types";
 
-/** English translation of LABELS in the onboard medical triage (the service itself answers in Spanish). */
+/** Same labels as LABELS in the onboard medical triage (the service answers in English). */
 export const SYMPTOM_LABELS: Record<SymptomCode, string> = {
   shortness_of_breath: "Shortness of breath",
   abnormal_breathing: "Abnormal breathing",
@@ -75,8 +77,8 @@ export const SYMPTOM_STATUS_LABELS: Record<SymptomStatus, string> = {
 };
 
 export const URGENCY_LABELS: Record<Urgency, string> = {
-  immediate: "Immediate onboard alert",
-  review_required: "Ask the crew medical officer for an assessment",
+  immediate: "Emergency: act now",
+  review_required: "Act now and keep monitoring",
   undetermined: "A decisive piece of data is missing",
   informational: "General information",
 };
@@ -86,6 +88,23 @@ export const CAUSE_STATUS_LABELS: Record<CandidateStatus, string> = {
   rule_out: "Needs to be ruled out",
   insufficient_evidence: "Insufficient evidence",
 };
+
+export const STEP_GROUPS: { who: ActionStep["who"]; label: string }[] = [
+  { who: "self", label: "You can do alone" },
+  { who: "crew", label: "Needs another crew member" },
+  { who: "equipment", label: "Needs equipment" },
+];
+
+/**
+ * The reply text minus what the card already shows above it: the leading action and the
+ * clarifying question. Empty when nothing is left, so each is rendered once.
+ */
+export function explanation(r: Pick<AssistantResponse, "reply" | "action" | "clarifying_question">): string {
+  let text = r.reply;
+  if (r.action && text.startsWith(r.action)) text = text.slice(r.action.length);
+  if (r.clarifying_question) text = text.replace(r.clarifying_question, "");
+  return text.trim();
+}
 
 const MAX_MESSAGE = 4000;
 const MAX_SYMPTOMS = 40;

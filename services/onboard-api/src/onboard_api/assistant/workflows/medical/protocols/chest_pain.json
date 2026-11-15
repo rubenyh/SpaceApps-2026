@@ -1,23 +1,56 @@
 {
   "id": "chest_pain",
-  "version": "1.0.0",
-  "title": "Dolor torácico",
+  "version": "2.1.0",
+  "title": "Chest pain",
   "priority": 70,
-  "summary": "Dolor, presión o molestia torácica nueva o inexplicada. Si el patrón es preocupante (presión, dolor intenso, persistente o que reaparece, o acompañado de falta de aire, sudor frío o mareo), el síndrome coronario agudo es una causa prioritaria que requiere descarte; eso no significa que sea la causa más probable. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "New or unexplained chest pain, pressure or discomfort. If the pattern is concerning (pressure, severe, persistent or recurring pain, or pain with shortness of breath, cold sweat or dizziness), acute coronary syndrome is a priority cause that must be ruled out; this does not mean it is the most likely cause. Informational support only: not a diagnosis or a treatment decision. No clinical personnel on board: the steps are first aid and monitoring; treatment depends on mission procedures.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo y seguir la ficha de dolor torácico de la misión.",
+      "text": "Possible cardiac emergency: call for help now; do not wait to see if the symptoms go away.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
+        "crew",
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Call for emergency help now using the mission's means (ship alarm, crew, mission control if the link is up). Do not wait to see if it gets better.",
+          "source_ids": [
+            "cdc_heart_attack"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Crew member trained in CPR or defibrillator use: get it ready and use it if needed until more help arrives.",
+          "source_ids": [
+            "cdc_heart_attack"
+          ]
+        }
+      ],
+      "mission_procedure": "Mission chest pain procedure",
+      "missing_guidance": [
+        "The card's sources do not specify medication for chest pain: it depends on the mission procedure."
       ]
     },
     "new_pain": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo por dolor torácico nuevo. Avisar de inmediato si persiste, reaparece o se acompaña de falta de aire, sudor frío o mareo.",
+      "text": "New chest pain without the warning pattern: monitor and treat it as an emergency if it changes.",
       "notify": [
-        "responsable médico a bordo"
+        "mission control (if the link is up)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "If the pain persists, comes back or comes with shortness of breath, cold sweat, dizziness, or pain in the jaw, neck, back or arms, treat it as an emergency.",
+          "source_ids": [
+            "cdc_heart_attack"
+          ]
+        }
+      ],
+      "mission_procedure": "Mission chest pain procedure",
+      "missing_guidance": [
+        "The card's sources do not give self-care steps for chest pain without warning signs."
       ]
     }
   },
@@ -25,8 +58,8 @@
   "candidates": [
     {
       "id": "acs",
-      "label": "Síndrome coronario agudo (requiere descarte)",
-      "minimum_evidence": "Dolor o presión torácica con patrón preocupante: persistente, recurrente, intenso o con falta de aire, sudor frío o mareo.",
+      "label": "Acute coronary syndrome (must be ruled out)",
+      "minimum_evidence": "Chest pain or pressure with a concerning pattern: persistent, recurring, severe or with shortness of breath, cold sweat or dizziness.",
       "source_ids": [
         "cdc_heart_attack",
         "medlineplus_chest_pain"
@@ -37,13 +70,13 @@
     {
       "id": "cdc_heart_attack",
       "title": "CDC: About Heart Attack and Symptoms",
-      "section": "Síntomas de infarto",
+      "section": "Heart attack symptoms",
       "url": "https://www.cdc.gov/heart-disease/about/heart-attack.html"
     },
     {
       "id": "medlineplus_chest_pain",
       "title": "MedlinePlus: Chest Pain",
-      "section": "Resumen",
+      "section": "Summary",
       "url": "https://medlineplus.gov/chestpain.html"
     }
   ],

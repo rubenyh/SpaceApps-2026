@@ -64,19 +64,38 @@ def test_catalog_has_16_versioned_cards():
     text = plan.read_text(encoding="utf-8")
     assert len(CATALOG) == 16
     for card in CATALOG.values():
-        assert card.version == "1.0.0"
-        assert "Soporte informativo" in card.summary
+        assert card.version == "2.1.0"
+        assert "Informational support" in card.summary
         assert card.guide_topics
         for source in card.sources:
             assert source.url in text, (card.id, source.url)
         for cand in card.candidates:
             assert set(cand.source_ids) <= {s.id for s in card.sources}
         for question in card.questions.values():
-            assert question.startswith("¿")
+            assert question.endswith("?") or "? " in question
     assert CATALOG["loss_of_consciousness_or_seizure"].priority < CATALOG["breathing_difficulty"].priority
     raw = json.loads((Path(protocols.__file__).parent / "muscle_symptoms.json").read_text("utf-8"))
     assert raw["actions"]["suspected_rhabdo"]["urgency"] == "review_required"
-    assert "valoración médica inmediata" in raw["actions"]["suspected_rhabdo"]["text"]
+    assert "stop exertion" in raw["actions"]["suspected_rhabdo"]["text"]
+    assert any("creatine kinase" in m for m in raw["actions"]["suspected_rhabdo"]["missing_guidance"])
+
+
+def test_cards_give_cited_steps_without_an_onboard_clinician():
+    """v2: no clinician on board. Every action has cited steps; emergencies name a procedure."""
+    for card in CATALOG.values():
+        raw = (Path(protocols.__file__).parent / f"{card.id}.json").read_text("utf-8").lower()
+        assert "responsable médico" not in raw and "médico a bordo" not in raw, card.id
+        ids = {s.id for s in card.sources}
+        for key, action in card.actions.items():
+            assert action.steps, (card.id, key)
+            for step in action.steps:
+                assert set(step.source_ids) <= ids, (card.id, key, step.source_ids)
+            if action.urgency == "immediate":
+                assert action.mission_procedure, (card.id, key)
+    # The alone astronaut gets something to do for breathing without anyone else.
+    br = CATALOG["breathing_difficulty"].actions
+    assert any(s.who == "self" for s in br["new_no_red_flags"].steps)
+    assert {s.who for s in br["immediate"].steps} >= {"self", "crew", "equipment"}
 
 
 # --- interpret ---
@@ -265,9 +284,9 @@ def test_simultaneous_alarms_keep_all_and_dedupe():
     d = decide(hits, CATALOG, None)
     assert d.protocol_id == "loss_of_consciousness_or_seizure"
     assert d.additional_protocol_ids == ["breathing_difficulty", "cabin_environment_alert"]
-    assert len(d.action.split("Avisar de inmediato al responsable médico a bordo y a la tripulación")) == 2
-    assert d.notify == ["responsable médico a bordo", "tripulación"]
-    assert any("tipo humo" in f.detail and "REPORTADA" in f.detail for f in d.findings)
+    assert d.action.lower().count("emergency") >= 2  # one action per card, deduped
+    assert d.notify == ["crew", "mission control (if the link is up)"]
+    assert any("type smoke" in f.detail and "REPORTED" in f.detail for f in d.findings)
     assert d.summary.startswith(CATALOG["loss_of_consciousness_or_seizure"].actions["unresponsive"].text)
     assert d.clarifying_question is None
 
@@ -280,8 +299,8 @@ def test_events_provenance_and_targeting():
     assert evaluate_alarms(interp, [co2], "luis")[0].action_key == "confirmed_event"
     sim = co2.model_copy(update={"type": "radiation", "provenance": "simulated", "astronaut_ids": []})
     d = decide(evaluate_alarms(interp, [sim], "ana"), CATALOG, None)
-    assert d.protocol_id == "radiation_alert" and "SIMULADO" in d.action
-    assert any("SIMULADO" in f.detail and f.source == "event:e1" for f in d.findings)
+    assert d.protocol_id == "radiation_alert" and "SIMULATED" in d.action
+    assert any("SIMULATED" in f.detail and f.source == "event:e1" for f in d.findings)
     assert d.possible_causes == []
 
 
@@ -301,14 +320,14 @@ def test_urine_reading_described_not_interpreted():
                               "recorded_at": "2026-11-14T11:00:00Z", "quality": "good", "source": "manual"}])
     assert d.protocol_id == "urinary_symptoms"
     [reading] = [f for f in d.findings if f.kind == "reading"]
-    assert "no indica sangre" in reading.detail and reading.source == "sqlite:urine_ph"
+    assert "does not indicate blood" in reading.detail and reading.source == "sqlite:urine_ph"
     assert [c.id for c in d.possible_causes] == ["bladder_infection"]
 
 
 def test_fever_flank_kidney_infection():
     _, d = run({"message": "Tengo fiebre y dolor en el costado", "astronaut_id": "ana"})
     assert d.urgency == "review_required"
-    assert "pronta" in d.action
+    assert "urinary_symptoms.prompt_review" in [r.rule_id for r in d.matched_rules]
     causes = {c.id: c.status for c in d.possible_causes}
     assert causes["kidney_infection"] == "compatible"
     assert d.additional_protocol_ids == ["fever_or_respiratory_illness"]
@@ -339,13 +358,13 @@ def test_spo2_suspect_asks_one_question_and_reports_staleness():
     assert d.clarifying_question == CATALOG["breathing_difficulty"].questions["symptoms_and_repeat"]
     spo2 = next(f for f in d.findings if f.source == "sqlite:spo2")
     assert "88 %" in spo2.detail and "2026-11-14T11:59:00Z" in spo2.detail and "suspect" in spo2.detail
-    assert "hallazgo, no causa" in spo2.detail
+    assert "finding, not a cause" in spo2.detail
     assert any(f.kind == "data_gap" and f.source == "sqlite:heart_rate" for f in d.findings)
     assert d.possible_causes == []
     _, d = run({"message": "¿Está bien mi saturación?", "astronaut_id": "ana"},
                readings=[{"kind": "spo2", "value": 97, "unit": "%", "recorded_at": "2026-11-14T11:50:00Z",
                           "quality": "good", "source": "manual"}])
-    assert "VIEJA" in next(f for f in d.findings if f.source == "sqlite:spo2").detail
+    assert "OLD" in next(f for f in d.findings if f.source == "sqlite:spo2").detail
 
 
 def test_radiation_question_with_urine_only():
@@ -355,18 +374,19 @@ def test_radiation_question_with_urine_only():
     assert route == "assessment" and d.urgency == "informational"
     assert d.possible_causes == []
     gaps = [f.detail for f in d.findings if f.kind == "data_gap"]
-    assert any("dosimetría" in g for g in gaps)
-    assert any("no aporta una estimación de exposición" in f.detail for f in d.findings if f.kind == "reading")
+    assert any("dosimetry" in g for g in gaps)
+    assert any("does not provide an exposure estimate" in f.detail for f in d.findings if f.kind == "reading")
 
 
 def test_decide_sources_and_rules():
     _, d = run({"message": "Tengo fiebre y tos", "astronaut_id": "ana"})
     assert [s.id for s in d.protocol_sources] == [
-        "fever_or_respiratory_illness@1.0.0#medlineplus_fever",
-        "fever_or_respiratory_illness@1.0.0#cdc_respiratory_viruses",
+        "fever_or_respiratory_illness@2.1.0#medlineplus_fever",
+        "fever_or_respiratory_illness@2.1.0#cdc_respiratory_viruses",
+        "fever_or_respiratory_illness@2.1.0#medlineplus_breathing_first_aid",
     ]
     assert all(s.kind == "protocol" for s in d.protocol_sources)
-    assert d.matched_rules[0].protocol_version == "1.0.0"
+    assert d.matched_rules[0].protocol_version == "2.1.0"
     assert d.clarifying_question is None
     assert d.summary.index(d.action) == 0
     assert decide([], CATALOG, None).protocol_id is None
