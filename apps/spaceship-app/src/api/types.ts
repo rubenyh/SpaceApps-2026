@@ -128,9 +128,10 @@ export interface AstronautStatus {
 // --- Assistant ---
 
 /**
- * immediate: alert on board now. review_required: ask the crew medical officer
- * for a review (priority is stated in `action`). undetermined: a decisive datum
- * is missing. informational: general information only.
+ * No clinician is on board and the ground link may be down. immediate: emergency,
+ * act now with the steps and the mission emergency procedure. review_required: act
+ * with the steps and keep monitoring. undetermined: a decisive datum is missing.
+ * informational: general information only.
  */
 export type Urgency = "immediate" | "review_required" | "undetermined" | "informational";
 export type SymptomStatus = "present" | "absent" | "unknown";
@@ -287,6 +288,26 @@ export interface PossibleCause {
   source_ids: string[];
 }
 
+/** One cited checklist step. self: one awake astronaut alone; crew: needs another crew member; equipment: needs a device or kit. */
+export interface ActionStep {
+  text: string;
+  who: "self" | "crew" | "equipment";
+  /** GuideSource ids in `sources`. */
+  source_ids: string[];
+}
+
+/** Mission procedure an action points to. loaded=false: its text is not in the assistant. */
+export interface MissionProcedure {
+  title: string;
+  loaded: boolean;
+}
+
+/** Deterministic case report to copy. Nothing transmits it. */
+export interface CaseReport {
+  text: string;
+  transmission: "not_sent";
+}
+
 /** Same shape for every workflow. New workflows add a `workflow` value. */
 export interface AssistantResponse {
   reply: string;
@@ -297,8 +318,14 @@ export interface AssistantResponse {
   disclaimer: string | null;
   urgency: Urgency | null;
   action: string | null;
-  /** Who to notify, e.g. "crew medical officer". Nothing is transmitted. */
+  /** Who to tell, e.g. "tripulación". Nothing is transmitted. */
   notify: string[];
+  /** Cited checklist of the action, in order. Optional for older servers. */
+  steps?: ActionStep[];
+  mission_procedures?: MissionProcedure[];
+  /** Guidance the cards cannot give, stated explicitly. */
+  missing_guidance?: string[];
+  report?: CaseReport | null;
   protocol_id: string | null;
   additional_protocol_ids: string[];
   matched_rules: MatchedRule[];

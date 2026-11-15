@@ -126,7 +126,7 @@ def test_assessment_timeline_and_crew_after_a_derailment(wb_client: TestClient) 
     assert (assessment["simulated_days"], assessment["live_days"], assessment["mixed_days"]) == (14, 0, 0)
     assert assessment["latest_origin"] == "simulated"
     assert assessment["provisional"] is True
-    assert "Días con datos: 0 en vivo, 14 simulados, 0 mixtos (en vivo + simulados)." in assessment["data_notices"]
+    assert "Days with data: 0 live, 14 simulated, 0 mixed (live + simulated)." in assessment["data_notices"]
 
     timeline = wb_client.get("/astronauts/ast-01/wellbeing/timeline?days=14").json()
     levels = [d["level"] for d in timeline["days"]]
@@ -157,7 +157,7 @@ def test_onboard_heart_rate_is_read_only_input(
     stress = next(i for i in body["indicators"] if i["kind"] == "stress")
     hr = next(c for c in stress["components"] if c["component"] == "onboard.heart_rate_low")
     assert hr["latest_value"] == 60
-    assert any("calidad dudosa" in n for n in body["data_notices"])
+    assert any("low-quality data point(s)" in n for n in body["data_notices"])
 
 
 def test_missing_onboard_db_is_503_and_not_created(

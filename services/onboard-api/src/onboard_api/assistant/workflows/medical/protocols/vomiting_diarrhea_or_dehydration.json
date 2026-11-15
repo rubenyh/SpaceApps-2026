@@ -1,37 +1,98 @@
 {
   "id": "vomiting_diarrhea_or_dehydration",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Vómitos, diarrea o deshidratación",
   "priority": 140,
-  "summary": "Vómitos, diarrea, pérdidas de líquidos o baja ingesta. La deshidratación se considera según el contexto y un cuadro gastrointestinal según los síntomas. Una lectura urinaria aislada (color, pH, salinidad) no cuantifica la hidratación. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Vómitos, diarrea, pérdidas de líquidos o baja ingesta. La deshidratación se considera según el contexto y un cuadro gastrointestinal según los síntomas. Una lectura urinaria aislada (color, pH, salinidad) no cuantifica la hidratación. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo: vómitos o diarrea con confusión nueva, pérdida de conciencia o sangre en el vómito.",
+      "text": "Vómitos o diarrea con confusión nueva, pérdida de conciencia o sangre en el vómito: emergencia.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "source_ids": [
+            "medlineplus_dehydration"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de emergencia médica de la misión"
     },
     "prompt_review": {
       "urgency": "review_required",
-      "text": "Pedir valoración pronta al responsable médico a bordo: no retiene líquidos, orina poco o los síntomas persisten.",
+      "text": "No retienes líquidos, orinas poco o los síntomas persisten: rehidrátate con cuidado y vigila de cerca.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Toma sorbos pequeños de agua con frecuencia.",
+          "source_ids": [
+            "medlineplus_dehydration"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Si hay solución de rehidratación oral o bebida con electrolitos en el botiquín, úsala.",
+          "source_ids": [
+            "medlineplus_dehydration"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Si aparecen confusión, desmayo, falta de orina, pulso rápido o respiración rápida, trátalo como emergencia.",
+          "source_ids": [
+            "medlineplus_dehydration"
+          ]
+        }
+      ],
+      "missing_guidance": [
+        "Antieméticos y líquidos intravenosos: dependen del procedimiento de la misión (no cargado)."
       ]
     },
     "review": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo y vigilar si tolera líquidos y cuánto orina.",
+      "text": "Vómitos o diarrea sin señales de alarma: bebe y vigila si toleras líquidos y cuánto orinas.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Bebe más líquidos; si te cuesta retenerlos, a sorbos pequeños.",
+          "source_ids": [
+            "medlineplus_dehydration"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Si aparecen confusión, desmayo, falta de orina, pulso rápido o respiración rápida, trátalo como emergencia.",
+          "source_ids": [
+            "medlineplus_dehydration"
+          ]
+        }
       ]
     },
     "fluids_check": {
       "urgency": "undetermined",
-      "text": "Falta saber si tolera líquidos y cuánto ha orinado para decidir la prioridad de la valoración.",
+      "text": "Falta saber si toleras líquidos y cuánto has orinado para decidir la prioridad.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Comprueba si retienes líquidos y si has orinado en las últimas horas.",
+          "source_ids": [
+            "medlineplus_dehydration"
+          ]
+        }
       ]
     }
   },

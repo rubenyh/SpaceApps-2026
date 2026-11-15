@@ -13,6 +13,8 @@ uv sync --locked
 uv run fastapi dev            # puerto 8000; GET / -> {"status":"ok"}
 ```
 
+Para el demo con Docker Compose (API, Ollama, preparación de modelos e índice, y simulador), vea [Run the demo](../../README.md#run-the-demo-docker-compose--tauri) en el README raíz. Esta guía describe la ejecución nativa.
+
 Al arrancar se crea `data/onboard.db` si no existe y se aplican las migraciones pendientes (ver [Base de datos](#base-de-datos)). Ollama y ChromaDB se usan solo cuando una petición los necesita.
 
 ## Base de datos
@@ -58,6 +60,12 @@ PYTHONUTF8=1 uv run python -m onboard_api.assistant.ingest [--xml PATH] [--dry-r
 - Sin `--xml`, descarga el XML más reciente de Health Topics de medlineplus.gov a `data/corpus_cache/`. Es el único paso que usa la red.
 - `--xml PATH` reutiliza un XML local, p. ej. `data/corpus_cache/mplus_topics_2026-11-13.xml`.
 - `--dry-run` solo parsea y trocea, sin Ollama ni ChromaDB.
+
+`scripts/prepare_demo.py` hace la preparación completa en un paso: espera a Ollama, descarga los modelos que falten y ejecuta la ingesta solo si `ingest-stamp.txt` en `ONBOARD_CHROMA_PATH` no coincide con el corpus y el modelo de embeddings. Es el servicio `demo-init` de Docker Compose. Se puede repetir sin riesgo. Verificado dentro de Compose; el comando nativo de abajo no se ha ejecutado.
+
+```sh
+PYTHONUTF8=1 uv run python scripts/prepare_demo.py
+```
 
 Evaluación de la recuperación (sale con código 1 si la tasa top-3 queda por debajo del mínimo):
 

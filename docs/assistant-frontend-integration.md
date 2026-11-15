@@ -2,7 +2,7 @@
 
 Contrato: `services/onboard-api/src/onboard_api/schemas/assistant.py`, reflejado en `apps/spaceship-app/src/api/types.ts`. Si este documento y el código difieren, manda el código.
 
-El asistente médico es soporte informativo. El diagnóstico y las decisiones de tratamiento corresponden a personal cualificado.
+El asistente médico es soporte informativo. **La misión no lleva personal clínico a bordo y el enlace con tierra puede faltar**: las respuestas dan pasos de primeros auxilios con fuente que un astronauta despierto puede hacer solo, separan lo que requiere otro tripulante o equipo, nombran el procedimiento de la misión al que apuntan y entregan un informe para copiar. Urgencia, acción y pasos salen de las fichas versionadas (v2.0.0) y funcionan con Ollama y ChromaDB caídos.
 
 ## Estado actual
 
@@ -11,7 +11,7 @@ El asistente médico es soporte informativo. El diagnóstico y las decisiones de
 - [`AsistenteScreen.tsx`](../apps/spaceship-app/src/screens/AsistenteScreen.tsx) envía `message`, `astronaut_id`, `reported_by` (selector "Informa") y `reported_symptoms` (selector de síntoma con Sí / No / No se sabe). Muestra todos los campos de la respuesta en el orden indicado abajo, con `matched_rules` en un detalle plegado. Los selectores no envían `onset`, `severity`, `persistence`, `started_at` ni `context`.
 - Aclaraciones: tras una respuesta con `needs_clarification`, el siguiente mensaje se envía con `buildRequest()` de [`lib/assistant.ts`](../apps/spaceship-app/src/lib/assistant.ts): el mensaje original más el texto nuevo, la misma persona evaluada y la misma persona que informa, y los síntomas anteriores combinados con los nuevos. "Nuevo reporte" cancela la aclaración. Prueba: `node src/lib/assistant.check.ts`. Todavía no reenvía `clarification` (ver [Aclaraciones](#aclaraciones-endpoint-sin-estado)).
 
-**Nada se transmite.** `notify` indica a quién debe avisar la tripulación. El POST no envía avisos a bordo ni a tierra. El estado "enviado" se reserva para un futuro componente de telemetría que confirme la entrega (Planned).
+**Nada se transmite.** `notify` indica a quién contárselo (tripulación, control de misión si hay enlace). `report.transmission` es siempre `not_sent`: el informe se copia a mano. Solo un mecanismo de envío real que confirme la entrega podrá usar otro valor; el envío automático queda fuera de este cambio.
 
 ## Petición
 
@@ -80,14 +80,14 @@ Los avisos de lecturas (`data_notices`) solo aparecen cuando la ficha decidida u
 
 | Orden | Campos | Cómo |
 |---|---|---|
-| 1 | `urgency`, `action`, `notify` | Bloque principal. `immediate` debe dominar la pantalla (color, tamaño, arriba del todo). `notify` se muestra como "Avisar a: ...". No se muestra como enviado. |
-| 2 | `reply` | Texto explicativo. Ya empieza por `action` cuando hay ficha. |
-| 3 | `clarifying_question` | Solo si `needs_clarification`. Destacada, con el campo de respuesta. |
-| 4 | `protocol_id`, `additional_protocol_ids` | Ficha principal y fichas adicionales activadas. |
-| 5 | `findings` | Evidencia usada: `kind` (`symptom`, `reading`, `event`, `data_gap`), `detail`, `source`. |
-| 6 | `possible_causes` | `label` con su etiqueta de estado, `evidence_for`, `missing_data`. Nunca como probabilidad ni porcentaje, ni ordenadas como "más probable". |
+| 1 | `urgency`, `action`, `mission_procedures`, `steps`, `notify` | Bloque principal. `immediate` domina la pantalla. Debajo de la acción, el procedimiento de la misión (si `loaded` es `false`: "no cargado en el asistente, usa la copia de la misión") y los pasos agrupados por `who`: `self` (puedes hacerlo solo), `crew` (requiere otro tripulante), `equipment` (requiere equipo). Cada paso muestra sus fuentes (`source_ids` apuntan a `sources[].id`). |
+| 2 | `clarifying_question` | Solo si `needs_clarification`. Una sola vez. |
+| 3 | `report` | Informe para copiar (`text`) con botón de copiar y la etiqueta "No enviado" (`transmission: "not_sent"`). |
+| 4 | `reply` | Explicación. Ya empieza por `action` y puede contener la pregunta: la consola quita ambas (`explanation()` en `lib/assistant.ts`) para no repetirlas. |
+| 5 | `missing_guidance` | Guía que las fichas no tienen, dicha de forma explícita. |
+| 6 | `protocol_id`, `additional_protocol_ids`, `findings`, `possible_causes` | Evidencia. Las lecturas simuladas (`source` `simulated`, `demo` o `simulated:*`) llevan "SIMULADA". `possible_causes` nunca como probabilidad. |
 | 7 | `data_notices` | Lecturas ausentes, antiguas o dudosas y fallos de guías o del modelo local. |
-| 8 | `sources` | `title`, `section` y enlace `url`. Distinguir `kind`: `protocol` (ficha revisada) y `guide` (fragmento recuperado del corpus). |
+| 8 | `sources` | Lista numerada: `title`, `section`, `url`; `kind` `protocol` (ficha) o `guide` (corpus). |
 | 9 | `disclaimer` | Siempre visible cuando venga. |
 
 `matched_rules` (regla, versión de ficha, urgencia) es trazabilidad técnica. Puede ir en un detalle plegado.
@@ -96,8 +96,8 @@ Etiquetas de `urgency`:
 
 | Valor | Etiqueta sugerida |
 |---|---|
-| `immediate` | Alerta inmediata a bordo |
-| `review_required` | Pedir valoración al responsable médico |
+| `immediate` | Emergencia: actúa ahora |
+| `review_required` | Actúa ahora y vigila |
 | `undetermined` | Falta un dato decisivo |
 | `informational` | Información general |
 | `null` | Sin triaje (`workflow` `clarify` o `unsupported`) |
@@ -112,41 +112,116 @@ Etiquetas de `possible_causes[].status`:
 
 ## Ejemplo: alarma
 
-Petición: `{"astronaut_id": "ana", "message": "Siento presión en el pecho desde hace un rato y sudor frío"}`. Respuesta real del servicio el 2026-11-14 (los textos dependen de las fichas y pueden cambiar):
+Petición: `{"astronaut_id": "ana", "message": "Siento presión en el pecho desde hace un rato y sudor frío"}`. Respuesta real del servicio (fichas v2.0.0, Ollama y ChromaDB caídos; los textos dependen de las fichas y pueden cambiar):
 
 ```json
 {
-  "reply": "Avisar de inmediato al responsable médico a bordo y seguir la ficha de dolor torácico de la misión.\n\nDolor, presión o molestia torácica nueva o inexplicada. Si el patrón es preocupante (presión, dolor intenso, persistente o que reaparece, o acompañado de falta de aire, sudor frío o mareo), el síndrome coronario agudo es una causa prioritaria que requiere descarte; eso no significa que sea la causa más probable. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "reply": "Posible emergencia cardíaca: pide ayuda ahora; no esperes a ver si los síntomas desaparecen.\n\nDolor, presión o molestia torácica nueva o inexplicada. Si el patrón es preocupante (presión, dolor intenso, persistente o que reaparece, o acompañado de falta de aire, sudor frío o mareo), el síndrome coronario agudo es una causa prioritaria que requiere descarte; eso no significa que sea la causa más probable. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "workflow": "medical",
   "needs_clarification": false,
   "sources": [
-    { "id": "chest_pain@1.0.0#cdc_heart_attack", "title": "CDC: About Heart Attack and Symptoms", "section": "Síntomas de infarto", "url": "https://www.cdc.gov/heart-disease/about/heart-attack.html", "kind": "protocol" },
-    { "id": "chest_pain@1.0.0#medlineplus_chest_pain", "title": "MedlinePlus: Chest Pain", "section": "Resumen", "url": "https://medlineplus.gov/chestpain.html", "kind": "protocol" }
+    {
+      "id": "chest_pain@2.0.0#cdc_heart_attack",
+      "title": "CDC: About Heart Attack and Symptoms",
+      "section": "Síntomas de infarto",
+      "url": "https://www.cdc.gov/heart-disease/about/heart-attack.html",
+      "kind": "protocol"
+    },
+    {
+      "id": "chest_pain@2.0.0#medlineplus_chest_pain",
+      "title": "MedlinePlus: Chest Pain",
+      "section": "Resumen",
+      "url": "https://medlineplus.gov/chestpain.html",
+      "kind": "protocol"
+    }
   ],
   "data_notices": [
-    "Alarma inmediata: la respuesta usa solo fichas locales; no se esperó a consultar lecturas, guías ni el modelo local."
+    "Alarma inmediata: la decisión usa solo fichas locales, sin esperar a las guías ni al modelo local. Las lecturas solo se añaden como evidencia y nunca rebajan la alarma.",
+    "Sin lectura de pulso.",
+    "Sin lectura de SpO₂."
   ],
   "disclaimer": "Soporte informativo únicamente. El diagnóstico y las decisiones de tratamiento corresponden a personal cualificado.",
   "urgency": "immediate",
-  "action": "Avisar de inmediato al responsable médico a bordo y seguir la ficha de dolor torácico de la misión.",
-  "notify": ["responsable médico a bordo", "tripulación"],
+  "action": "Posible emergencia cardíaca: pide ayuda ahora; no esperes a ver si los síntomas desaparecen.",
+  "notify": [
+    "tripulación",
+    "control de misión (si hay enlace)"
+  ],
+  "steps": [
+    {
+      "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+      "who": "self",
+      "source_ids": [
+        "chest_pain@2.0.0#cdc_heart_attack"
+      ]
+    },
+    {
+      "text": "Tripulante formado en RCP o desfibrilador: prepáralo y úsalo si hace falta hasta que haya más ayuda.",
+      "who": "crew",
+      "source_ids": [
+        "chest_pain@2.0.0#cdc_heart_attack"
+      ]
+    }
+  ],
+  "mission_procedures": [
+    {
+      "title": "Procedimiento de dolor torácico de la misión",
+      "loaded": false
+    }
+  ],
+  "missing_guidance": [
+    "Las fuentes de la ficha no indican medicación para el dolor torácico: depende del procedimiento de la misión."
+  ],
+  "report": {
+    "text": "INFORME DE CASO MÉDICO (generado a bordo; soporte informativo, no es un diagnóstico)\nGenerado: 2026-11-15T01:46:47Z\nAstronauta: ana · Reporta: la propia persona\nEstado de envío: not_sent (pendiente). El asistente no transmite nada: cópialo y envíalo por el canal de la misión cuando haya enlace.\n\nUrgencia (reglas): immediate\nAcción recomendada: Posible emergencia cardíaca: pide ayuda ahora; no esperes a ver si los síntomas desaparecen.\nProcedimiento de la misión: Procedimiento de dolor torácico de la misión (NO cargado en el asistente)\n\nSíntomas reportados:\n- Dolor o presión torácica: presente (actual); inicio: desconocido; intensidad: desconocida; evolución: persistente. Origen: texto \"presion en el pecho\".\n- Sudor frío: presente (actual); inicio: desconocido; intensidad: desconocida; evolución: persistente. Origen: texto \"sudor frio\".\n\nLecturas pertinentes:\n- SpO₂: sin lectura (valor desconocido).\n- Pulso: sin lectura (valor desconocido).\n\nInformación que falta:\n- Inicio de dolor o presión torácica: desconocido.\n- Intensidad de dolor o presión torácica: desconocida.\n- Inicio de sudor frío: desconocido.\n- Intensidad de sudor frío: desconocida.\n- Sin lectura de pulso.\n- Sin lectura de SpO₂.\n- Las fuentes de la ficha no indican medicación para el dolor torácico: depende del procedimiento de la misión.\n\nReglas aplicadas: chest_pain.concerning_pattern (chest_pain@2.0.0)",
+    "transmission": "not_sent"
+  },
   "protocol_id": "chest_pain",
   "additional_protocol_ids": [],
   "matched_rules": [
-    { "rule_id": "chest_pain.concerning_pattern", "protocol_id": "chest_pain", "protocol_version": "1.0.0", "urgency": "immediate" }
+    {
+      "rule_id": "chest_pain.concerning_pattern",
+      "protocol_id": "chest_pain",
+      "protocol_version": "2.0.0",
+      "urgency": "immediate"
+    }
   ],
   "findings": [
-    { "kind": "symptom", "detail": "Dolor o presión torácica; persistente (\"presion en el pecho\")", "source": "report" },
-    { "kind": "symptom", "detail": "Sudor frío; persistente (\"sudor frio\")", "source": "report" }
+    {
+      "kind": "symptom",
+      "detail": "Dolor o presión torácica; persistente (\"presion en el pecho\")",
+      "source": "report"
+    },
+    {
+      "kind": "symptom",
+      "detail": "Sudor frío; persistente (\"sudor frio\")",
+      "source": "report"
+    },
+    {
+      "kind": "data_gap",
+      "detail": "Sin lectura de SpO₂.",
+      "source": "sqlite:spo2"
+    },
+    {
+      "kind": "data_gap",
+      "detail": "Sin lectura de Pulso.",
+      "source": "sqlite:heart_rate"
+    }
   ],
   "possible_causes": [
     {
       "id": "acs",
       "label": "Síndrome coronario agudo (requiere descarte)",
       "status": "rule_out",
-      "evidence_for": ["Dolor o presión torácica", "Sudor frío"],
+      "evidence_for": [
+        "Dolor o presión torácica",
+        "Sudor frío"
+      ],
       "missing_data": [],
-      "source_ids": ["cdc_heart_attack", "medlineplus_chest_pain"]
+      "source_ids": [
+        "cdc_heart_attack",
+        "medlineplus_chest_pain"
+      ]
     }
   ],
   "clarifying_question": null,
@@ -156,29 +231,67 @@ Petición: `{"astronaut_id": "ana", "message": "Siento presión en el pecho desd
 
 ## Ejemplo: aclaración
 
-Petición: `{"astronaut_id": "ana", "message": "Me duele la cabeza"}`. Respuesta real del servicio el 2026-11-14, sin lecturas registradas para `ana`. La ficha neurológica no usa lecturas, así que no hay avisos de sensores:
+Petición: `{"astronaut_id": "ana", "message": "Me duele la cabeza"}`. Respuesta real del servicio (fichas v2.0.0, Ollama y ChromaDB caídos), sin lecturas registradas para `ana`. La ficha neurológica no usa lecturas, así que no hay avisos de sensores:
 
 ```json
 {
-  "reply": "Dolor de cabeza sin datos de inicio e intensidad: confirmar si hay señales de alarma neurológica.\n\nAlteración súbita del habla, asimetría facial, debilidad de un lado, pérdida súbita de visión o dolor de cabeza súbito e intenso pueden indicar un evento neurológico agudo. Ictus o AIT requieren descarte ante señales focales, aunque ya hayan cedido. Un dolor de cabeza sin esas señales se valora por su propio contexto o por la ruta de cabina. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.\n\n¿El dolor de cabeza empezó de repente y es muy intenso, o se acompaña de alteración del habla, cara caída, debilidad de un lado o pérdida de visión?",
+  "reply": "Dolor de cabeza sin inicio ni intensidad conocidos: comprueba si hay señales de alarma neurológica.\n\nAlteración súbita del habla, asimetría facial, debilidad de un lado, pérdida súbita de visión o dolor de cabeza súbito e intenso pueden indicar un evento neurológico agudo. Ictus o AIT requieren descarte ante señales focales, aunque ya hayan cedido. Un dolor de cabeza sin esas señales se valora por su propio contexto o por la ruta de cabina. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.\n\n¿El dolor de cabeza empezó de repente y es muy intenso, o se acompaña de alteración del habla, cara caída, debilidad de un lado o pérdida de visión?",
   "workflow": "medical",
   "needs_clarification": true,
   "sources": [
-    { "id": "neurologic_red_flags@1.0.0#cdc_stroke_signs", "title": "CDC: Signs and Symptoms of Stroke", "section": "Señales de ictus", "url": "https://www.cdc.gov/stroke/signs-symptoms/", "kind": "protocol" },
-    { "id": "neurologic_red_flags@1.0.0#medlineplus_headache", "title": "MedlinePlus: Headache", "section": "Resumen", "url": "https://medlineplus.gov/headache.html", "kind": "protocol" }
+    {
+      "id": "neurologic_red_flags@2.0.0#cdc_stroke_signs",
+      "title": "CDC: Signs and Symptoms of Stroke",
+      "section": "Señales de ictus",
+      "url": "https://www.cdc.gov/stroke/signs-symptoms/",
+      "kind": "protocol"
+    },
+    {
+      "id": "neurologic_red_flags@2.0.0#medlineplus_headache",
+      "title": "MedlinePlus: Headache",
+      "section": "Resumen",
+      "url": "https://medlineplus.gov/headache.html",
+      "kind": "protocol"
+    }
   ],
   "data_notices": [],
   "disclaimer": "Soporte informativo únicamente. El diagnóstico y las decisiones de tratamiento corresponden a personal cualificado.",
   "urgency": "undetermined",
-  "action": "Dolor de cabeza sin datos de inicio e intensidad: confirmar si hay señales de alarma neurológica.",
-  "notify": ["responsable médico a bordo"],
+  "action": "Dolor de cabeza sin inicio ni intensidad conocidos: comprueba si hay señales de alarma neurológica.",
+  "notify": [
+    "control de misión (si hay enlace)"
+  ],
+  "steps": [
+    {
+      "text": "Comprueba: ¿empezó de repente y es muy intenso? ¿cuesta hablar, ves mal, se cae un lado de la cara o pierdes fuerza en un lado? Si es así, trátalo como emergencia.",
+      "who": "self",
+      "source_ids": [
+        "neurologic_red_flags@2.0.0#cdc_stroke_signs"
+      ]
+    }
+  ],
+  "mission_procedures": [],
+  "missing_guidance": [],
+  "report": {
+    "text": "INFORME DE CASO MÉDICO (generado a bordo; soporte informativo, no es un diagnóstico)\nGenerado: 2026-11-15T01:46:47Z\nAstronauta: ana · Reporta: la propia persona\nEstado de envío: not_sent (pendiente). El asistente no transmite nada: cópialo y envíalo por el canal de la misión cuando haya enlace.\n\nUrgencia (reglas): undetermined\nAcción recomendada: Dolor de cabeza sin inicio ni intensidad conocidos: comprueba si hay señales de alarma neurológica.\n\nSíntomas reportados:\n- Dolor de cabeza: presente (actual); inicio: desconocido; intensidad: desconocida; evolución: desconocida. Origen: texto \"me duele la cabeza\".\n\nLecturas pertinentes:\n- SpO₂: sin lectura (valor desconocido).\n- Pulso: sin lectura (valor desconocido).\n\nInformación que falta:\n- Inicio de dolor de cabeza: desconocido.\n- Intensidad de dolor de cabeza: desconocida.\n\nReglas aplicadas: neurologic_red_flags.headache_check (neurologic_red_flags@2.0.0)",
+    "transmission": "not_sent"
+  },
   "protocol_id": "neurologic_red_flags",
   "additional_protocol_ids": [],
   "matched_rules": [
-    { "rule_id": "neurologic_red_flags.headache_check", "protocol_id": "neurologic_red_flags", "protocol_version": "1.0.0", "urgency": "undetermined" }
+    {
+      "rule_id": "neurologic_red_flags.headache_check",
+      "protocol_id": "neurologic_red_flags",
+      "protocol_version": "2.0.0",
+      "urgency": "undetermined"
+    }
   ],
   "findings": [
-    { "kind": "symptom", "detail": "Dolor de cabeza (\"me duele la cabeza\")", "source": "report" }
+    {
+      "kind": "symptom",
+      "detail": "Dolor de cabeza (\"me duele la cabeza\")",
+      "source": "report"
+    }
   ],
   "possible_causes": [],
   "clarifying_question": "¿El dolor de cabeza empezó de repente y es muy intenso, o se acompaña de alteración del habla, cara caída, debilidad de un lado o pérdida de visión?",
@@ -187,7 +300,18 @@ Petición: `{"astronaut_id": "ana", "message": "Me duele la cabeza"}`. Respuesta
     "question": "¿El dolor de cabeza empezó de repente y es muy intenso, o se acompaña de alteración del habla, cara caída, debilidad de un lado o pérdida de visión?",
     "astronaut_id": "ana",
     "observations": [
-      { "symptom": "headache", "status": "present", "origin": "text", "evidence": "me duele la cabeza", "temporality": "current", "subject": "self", "onset": null, "severity": null, "persistence": null, "context": null }
+      {
+        "symptom": "headache",
+        "status": "present",
+        "origin": "text",
+        "evidence": "me duele la cabeza",
+        "temporality": "current",
+        "subject": "self",
+        "onset": null,
+        "severity": null,
+        "persistence": null,
+        "context": null
+      }
     ]
   }
 }

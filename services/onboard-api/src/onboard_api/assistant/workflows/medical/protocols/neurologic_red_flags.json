@@ -1,23 +1,59 @@
 {
   "id": "neurologic_red_flags",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Señales neurológicas de alarma",
   "priority": 60,
-  "summary": "Alteración súbita del habla, asimetría facial, debilidad de un lado, pérdida súbita de visión o dolor de cabeza súbito e intenso pueden indicar un evento neurológico agudo. Ictus o AIT requieren descarte ante señales focales, aunque ya hayan cedido. Un dolor de cabeza sin esas señales se valora por su propio contexto o por la ruta de cabina. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Alteración súbita del habla, asimetría facial, debilidad de un lado, pérdida súbita de visión o dolor de cabeza súbito e intenso pueden indicar un evento neurológico agudo. Ictus o AIT requieren descarte ante señales focales, aunque ya hayan cedido. Un dolor de cabeza sin esas señales se valora por su propio contexto o por la ruta de cabina. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo y seguir la ficha neurológica de la misión, aunque los signos ya hayan cedido. Registrar la hora conocida de inicio si está disponible, sin demorar el aviso.",
+      "text": "Posibles signos de ictus: emergencia, aunque los signos ya hayan cedido.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "source_ids": [
+            "cdc_stroke_signs"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Anota la hora en que empezaron los primeros síntomas.",
+          "source_ids": [
+            "cdc_stroke_signs"
+          ]
+        },
+        {
+          "who": "crew",
+          "text": "Otro tripulante: haz la comprobación B.E. F.A.S.T. (equilibrio, ojos, cara, brazos, habla) y anota la hora.",
+          "source_ids": [
+            "cdc_stroke_signs"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento neurológico de la misión",
+      "missing_guidance": [
+        "Las fuentes de la ficha no indican tratamiento a bordo: depende del procedimiento de la misión."
       ]
     },
     "headache_check": {
       "urgency": "undetermined",
-      "text": "Dolor de cabeza sin datos de inicio e intensidad: confirmar si hay señales de alarma neurológica.",
+      "text": "Dolor de cabeza sin inicio ni intensidad conocidos: comprueba si hay señales de alarma neurológica.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Comprueba: ¿empezó de repente y es muy intenso? ¿cuesta hablar, ves mal, se cae un lado de la cara o pierdes fuerza en un lado? Si es así, trátalo como emergencia.",
+          "source_ids": [
+            "cdc_stroke_signs"
+          ]
+        }
       ]
     }
   },

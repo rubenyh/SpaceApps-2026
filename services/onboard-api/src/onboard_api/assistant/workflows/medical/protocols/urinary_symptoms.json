@@ -1,30 +1,74 @@
 {
   "id": "urinary_symptoms",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Síntomas urinarios",
   "priority": 110,
-  "summary": "Ardor o urgencia al orinar: posible infección de vejiga. Fiebre o escalofríos con dolor de costado: posible infección renal. Dolor de costado intenso en oleadas o sangre visible: cálculo entre las causas. Incapacidad súbita de orinar: posible retención aguda. pH, conductividad, color RGB y temperatura de la muestra, por sí solos, solo describen la muestra: no indican sangre, temperatura corporal, infección ni radiación. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Ardor o urgencia al orinar: posible infección de vejiga. Fiebre o escalofríos con dolor de costado: posible infección renal. Dolor de costado intenso en oleadas o sangre visible: cálculo entre las causas. Incapacidad súbita de orinar: posible retención aguda. pH, conductividad, color RGB y temperatura de la muestra, por sí solos, solo describen la muestra: no indican sangre, temperatura corporal, infección ni radiación. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo: incapacidad súbita para orinar.",
+      "text": "No puedes orinar de forma súbita: emergencia.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "source_ids": [
+            "niddk_urinary_retention"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de emergencia médica de la misión",
+      "missing_guidance": [
+        "Sondaje vesical: depende del procedimiento y del material de la misión (no cargado)."
       ]
     },
     "prompt_review": {
       "urgency": "review_required",
-      "text": "Pedir valoración pronta al responsable médico a bordo por fiebre con dolor de costado, dolor intenso o sangre visible en la orina.",
+      "text": "Fiebre con dolor de costado, dolor intenso o sangre visible en la orina: vigila de cerca.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Si no puedes orinar o el dolor abdominal es intenso, trátalo como emergencia.",
+          "source_ids": [
+            "niddk_urinary_retention"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Anota fiebre, escalofríos, náuseas o vómitos y dolor de espalda, costado o ingle en el informe.",
+          "source_ids": [
+            "niddk_kidney_infection"
+          ]
+        }
+      ],
+      "missing_guidance": [
+        "Las fuentes de la ficha no dan pasos de autocuidado ni tratamiento: antibióticos y analgésicos dependen del procedimiento de la misión (no cargado)."
       ]
     },
     "review": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo por síntomas urinarios.",
+      "text": "Síntomas urinarios: vigila las señales de infección renal.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Si aparecen fiebre y escalofríos, náuseas o vómitos, o dolor en espalda, costado o ingle, anótalo: la atención debe ser rápida.",
+          "source_ids": [
+            "niddk_bladder_infection"
+          ]
+        }
+      ],
+      "missing_guidance": [
+        "Las fuentes de la ficha no dan pasos de autocuidado ni tratamiento: depende del procedimiento de la misión (no cargado)."
       ]
     }
   },

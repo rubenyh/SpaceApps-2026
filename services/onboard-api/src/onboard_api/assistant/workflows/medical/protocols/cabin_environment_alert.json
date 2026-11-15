@@ -1,41 +1,124 @@
 {
   "id": "cabin_environment_alert",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Alerta ambiental de cabina",
   "priority": 30,
-  "summary": "Alerta operativa de aire o presión, o varios tripulantes con síntomas simultáneos en un contexto compatible. Se conserva el tipo de alarma: presión, humo, CO₂ u otra. Con evidencia de una fuente, la exposición ambiental requiere descarte. Nunca se sustituye el procedimiento de la nave por una SpO₂ normal: la oximetría convencional no detecta monóxido de carbono. Una alarma reportada por texto se trata como reportada, no como confirmada. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Alerta operativa de aire o presión, o varios tripulantes con síntomas simultáneos en un contexto compatible. Se conserva el tipo de alarma: presión, humo, CO₂ u otra. Con evidencia de una fuente, la exposición ambiental requiere descarte. Nunca se sustituye el procedimiento de la nave por una SpO₂ normal: la oximetría convencional no detecta monóxido de carbono. Una alarma reportada por texto se trata como reportada, no como confirmada. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
     "confirmed_event": {
       "urgency": "immediate",
-      "text": "Seguir de inmediato el procedimiento de la nave para esta alarma y avisar a la tripulación y al responsable médico a bordo. Una SpO₂ normal no sustituye esa evaluación.",
+      "text": "Alarma de cabina CONFIRMADA por la nave: sigue ya el procedimiento de la nave. Una SpO₂ normal no la descarta.",
       "notify": [
         "tripulación",
-        "responsable médico a bordo"
-      ]
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Sigue el procedimiento de la nave para esta alarma y verifica el panel de alarmas.",
+          "source_ids": [
+            "nasa_carbon_dioxide"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Confirma con la medición ambiental de la nave.",
+          "source_ids": [
+            "nasa_carbon_dioxide"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "No uses la SpO₂ para descartar el problema: el oxímetro convencional no mide el CO₂ ni detecta el monóxido de carbono.",
+          "source_ids": [
+            "nasa_carbon_dioxide",
+            "cdc_carbon_monoxide_clinical"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de la nave para alarmas de aire, presión o humo"
     },
     "simulated_event": {
       "urgency": "immediate",
-      "text": "Evento SIMULADO (ejercicio etiquetado): ejecutar el procedimiento de la nave como en el ejercicio y avisar a la tripulación y al responsable médico a bordo. No es una alarma real confirmada.",
+      "text": "Evento SIMULADO (ejercicio etiquetado): ejecuta el procedimiento de la nave como en el ejercicio. No es una alarma real confirmada.",
       "notify": [
         "tripulación",
-        "responsable médico a bordo"
-      ]
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Sigue el procedimiento de la nave para esta alarma como en el ejercicio.",
+          "source_ids": [
+            "nasa_carbon_dioxide"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de la nave para alarmas de aire, presión o humo"
     },
     "reported_alarm": {
       "urgency": "immediate",
-      "text": "Alarma REPORTADA por texto, no confirmada por la nave: seguir el procedimiento de la nave, verificar el panel de alarmas y avisar a la tripulación y al responsable médico a bordo.",
+      "text": "Alarma REPORTADA por texto, no confirmada por la nave: sigue el procedimiento de la nave y verifica el panel de alarmas.",
       "notify": [
         "tripulación",
-        "responsable médico a bordo"
-      ]
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Verifica el panel de alarmas y sigue el procedimiento de la nave.",
+          "source_ids": [
+            "nasa_carbon_dioxide"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Confirma con la medición ambiental de la nave.",
+          "source_ids": [
+            "nasa_carbon_dioxide"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "No uses la SpO₂ para descartar el problema: el oxímetro convencional no detecta el monóxido de carbono.",
+          "source_ids": [
+            "cdc_carbon_monoxide_clinical"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de la nave para alarmas de aire, presión o humo"
     },
     "multiple_crew": {
       "urgency": "immediate",
-      "text": "Varios tripulantes con síntomas simultáneos: tratar como posible problema ambiental, seguir el procedimiento de la nave y avisar a la tripulación y al responsable médico a bordo.",
+      "text": "Varios tripulantes con síntomas simultáneos: trátalo como posible problema ambiental y sigue el procedimiento de la nave.",
       "notify": [
         "tripulación",
-        "responsable médico a bordo"
-      ]
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Sigue el procedimiento de la nave y verifica el panel de alarmas.",
+          "source_ids": [
+            "nasa_carbon_dioxide"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Confirma con la medición ambiental de la nave.",
+          "source_ids": [
+            "nasa_carbon_dioxide"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "No uses la SpO₂ para descartar el problema: el oxímetro convencional no detecta el monóxido de carbono.",
+          "source_ids": [
+            "cdc_carbon_monoxide_clinical"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de la nave para alarmas de aire, presión o humo"
     }
   },
   "questions": {},

@@ -1,23 +1,70 @@
 {
   "id": "fever_or_respiratory_illness",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Fiebre o síntomas respiratorios",
   "priority": 130,
-  "summary": "Fiebre reportada, tos o malestar. Una infección respiratoria es posible si el conjunto es compatible. La temperatura corporal debe medirse con una fuente independiente; la temperatura de la muestra de orina describe la muestra, no el cuerpo. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Fiebre reportada, tos o malestar. Una infección respiratoria es posible si el conjunto es compatible. La temperatura corporal debe medirse con una fuente independiente; la temperatura de la muestra de orina describe la muestra, no el cuerpo. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo: fiebre o síntomas respiratorios con señales de alarma (dificultad respiratoria intensa, confusión nueva o rigidez de cuello).",
+      "text": "Fiebre o síntomas respiratorios con señales de alarma (dificultad respiratoria intensa, confusión nueva o rigidez de cuello): emergencia.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Afloja la ropa ajustada y no comas ni bebas mientras te falte el aire.",
+          "source_ids": [
+            "medlineplus_breathing_first_aid"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de emergencia médica de la misión"
     },
     "review": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo si los síntomas persisten o empeoran. Anotar la temperatura corporal medida y la hora, si existen.",
+      "text": "Fiebre, tos o malestar sin señales de alarma: reposa, bebe y vigila.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Bebe líquidos y descansa.",
+          "source_ids": [
+            "medlineplus_fever"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Quítate la ropa sobrante; usa una capa ligera.",
+          "source_ids": [
+            "medlineplus_fever"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Mide la temperatura corporal con un termómetro y anota valor y hora.",
+          "source_ids": [
+            "medlineplus_fever"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Si la fiebre dura más de 48 a 72 horas o sigue por encima de 39,4 °C, anótalo en el informe como prioritario.",
+          "source_ids": [
+            "medlineplus_fever"
+          ]
+        }
       ]
     }
   },
@@ -45,6 +92,12 @@
       "title": "CDC: About Respiratory Viruses",
       "section": "Síntomas y señales de alarma",
       "url": "https://www.cdc.gov/respiratory-viruses/about/"
+    },
+    {
+      "id": "medlineplus_breathing_first_aid",
+      "title": "MedlinePlus: Problemas respiratorios - primeros auxilios",
+      "section": "Síntomas y cuándo pedir ayuda",
+      "url": "https://medlineplus.gov/ency/article/000007.htm"
     }
   ],
   "guide_topics": [

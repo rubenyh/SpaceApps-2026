@@ -25,7 +25,7 @@ UNSUPPORTED_REPLY = (
 )
 EMERGENCY_LINE = (
     "Si hay una emergencia o te sientes en peligro, sigue el procedimiento de"
-    " emergencia de la nave y contacta ahora al responsable médico a bordo."
+    " emergencia de la misión y pide ayuda con la alarma de la nave."
 )
 
 # Stems matched on lowercase text without accents.

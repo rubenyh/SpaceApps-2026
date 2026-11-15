@@ -12,7 +12,7 @@ interface Props {
   status: ReadingStatus;
 }
 
-/** Bar with the normal zone shaded and a marker at the current value. */
+/** Rail with the normal zone bracketed and a needle at the current value. */
 export function RangeTrack({ value, scale, config, status }: Props) {
   const { normal_min: min, normal_max: max } = config;
   const from = trackPercent(min ?? scale[0], scale);
@@ -28,12 +28,12 @@ export function RangeTrack({ value, scale, config, status }: Props) {
         {value !== null && status !== "no_data" ? (
           <div
             className={`track__marker track__marker--${status}`}
-            style={{ left: `calc(${trackPercent(value, scale)}% - 7px)` }}
+            style={{ left: `calc(${trackPercent(value, scale)}% - 1px)` }}
           />
         ) : null}
       </div>
       <div className="track__scale">
-        <span>{formatNumber(scale[0])}</span>
+        <span className="track__end">{formatNumber(scale[0])}</span>
         <span className="track__range">
           {range ? (
             <>
@@ -45,7 +45,7 @@ export function RangeTrack({ value, scale, config, status }: Props) {
             "No range defined"
           )}
         </span>
-        <span>{formatNumber(scale[1])}</span>
+        <span className="track__end">{formatNumber(scale[1])}</span>
       </div>
     </div>
   );

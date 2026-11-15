@@ -1,36 +1,101 @@
 {
   "id": "palpitations",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Palpitaciones o pulso llamativo",
   "priority": 150,
-  "summary": "Palpitaciones o un pulso llamativo pueden corresponder a respuesta al esfuerzo si coinciden con actividad, a un artefacto si la señal es deficiente, o a una arritmia que requiere descarte si hay síntomas compatibles. El pulso del sensor no sustituye un ECG. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Palpitaciones o un pulso llamativo pueden corresponder a respuesta al esfuerzo si coinciden con actividad, a un artefacto si la señal es deficiente, o a una arritmia que requiere descarte si hay síntomas compatibles. El pulso del sensor no sustituye un ECG. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
     "immediate": {
       "urgency": "immediate",
-      "text": "Avisar de inmediato al responsable médico a bordo: palpitaciones con dolor torácico, falta de aire importante o pérdida de conciencia.",
+      "text": "Palpitaciones con señales de alarma: emergencia.",
       "notify": [
-        "responsable médico a bordo",
-        "tripulación"
-      ]
+        "tripulación",
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Pide ayuda de emergencia ahora con el medio de la misión (alarma de la nave, tripulación, control de misión si hay enlace). No esperes a ver si mejora.",
+          "source_ids": [
+            "medlineplus_palpitations"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de emergencia médica de la misión"
     },
     "review": {
       "urgency": "review_required",
-      "text": "Pedir valoración al responsable médico a bordo por palpitaciones nuevas, repetidas o persistentes.",
+      "text": "Palpitaciones sin señales de alarma: reposa y vigila.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Evita la cafeína y otros estimulantes.",
+          "source_ids": [
+            "medlineplus_palpitations"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Prueba ejercicios de respiración o relajación profunda.",
+          "source_ids": [
+            "medlineplus_palpitations"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Repite la medición de pulso en reposo con el sensor bien colocado.",
+          "source_ids": [
+            "fda_pulse_oximeters"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Si aparecen pérdida de conciencia, dolor torácico, falta de aire, sudor inusual o mareo, trátalo como emergencia.",
+          "source_ids": [
+            "medlineplus_palpitations"
+          ]
+        }
       ]
     },
     "reading_check": {
       "urgency": "undetermined",
-      "text": "Lectura de pulso aislada sin síntomas conocidos: confirmar síntomas y repetir la medición antes de interpretarla.",
+      "text": "Lectura de pulso aislada sin síntomas conocidos: confirma síntomas y repite la medición antes de interpretarla.",
       "notify": [
-        "responsable médico a bordo"
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "equipment",
+          "text": "Repite la medición en reposo con el sensor bien colocado.",
+          "source_ids": [
+            "fda_pulse_oximeters"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Fíjate en cómo te sientes: la cifra sola no confirma ni descarta nada.",
+          "source_ids": [
+            "fda_pulse_oximeters"
+          ]
+        }
       ]
     },
     "reading_reference": {
       "urgency": "informational",
-      "text": "La lectura de pulso está dentro de la referencia visual; si aparecen síntomas, comentarlos con el responsable médico a bordo.",
-      "notify": []
+      "text": "La lectura de pulso está dentro de la referencia visual. Si aparecen síntomas, descríbelos aquí.",
+      "notify": [],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Vigila tus síntomas además de la cifra.",
+          "source_ids": [
+            "fda_pulse_oximeters"
+          ]
+        }
+      ]
     }
   },
   "questions": {
@@ -75,6 +140,12 @@
       "title": "MedlinePlus: Arrhythmia",
       "section": "Resumen",
       "url": "https://medlineplus.gov/arrhythmia.html"
+    },
+    {
+      "id": "fda_pulse_oximeters",
+      "title": "FDA: Pulse Oximeters",
+      "section": "Limitaciones y precisión",
+      "url": "https://www.fda.gov/medical-devices/products-and-medical-procedures/pulse-oximeters"
     }
   ],
   "guide_topics": [

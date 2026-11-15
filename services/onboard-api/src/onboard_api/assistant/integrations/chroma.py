@@ -66,10 +66,26 @@ class GuideRetriever:
                     raise DependencyUnavailable(f"ChromaDB unavailable: {exc!r}") from exc
         return self._collection
 
+    def _reset(self) -> None:
+        from chromadb.api.client import SharedSystemClient
+
+        with self._init_lock:
+            self._collection = None
+            SharedSystemClient.clear_system_cache()  # chromadb keeps one client per path
+
     def search(
         self, query: str, k: int = 3, topics: list[str] | None = None, language: str = "es"
     ) -> list[GuideChunk]:
         collection = self._get_collection()
+        try:
+            empty = collection.count() == 0
+        except Exception as exc:
+            raise DependencyUnavailable(f"ChromaDB count failed: {exc!r}") from exc
+        if empty:
+            # A client opened on an empty index never sees the index that another
+            # process (the ingest) builds later, so reopen on the next search.
+            self._reset()
+            raise DependencyUnavailable("Guide index is empty; run the ingest")
         try:
             vector = self.embedder.embed([query])[0]
         except Exception as exc:

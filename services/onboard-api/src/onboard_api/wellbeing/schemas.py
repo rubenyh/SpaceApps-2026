@@ -9,6 +9,8 @@ from typing import Literal, Self
 
 from pydantic import AwareDatetime, BaseModel, Field, model_validator
 
+from onboard_api.schemas.readings import is_simulated_source  # noqa: F401 (re-exported)
+
 Quality = Literal["good", "suspect", "bad"]
 SupportLevel = Literal[
     "ok", "attention", "needs_support", "baseline_pending", "stale", "no_data"
@@ -46,10 +48,6 @@ _Ratio = Field(default=None, ge=0, le=1)
 _NonNegative = Field(default=None, ge=0)
 
 
-def is_simulated_source(source: str) -> bool:
-    return source in ("simulated", "demo") or source.startswith("simulated:")
-
-
 # --- Parameters and check-in form ---
 
 
@@ -65,6 +63,8 @@ class ComponentParameter(BaseModel):
 class WellbeingParameters(BaseModel):
     provisional: bool = True
     basis: str
+    # IANA zone of the mission day all inputs are grouped by.
+    mission_tz: str
     z_threshold: float
     sustain_days: int
     baseline_days: int

@@ -1,38 +1,98 @@
 {
   "id": "radiation_alert",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Alerta de radiación",
   "priority": 40,
-  "summary": "Evento de dosímetro o alerta de la nave, real o simulado y etiquetado. Se distingue entre evento confirmado por la nave, evento simulado y alerta reportada solo por texto. Sin evento ni dosimetría disponible no es posible estimar una exposición: se indica qué evidencia falta. Los síntomas aislados y el módulo de orina no aportan una estimación de exposición. Decisión de diseño: un evento simulado activo usa la misma urgencia inmediata que uno real para ejercitar el procedimiento, siempre etiquetado como SIMULADO. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento; la valoración corresponde al responsable médico a bordo.",
+  "summary": "Evento de dosímetro o alerta de la nave, real o simulado y etiquetado. Se distingue entre evento confirmado por la nave, evento simulado y alerta reportada solo por texto. Sin evento ni dosimetría disponible no es posible estimar una exposición: se indica qué evidencia falta. Los síntomas aislados y el módulo de orina no aportan una estimación de exposición. Decisión de diseño: un evento simulado activo usa la misma urgencia inmediata que uno real para ejercitar el procedimiento, siempre etiquetado como SIMULADO. Soporte informativo únicamente: no es un diagnóstico ni una decisión de tratamiento. No hay personal clínico a bordo: los pasos son primeros auxilios y vigilancia; el tratamiento depende de los procedimientos de la misión.",
   "actions": {
     "confirmed_event": {
       "urgency": "immediate",
-      "text": "Alerta de radiación CONFIRMADA por la nave: avisar a la tripulación y al responsable médico a bordo y seguir el procedimiento de radiación de la misión.",
+      "text": "Alerta de radiación CONFIRMADA por la nave: sigue el procedimiento de radiación de la misión.",
       "notify": [
         "tripulación",
-        "responsable médico a bordo"
-      ]
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Sigue el procedimiento de radiación; si se decide armar el refugio de protección, hazlo.",
+          "source_ids": [
+            "nasa_artemis_ii_reference"
+          ]
+        },
+        {
+          "who": "equipment",
+          "text": "Lleva tu dosímetro personal y anota su lectura.",
+          "source_ids": [
+            "nasa_artemis_ii_reference"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Los síntomas aislados no indican exposición ni dosis: no los uses para decidir.",
+          "source_ids": [
+            "cdc_ars"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de radiación y refugio de la misión"
     },
     "simulated_event": {
       "urgency": "immediate",
-      "text": "Evento de radiación SIMULADO (ejercicio etiquetado): ejecutar el procedimiento de radiación como en el ejercicio y avisar a la tripulación y al responsable médico a bordo. No es una exposición real confirmada.",
+      "text": "Evento de radiación SIMULADO (ejercicio etiquetado): ejecuta el procedimiento de radiación como en el ejercicio. No es una exposición real confirmada.",
       "notify": [
         "tripulación",
-        "responsable médico a bordo"
-      ]
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "self",
+          "text": "Sigue el procedimiento de radiación como en el ejercicio.",
+          "source_ids": [
+            "nasa_artemis_ii_reference"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de radiación y refugio de la misión"
     },
     "reported_alert": {
       "urgency": "immediate",
-      "text": "Alerta de radiación REPORTADA por texto, no confirmada: verificar el dosímetro y el panel de la nave, seguir el procedimiento de radiación y avisar a la tripulación y al responsable médico a bordo.",
+      "text": "Alerta de radiación REPORTADA por texto, no confirmada: verifica el dosímetro y el panel de la nave y sigue el procedimiento de radiación.",
       "notify": [
         "tripulación",
-        "responsable médico a bordo"
-      ]
+        "control de misión (si hay enlace)"
+      ],
+      "steps": [
+        {
+          "who": "equipment",
+          "text": "Verifica tu dosímetro y los sensores de radiación de la nave.",
+          "source_ids": [
+            "nasa_artemis_ii_reference"
+          ]
+        },
+        {
+          "who": "self",
+          "text": "Sigue el procedimiento de radiación de la misión.",
+          "source_ids": [
+            "nasa_artemis_ii_reference"
+          ]
+        }
+      ],
+      "mission_procedure": "Procedimiento de radiación y refugio de la misión"
     },
     "no_evidence": {
       "urgency": "informational",
-      "text": "No hay evento de dosímetro ni alerta de la nave disponibles: no es posible estimar una exposición. El módulo de orina no aporta esa estimación. Consultar al responsable médico a bordo si hay preocupación.",
-      "notify": []
+      "text": "No hay evento de dosímetro ni alerta de la nave disponibles: no es posible estimar una exposición. El módulo de orina no aporta esa estimación.",
+      "notify": [],
+      "steps": [
+        {
+          "who": "equipment",
+          "text": "Si te preocupa, revisa tu dosímetro personal.",
+          "source_ids": [
+            "nasa_artemis_ii_reference"
+          ]
+        }
+      ]
     }
   },
   "questions": {},
