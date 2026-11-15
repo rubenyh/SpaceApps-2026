@@ -28,10 +28,9 @@ export function decisionLabel(d: Pick<DecisionBody, "decision" | "role">): strin
 }
 
 /** Candidate status; a simulated approval is never shown as a plain "Approved". */
-export function statusLabel(status: CandidateStatus, decisions: DecisionBody[] | null): string {
+export function statusLabel(status: CandidateStatus, decision: Pick<DecisionBody, "decision" | "role"> | null | undefined): string {
   if (status === "pending_review") return "Pending review";
-  const d = decisions?.find((x) => x.decision === status);
-  if (d) return decisionLabel(d);
+  if (decision) return decisionLabel(decision);
   return status === "approved" ? "Approved (reviewer role unknown)" : "Rejected";
 }
 
@@ -61,5 +60,17 @@ export function findingsByCase(findings: EvalFinding[]): Map<string, EvalFinding
 }
 
 /** File name for a downloaded draft case, safe on Windows. */
-export const draftFileName = (caseId: string, findingId: string) =>
-  `draft-${caseId}-${findingId}.json`.replace(/[^A-Za-z0-9._-]+/g, "_");
+export const safeFileName = (name: string) => name.replace(/[^A-Za-z0-9._-]+/g, "_");
+
+export const draftFileName = (caseId: string, findingId: string) => safeFileName(`draft-${caseId}-${findingId}.json`);
+
+/** Error shape of api/client.ts (kept structural so this file runs under plain node). */
+type ApiErrorLike = { kind: "network" } | { kind: "http"; status: number; detail: string };
+
+/** 404: ground does not know the version; 409: ground refused the decision. */
+export function apiErrorText(e: ApiErrorLike): string {
+  if (e.kind === "network") return "Ground service unreachable.";
+  if (e.status === 404) return `Ground does not know this version or finding (404: ${e.detail}).`;
+  if (e.status === 409) return `Refused by ground (409: ${e.detail}).`;
+  return `Ground service error (HTTP ${e.status}: ${e.detail}).`;
+}

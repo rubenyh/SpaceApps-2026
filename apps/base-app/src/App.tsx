@@ -21,7 +21,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "astro", label: "Astronaut" },
   { key: "alerts", label: "Alerts" },
   { key: "incidents", label: "Incidents" },
-  { key: "eval", label: "Medical eval" },
+  { key: "eval", label: "Eval" },
   { key: "link", label: "Link" },
 ];
 

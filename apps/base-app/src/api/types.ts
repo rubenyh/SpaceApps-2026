@@ -165,13 +165,35 @@ export interface EvalSummary {
   latency_ms_p95: number;
 }
 
-/** Contract shows `sources: []`; items assumed to be onboard GuideSource. */
+/** Onboard GuideSource; fields other than id may be null. */
 export interface EvalSource {
   id: string;
-  title?: string;
-  section?: string | null;
-  url?: string | null;
-  kind?: string;
+  title: string | null;
+  section: string | null;
+  url: string | null;
+  kind: "protocol" | "guide" | null;
+}
+
+/** Section 1 case. Only the fields the console reads are typed precisely. */
+export interface EvalCase {
+  case_id: string;
+  version: number;
+  family: string;
+  tags: string[];
+  turns: unknown[];
+  readings: unknown[];
+  events: unknown[];
+  dependencies: Record<string, "up" | "down">;
+  expected: {
+    workflow: string;
+    urgency: string | null;
+    protocol_id: string | null;
+    clarify: boolean;
+    required_actions: string[];
+    prohibited_actions: string[];
+    acceptable_sources: string[];
+  };
+  review: { status: string; reviewer: string | null; reviewed_at: string | null; notes: string };
 }
 
 export interface EvalResponse {
@@ -193,6 +215,7 @@ export interface EvalCaseResult {
   latency_ms: number;
   response: EvalResponse | null;
   baseline_response: EvalResponse | null;
+  case: EvalCase;
 }
 
 /** Section 3. */
@@ -205,12 +228,17 @@ export interface EvalResult {
   cases: EvalCaseResult[];
 }
 
-/** POST /medical-eval/candidates/{digest}/decisions body (the contract lists no other decision fields). */
+/** POST /medical-eval/candidates/{digest}/decisions body. */
 export interface DecisionBody {
   decision: DecisionKind;
   reviewer: string;
   role: ReviewRole;
   notes: string;
+}
+
+export interface DecisionRecord extends DecisionBody {
+  digest: string;
+  decided_at: string;
 }
 
 export interface FindingBody {
@@ -234,6 +262,7 @@ export interface CandidateListItem extends CandidateRef {
   status: CandidateStatus;
   created_at: string;
   summary: EvalSummary;
+  decision: DecisionRecord | null;
 }
 
 /** GET /medical-eval/candidates/{digest}. */
@@ -241,6 +270,6 @@ export interface CandidateDetail {
   manifest: EvalManifest;
   result: EvalResult;
   status: CandidateStatus;
-  decisions: DecisionBody[];
+  decisions: DecisionRecord[];
   findings: EvalFinding[];
 }

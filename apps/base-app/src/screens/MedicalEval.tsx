@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { toApiError } from "../api/client";
-import { getCandidate, getCandidates, getDraftCase, postDecision, postFinding } from "../api/ground";
+import { getCandidate, getCandidates, getDraftCase, getPacketMarkdown, postDecision, postFinding } from "../api/ground";
 import type {
   CandidateDetail,
   DecisionKind,
+  EvalCase,
   EvalCaseResult,
   EvalFinding,
   EvalResponse,
@@ -14,6 +15,7 @@ import type {
 import { usePolling } from "../hooks/usePolling";
 import { utcFull } from "../lib/incidents";
 import {
+  apiErrorText,
   approveBlockedReason,
   approveButtonLabel,
   decisionLabel,
@@ -22,6 +24,7 @@ import {
   findingKindLabel,
   findingsByCase,
   percent,
+  safeFileName,
   shortDigest,
   sortCases,
   statusLabel,
@@ -30,10 +33,17 @@ import {
 const LIST_POLL_MS = 10_000;
 const DETAIL_POLL_MS = 10_000;
 
-const errorText = (err: unknown) => {
-  const e = toApiError(err);
-  return e.kind === "network" ? "Ground service unreachable." : `Ground service error (${e.message}).`;
-};
+const errorText = (err: unknown) => apiErrorText(toApiError(err));
+
+/** Save text as a file through a blob link (no navigation away from the console). */
+function saveFile(name: string, text: string, type: string) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function Sources({ sources }: { sources: EvalSource[] }) {
   if (!sources.length) return <p className="muted">No sources cited.</p>;
@@ -41,7 +51,7 @@ function Sources({ sources }: { sources: EvalSource[] }) {
     <ul className="eval-sources">
       {sources.map((s) => (
         <li key={s.id}>
-          {s.title ?? s.id}
+          {s.title || s.id}
           {s.section ? ` · ${s.section}` : ""} <span className="muted">({s.id})</span>
         </li>
       ))}
@@ -65,6 +75,36 @@ function Answer({ title, response, empty }: { title: string; response: EvalRespo
             <strong>Action:</strong> {response.action ?? <span className="muted">none</span>}
           </p>
           <Sources sources={response.sources} />
+        </>
+      )}
+    </div>
+  );
+}
+
+const list = (items: string[]) => (items.length ? items.join(" · ") : <span className="muted">none</span>);
+
+function Expected({ c }: { c: EvalCase | undefined }) {
+  return (
+    <div className="eval-answer">
+      <h3>Expected {c ? `(case v${c.version}, ${c.review.status})` : ""}</h3>
+      {!c ? (
+        <p className="muted">The result does not include the case definition.</p>
+      ) : (
+        <>
+          <p className="hint">
+            Workflow {c.expected.workflow} · Urgency {c.expected.urgency ?? "none"} · Protocol{" "}
+            {c.expected.protocol_id ?? "none"} · Clarify {c.expected.clarify ? "yes" : "no"}
+          </p>
+          <p>
+            <strong>Required:</strong> {list(c.expected.required_actions)}
+          </p>
+          <p>
+            <strong>Prohibited:</strong> {list(c.expected.prohibited_actions)}
+          </p>
+          <p>
+            <strong>Acceptable sources:</strong> {list(c.expected.acceptable_sources)}
+          </p>
+          {c.tags.length ? <p className="hint">Tags {c.tags.join(", ")}</p> : null}
         </>
       )}
     </div>
@@ -155,13 +195,7 @@ function Finding({ finding: f }: { finding: EvalFinding }) {
   };
 
   const download = () => {
-    if (draft === null) return;
-    const url = URL.createObjectURL(new Blob([draft + "\n"], { type: "application/json" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = draftFileName(f.case_id, f.id);
-    a.click();
-    URL.revokeObjectURL(url);
+    if (draft !== null) saveFile(draftFileName(f.case_id, f.id), draft + "\n", "application/json");
   };
 
   return (
@@ -226,6 +260,7 @@ function Case({
         </ul>
       ) : null}
       <div className="eval-compare">
+        <Expected c={c.case} />
         <Answer
           title="Before (baseline)"
           response={c.baseline_response}
@@ -295,7 +330,8 @@ function Decide({ detail, onChanged }: { detail: CandidateDetail; onChanged: () 
         <ul className="eval-decisions">
           {detail.decisions.map((d, i) => (
             <li key={i}>
-              <strong>{decisionLabel(d)}</strong> · {d.reviewer}
+              <strong>{decisionLabel(d)}</strong> · {d.reviewer} · {utcFull(d.decided_at)} · version{" "}
+              {shortDigest(d.digest)}
               {d.notes ? ` · ${d.notes}` : ""}
             </li>
           ))}
@@ -335,6 +371,31 @@ function Decide({ detail, onChanged }: { detail: CandidateDetail; onChanged: () 
   );
 }
 
+function Packet({ digest, candidateId }: { digest: string; candidateId: string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const download = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const md = await getPacketMarkdown(digest);
+      saveFile(safeFileName(`review-packet-${candidateId}-${shortDigest(digest)}.md`), md, "text/markdown");
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="eval-actions">
+      <button type="button" className="button" onClick={download} disabled={busy}>
+        {busy ? "Downloading…" : "Review packet (Markdown)"}
+      </button>
+      {error ? <p role="alert" className="eval-error">{error}</p> : null}
+    </div>
+  );
+}
+
 function Candidate({ digest }: { digest: string }) {
   const { data, error, refresh } = usePolling(`eval-${digest}`, (s) => getCandidate(digest, s), DETAIL_POLL_MS);
   const [failedOnly, setFailedOnly] = useState(false);
@@ -364,7 +425,7 @@ function Candidate({ digest }: { digest: string }) {
         <dl className="facts eval-facts">
           <div>
             <dt>Status</dt>
-            <dd>{statusLabel(status, data.decisions)}</dd>
+            <dd>{statusLabel(status, data.decisions[0])}</dd>
           </div>
           <div>
             <dt>Digest</dt>
@@ -405,6 +466,7 @@ function Candidate({ digest }: { digest: string }) {
             </dd>
           </div>
         </dl>
+        <Packet digest={manifest.digest} candidateId={manifest.candidate_id} />
         <p className="hint">
           Components: {manifest.components.map((c) => `${c.kind} ${shortDigest(c.sha256)}`).join(" · ") || "--"}
         </p>
@@ -467,7 +529,7 @@ export function MedicalEval() {
           <select id="eval-candidate" value={digest ?? ""} onChange={(e) => setDigest(e.target.value)}>
             {data.map((c) => (
               <option key={c.digest} value={c.digest}>
-                {c.candidate_id} · {shortDigest(c.digest)} · {statusLabel(c.status, null)} · {c.summary.failed} failed
+                {c.candidate_id} · {shortDigest(c.digest)} · {statusLabel(c.status, c.decision)} · {c.summary.failed} failed
                 {c.summary.release_blocked ? " · blocked" : ""}
               </option>
             ))}
