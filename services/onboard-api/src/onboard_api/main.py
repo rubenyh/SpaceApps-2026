@@ -1,6 +1,8 @@
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,6 +17,8 @@ from onboard_api.assistant.workflows.medical.context import (
 from onboard_api.config import Settings
 from onboard_api.repositories.database import init_db
 from onboard_api.routers import assistant, astronauts, readings, sensors, status
+from onboard_api.telemetry.publisher import TelemetryPublisher
+from onboard_api.wellbeing.router import router as wellbeing_router
 
 
 def build_assistant_deps(settings: Settings) -> AssistantDeps:
@@ -51,7 +55,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         init_db(settings.db_path, migrations_dir=settings.migrations_dir)
         app.state.settings = settings
         app.state.assistant_deps = build_assistant_deps(settings)
-        yield
+        if not settings.telemetry_enabled:
+            yield
+            return
+        async with httpx.AsyncClient(base_url=settings.ground_api_url, timeout=10.0) as client:
+            publisher = TelemetryPublisher(
+                client, settings.db_path, settings.ship_id, settings.telemetry_interval_seconds
+            )
+            task = asyncio.create_task(publisher.run())
+            app.state.telemetry_publisher = publisher
+            try:
+                yield
+            finally:
+                task.cancel()
+                await asyncio.gather(task, return_exceptions=True)
 
     app = FastAPI(title="Space Apps Onboard API", lifespan=lifespan)
     app.add_middleware(
@@ -70,6 +87,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(sensors.router)
     app.include_router(readings.router)
     app.include_router(assistant.router)
+    app.include_router(wellbeing_router)
     return app
 
 

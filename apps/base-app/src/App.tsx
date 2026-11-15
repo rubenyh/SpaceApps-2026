@@ -1,51 +1,182 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { API_BASE_URL, type ApiError } from "./api/client";
+import { getAlerts, getCrew, getLink } from "./api/ground";
+import type { Link } from "./api/types";
+import { Flap } from "./components/Flap";
+import { useNow } from "./hooks/useNow";
+import { usePolling } from "./hooks/usePolling";
+import { addToLedger, LINK_HEADLINES, liveAge, linkState, type LedgerEntry } from "./lib/board";
+import { formatAge, formatDuration, utcSeconds } from "./lib/format";
+import { Alertas } from "./screens/Alertas";
+import { Astronauta } from "./screens/Astronauta";
+import { Enlace } from "./screens/Enlace";
+import { Tripulacion } from "./screens/Tripulacion";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+type Tab = "crew" | "astro" | "alerts" | "link";
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+const TABS: { key: Tab; label: string }[] = [
+  { key: "crew", label: "Tripulación" },
+  { key: "astro", label: "Astronauta" },
+  { key: "alerts", label: "Alertas" },
+  { key: "link", label: "Enlace" },
+];
+
+const LINK_POLL_MS = 2_000;
+const CREW_POLL_MS = 3_000;
+const ALERTS_POLL_MS = 5_000;
+const ALERTS_LIMIT = 200;
+
+export default function App() {
+  const [tab, setTab] = useState<Tab>("crew");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const now = useNow(1000);
+
+  const link = usePolling("link", getLink, LINK_POLL_MS);
+  const crew = usePolling("crew", getCrew, CREW_POLL_MS);
+  const alerts = usePolling("alerts", (s) => getAlerts(ALERTS_LIMIT, s), ALERTS_POLL_MS);
+
+  const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+  const prevLink = useRef<Link | null>(null);
+  useEffect(() => {
+    if (!link.data) return;
+    const prev = prevLink.current;
+    prevLink.current = link.data;
+    setLedger((l) => addToLedger(l, prev, link.data as Link));
+  }, [link.data]);
+
+  // Default the astronaut view to the first crew member, and recover if they disappear.
+  useEffect(() => {
+    const members = crew.data ?? [];
+    if (members.length && !members.some((m) => m.astronaut_id === selectedId)) {
+      setSelectedId(members[0].astronaut_id);
+    }
+  }, [crew.data, selectedId]);
+
+  const offline = link.error?.kind === "network" || crew.error?.kind === "network";
+  const httpError: ApiError | null =
+    [link.error, crew.error, alerts.error].find((e) => e?.kind === "http") ?? null;
+  const since = liveAge(link.data?.seconds_since_last_batch, link.updatedAt, now);
+  const state = linkState(link.data, since, offline);
+
+  const retry = () => {
+    link.refresh();
+    crew.refresh();
+    alerts.refresh();
+  };
+
+  const open = (id: string) => {
+    setSelectedId(id);
+    setTab("astro");
+  };
+
+  const onTabKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const idx = TABS.findIndex((t) => t.key === tab);
+    let next = -1;
+    if (e.key === "ArrowRight") next = (idx + 1) % TABS.length;
+    else if (e.key === "ArrowLeft") next = (idx - 1 + TABS.length) % TABS.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = TABS.length - 1;
+    if (next < 0) return;
+    e.preventDefault();
+    setTab(TABS[next].key);
+    tabRefs.current[next]?.focus();
+  };
+
+  const lastOk = Math.max(link.updatedAt ?? 0, crew.updatedAt ?? 0);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+    <div className="app">
+      <header className="topbar">
+        <span className="brand">Base · Salud de tripulación</span>
+        <div className="tabs" role="tablist" aria-label="Pantallas" onKeyDown={onTabKey}>
+          {TABS.map((t, i) => (
+            <button
+              key={t.key}
+              ref={(el) => {
+                tabRefs.current[i] = el;
+              }}
+              type="button"
+              role="tab"
+              id={`tab-${t.key}`}
+              aria-selected={tab === t.key}
+              aria-controls="panel"
+              tabIndex={tab === t.key ? 0 : -1}
+              className="tab"
+              onClick={() => setTab(t.key)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className={`linkbar linkbar--${state}`}>
+          {/* Headline changes only with the state, so the live region does not announce every tick. */}
+          <span className="linkbar__words" role="status">
+            {LINK_HEADLINES[state]}
+          </span>
+          <span className="linkbar__facts">
+            Lote nº{" "}
+            <Flap text={link.data?.batches_received ? String(link.data.batches_received) : "--"} className="flap--inline" />
+            {" · "}
+            {since === null ? "sin lotes" : formatAge(since)}
+            <span className="linkbar__utc">
+              {" · "}UTC <strong>{utcSeconds(now)}</strong>
+            </span>
+          </span>
+        </div>
+      </header>
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
+      {offline ? (
+        <div className="banner banner--alert" role="alert">
+          <p>
+            Sin conexión con el servicio de tierra ({API_BASE_URL}).{" "}
+            {lastOk
+              ? `Se muestran los últimos datos recibidos ${formatAge((now - lastOk) / 1000)}, marcados como dato viejo.`
+              : "Todavía no se ha recibido ningún dato."}{" "}
+            Reintento automático cada {formatDuration(LINK_POLL_MS / 1000)}.
+          </p>
+          <button type="button" className="button" onClick={retry}>
+            Reintentar ahora
+          </button>
+        </div>
+      ) : httpError ? (
+        <div className="banner banner--stale" role="alert">
+          <p>
+            El servicio de tierra respondió con un error ({httpError.message}). Se mantienen los
+            últimos datos y se reintenta automáticamente.
+          </p>
+          <button type="button" className="button" onClick={retry}>
+            Reintentar ahora
+          </button>
+        </div>
+      ) : null}
 
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+      <main className="panel" id="panel" role="tabpanel" aria-labelledby={`tab-${tab}`}>
+        {tab === "crew" ? (
+          <Tripulacion
+            crew={crew.data}
+            crewAt={crew.updatedAt}
+            offline={offline}
+            now={now}
+            link={link.data}
+            ledger={ledger}
+            onOpen={open}
+          />
+        ) : tab === "astro" ? (
+          <Astronauta
+            crew={crew.data}
+            crewAt={crew.updatedAt}
+            offline={offline}
+            now={now}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
+        ) : tab === "alerts" ? (
+          <Alertas alerts={alerts.data} limit={ALERTS_LIMIT} crew={crew.data} offline={offline} />
+        ) : (
+          <Enlace link={link.data} since={since} state={state} crew={crew.data} ledger={ledger} offline={offline} />
+        )}
+      </main>
+    </div>
   );
 }
-
-export default App;

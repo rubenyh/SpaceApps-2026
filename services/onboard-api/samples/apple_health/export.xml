@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SYNTHETIC sample of an Apple Health export for tests and the demo. Not real data. -->
+<!DOCTYPE HealthData [
+<!ELEMENT HealthData (ExportDate,Me,(Record|Correlation|Workout|ActivitySummary)*)>
+<!ATTLIST HealthData locale CDATA #REQUIRED>
+<!ELEMENT ExportDate EMPTY>
+<!ATTLIST ExportDate value CDATA #REQUIRED>
+<!ELEMENT Me EMPTY>
+<!ELEMENT Record ((MetadataEntry|HeartRateVariabilityMetadataList)*)>
+<!ATTLIST Record type CDATA #REQUIRED unit CDATA #IMPLIED value CDATA #IMPLIED sourceName CDATA #REQUIRED startDate CDATA #REQUIRED endDate CDATA #REQUIRED>
+]>
+<HealthData locale="es_MX">
+ <ExportDate value="2026-11-11 09:00:00 -0800"/>
+ <Me HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexNotSet"/>
+ <!-- Day 1: 2026-11-09 -->
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Apple Watch" startDate="2026-11-08 23:00:00 -0800" endDate="2026-11-08 23:20:00 -0800" value="HKCategoryValueSleepAnalysisInBed"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Apple Watch" startDate="2026-11-08 23:20:00 -0800" endDate="2026-11-09 02:20:00 -0800" value="HKCategoryValueSleepAnalysisAsleepCore"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Apple Watch" startDate="2026-11-09 02:20:00 -0800" endDate="2026-11-09 02:35:00 -0800" value="HKCategoryValueSleepAnalysisAwake"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Apple Watch" startDate="2026-11-09 02:35:00 -0800" endDate="2026-11-09 04:05:00 -0800" value="HKCategoryValueSleepAnalysisAsleepDeep"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Apple Watch" startDate="2026-11-09 04:05:00 -0800" endDate="2026-11-09 06:35:00 -0800" value="HKCategoryValueSleepAnalysisAsleepREM"/>
+ <!-- iPhone duplicate of part of the same night: must not be counted twice. -->
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="iPhone" startDate="2026-11-08 23:30:00 -0800" endDate="2026-11-09 01:30:00 -0800" value="HKCategoryValueSleepAnalysisAsleepUnspecified"/>
+ <Record type="HKQuantityTypeIdentifierRestingHeartRate" sourceName="Apple Watch" unit="count/min" startDate="2026-11-09 00:00:00 -0800" endDate="2026-11-09 23:59:00 -0800" value="57"/>
+ <Record type="HKQuantityTypeIdentifierHeartRateVariabilitySDNN" sourceName="Apple Watch" unit="ms" startDate="2026-11-09 07:10:00 -0800" endDate="2026-11-09 07:11:00 -0800" value="54.2">
+  <MetadataEntry key="HKAlgorithmVersion" value="2"/>
+  <HeartRateVariabilityMetadataList>
+   <InstantaneousBeatsPerMinute bpm="58" time="7:10:05.12 AM"/>
+   <InstantaneousBeatsPerMinute bpm="60" time="7:10:06.10 AM"/>
+  </HeartRateVariabilityMetadataList>
+ </Record>
+ <Record type="HKQuantityTypeIdentifierHeartRateVariabilitySDNN" sourceName="Apple Watch" unit="ms" startDate="2026-11-09 15:40:00 -0800" endDate="2026-11-09 15:41:00 -0800" value="49.8"/>
+ <!-- Other types are ignored. -->
+ <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Apple Watch" unit="count/min" startDate="2026-11-09 10:00:00 -0800" endDate="2026-11-09 10:00:00 -0800" value="72"/>
+ <Record type="HKQuantityTypeIdentifierStepCount" sourceName="iPhone" unit="count" startDate="2026-11-09 10:00:00 -0800" endDate="2026-11-09 10:30:00 -0800" value="812"/>
+ <!-- Day 2: 2026-11-10 -->
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Apple Watch" startDate="2026-11-09 23:45:00 -0800" endDate="2026-11-10 03:45:00 -0800" value="HKCategoryValueSleepAnalysisAsleepCore"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Apple Watch" startDate="2026-11-10 03:45:00 -0800" endDate="2026-11-10 05:45:00 -0800" value="HKCategoryValueSleepAnalysisAsleepREM"/>
+ <Record type="HKQuantityTypeIdentifierRestingHeartRate" sourceName="Apple Watch" unit="count/min" startDate="2026-11-10 00:00:00 -0800" endDate="2026-11-10 23:59:00 -0800" value="59"/>
+ <Record type="HKQuantityTypeIdentifierHeartRateVariabilitySDNN" sourceName="Apple Watch" unit="ms" startDate="2026-11-10 07:05:00 -0800" endDate="2026-11-10 07:06:00 -0800" value="47.1"/>
+ <!-- Unexpected unit: skipped. -->
+ <Record type="HKQuantityTypeIdentifierRestingHeartRate" sourceName="Apple Watch" unit="count/s" startDate="2026-11-10 12:00:00 -0800" endDate="2026-11-10 12:00:00 -0800" value="1"/>
+</HealthData>

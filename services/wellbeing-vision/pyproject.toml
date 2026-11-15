@@ -1,0 +1,27 @@
+[project]
+name = "wellbeing-vision"
+version = "0.1.0"
+description = "Onboard camera analysis for crew wellbeing: derived metrics only, no video stored"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "mediapipe>=1.2.3",
+    "numpy>=2.5.4",
+    "opencv-contrib-python>=5.0.0.93",
+    "pillow>=13.0.0",
+    "pydantic>=2.14.3",
+    "pydantic-settings>=2.16.3",
+]
+
+[project.scripts]
+wellbeing-vision = "wellbeing_vision.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.10.0,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]

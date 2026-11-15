@@ -104,3 +104,117 @@ Table CHECK `(value IS NULL) <> (value_text IS NULL)`: exactly one of `value` an
 - After migrating, `PRAGMA foreign_key_check` must report no violations, or start-up fails.
 - Migrations directory: resolved from the package location by default; override with `ONBOARD_MIGRATIONS_DIR`.
 - New schema change: add the next numbered file. Never edit an applied migration.
+
+---
+
+# Data dictionary: wellbeing database
+
+SQLite database of the wellbeing module in `services/onboard-api` (`WELLBEING_DB_PATH`, default `data/wellbeing.db`, relative to the working directory, git-ignored). It is a separate file from `onboard.db`: the module reads `onboard.db` read-only (`mode=ro`, through `AstronautRepository` and `ReadingRepository`) and never writes to it.
+
+Schema: [`migrations/wellbeing/0001_baseline.sql`](migrations/wellbeing/0001_baseline.sql) and [`migrations/wellbeing/0002_ground_packages.sql`](migrations/wellbeing/0002_ground_packages.sql). If this document and the SQL differ, the SQL wins. API contract: [`docs/wellbeing-contract.md`](../docs/wellbeing-contract.md).
+
+The module supports people and never diagnoses. No images, video or face templates are stored: only derived metrics.
+
+## Conventions
+
+- **Timestamps**: same format and helpers as `onboard.db` (see [Conventions](#conventions)).
+- **Days** (`day`) are `TEXT` `YYYY-MM-DD`, the UTC mission day. Fixed width, so text order is chronological.
+- **`astronaut_id`** refers to `onboard.db` `astronauts(id)`, which is in another file, so there is no foreign key. The API checks existence (404). Vision rows may carry `unknown-<track>` for an unidentified person: stored, never used in any baseline.
+- **`body`** columns hold the request JSON exactly as the API validated it (Pydantic models in [`wellbeing/schemas.py`](../services/onboard-api/src/onboard_api/wellbeing/schemas.py)). Field limits live there, not in SQLite.
+- **`source`**: origin of the row. `simulated`, `demo` or `simulated:*` mark simulated data (`is_simulated_source`).
+- **`quality`**: CHECK `IN ('good','suspect','bad')`. The fusion ignores `bad` and also excludes `suspect` (counted and reported in `data_notices`).
+
+## `checkins`
+
+Daily self-report. One row per astronaut and day; resubmitting the same day replaces it (`PUT /astronauts/{id}/wellbeing/checkins/{day}`).
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `astronaut_id` | TEXT | PK (1/2) | | See conventions. |
+| `day` | TEXT | PK (2/2) | | Day. API: not in the future. |
+| `sleep_hours` | REAL | NOT NULL | | Hours. API: 0 to 24, multiple of 0.5. |
+| `sleep_quality` | INTEGER | NOT NULL | | CHECK 0 to 4. 4 = best. |
+| `energy` | INTEGER | NOT NULL | | CHECK 0 to 4. 4 = best. |
+| `mood` | INTEGER | NOT NULL | | CHECK 0 to 4. 4 = best. |
+| `interest` | INTEGER | NOT NULL | | CHECK 0 to 4. 4 = best. |
+| `stress` | INTEGER | NOT NULL | | CHECK 0 to 4. **4 = worst.** |
+| `crew_connection` | INTEGER | NOT NULL | | CHECK 0 to 4. 4 = best. |
+| `comment` | TEXT | NULL | | Private free text. API: up to 500 characters. Personal view only; leaves the ship only if a ground package includes `comments`. |
+| `source` | TEXT | NOT NULL | | API default `crew`. |
+| `submitted_at` | TEXT | NOT NULL | | Timestamp, set by the server. |
+
+## `signals`
+
+Physiological signals for the fusion (Apple Watch export or simulator). Insert only (`POST /wellbeing/signals`).
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | INTEGER | PK AUTOINCREMENT | | |
+| `astronaut_id` | TEXT | NOT NULL | | |
+| `kind` | TEXT | NOT NULL | | App: `hrv_sdnn`, `resting_heart_rate`, `sleep_hours`. No SQL CHECK. |
+| `value` | REAL | NOT NULL | | API: ≥ 0. |
+| `unit` | TEXT | NOT NULL | | Fixed per kind (API 422 otherwise): `hrv_sdnn` → `ms`, `resting_heart_rate` → `bpm`, `sleep_hours` → `h`. |
+| `recorded_at` | TEXT | NOT NULL | | Capture time. For `sleep_hours`, wake-up time (the night counts for that day). |
+| `received_at` | TEXT | NOT NULL | | Timestamp, set by the server. |
+| `quality` | TEXT | NOT NULL | | See conventions. |
+| `source` | TEXT | NOT NULL | | e.g. `apple_watch_export`, `simulated`. |
+
+Index `idx_signals_lookup (astronaut_id, recorded_at)`.
+
+## `vision_sessions`
+
+One camera summary from the vision process: one per daily log (`bitacora`) or one per person and window in ambient mode (`ambiente`). Insert only (`POST /wellbeing/vision-sessions`).
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | INTEGER | PK AUTOINCREMENT | | |
+| `astronaut_id` | TEXT | NOT NULL | | Known id or `unknown-<track>`. |
+| `started_at` | TEXT | NOT NULL | | Timestamp, copied from the body for indexing. The session counts for this day. |
+| `body` | TEXT | NOT NULL | | `VisionSessionCreate` JSON: `session_type`, `module_id`, `ended_at`, `quality`, `valid_frame_ratio`, `identity`, `neutral_ok`, `fatigue`, `tension`, `motion`, `provisional`. `tension` may carry the optional `brow_lower_peak_1s` and `lip_press_peak_1s` (0-1, highest level held ≥ 1 s); older rows without them read as null, so no migration was needed. `lip_press_*` is stored but not scored (speech triggers it). Fields and ranges: contract section 6. |
+| `received_at` | TEXT | NOT NULL | | Timestamp, set by the server. |
+
+Index `idx_vision_lookup (astronaut_id, started_at)`.
+
+## `co_presence`
+
+One module window (60 s from the vision process; the simulator uses 30 min). Insert only (`POST /wellbeing/co-presence`).
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | INTEGER | PK AUTOINCREMENT | | |
+| `window_start` | TEXT | NOT NULL | | Timestamp, copied from the body. The window counts for this day. |
+| `body` | TEXT | NOT NULL | | `CoPresenceCreate` JSON: `module_id`, `source`, `window_end`, `occupants`, `pairs` (distance in shoulder widths and 2D facing ratio, both approximate), `quality`, `provisional`. |
+| `received_at` | TEXT | NOT NULL | | Timestamp, set by the server. |
+
+## `co_presence_members`
+
+Who appears in each window, so per-astronaut queries do not parse JSON.
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `window_id` | INTEGER | PK (1/2) | | FK `co_presence(id)` ON DELETE CASCADE. |
+| `astronaut_id` | TEXT | PK (2/2) | | One row per occupant, including `unknown-<track>`. |
+
+Index `idx_co_presence_member (astronaut_id)`.
+
+## `ground_packages` (version 2)
+
+Package for the ground psychologist. Created only with the astronaut's explicit consent (`POST /wellbeing/ground-packages`, 422 otherwise), queued on board, never sent automatically.
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | TEXT | PK | | UUID v4, set by the server. |
+| `astronaut_id` | TEXT | NOT NULL | | Must be a registered astronaut (404 otherwise). |
+| `body` | TEXT | NOT NULL | | `GroundPackageCreate` JSON: `requested_by` (`self`, `captain`, `ground_psychologist`), `requested_by_name`, `consent` (`astronaut_confirmed` true, `statement_version`), `period_from`, `period_to`, `include` (`assessment`, `timeline`, `checkins`, `comments`), `note`. |
+| `status` | TEXT | NOT NULL | | CHECK `IN ('queued','withdrawn','sent')`. `queued` on creation; `withdrawn` when the astronaut withdraws consent (content then returns 409); `sent` is reserved for the future telemetry link. |
+| `consent_recorded_at` | TEXT | NOT NULL | | Timestamp of the consent (creation time). |
+| `created_at` | TEXT | NOT NULL | | Timestamp. |
+| `updated_at` | TEXT | NOT NULL | | Timestamp of the last status change. |
+
+Index `idx_ground_packages_astronaut (astronaut_id, created_at)`.
+
+## Version and migrations (wellbeing)
+
+- Same runner as onboard: `init_db(db_path, migrations_dir=WELLBEING_MIGRATIONS_DIR)` in [`wellbeing/database.py`](../services/onboard-api/src/onboard_api/wellbeing/database.py), with `db/migrations/wellbeing` resolved from the package location. Same rules: one transaction per file together with its `PRAGMA user_version`, rerun is a no-op, newer databases are rejected, `PRAGMA foreign_key_check` after migrating.
+- The onboard app's start-up is not changed: the module migrates lazily on its first connection, once per process and path.
+- Versions: `0001_baseline.sql` = 1 (inputs), `0002_ground_packages.sql` = 2. A `wellbeing.db` at version 1 gets only 0002 and keeps its rows.

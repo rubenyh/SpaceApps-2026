@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "ship_id": "ship-01",
+  "batch_id": "c1d2e3f4-0000-4000-8000-000000000001",
+  "sent_at": "2026-11-14T18:02:20.000000Z",
+  "astronauts": [{ "id": "ast-01", "display_name": "Demo Uno" }],
+  "sensors": [],
+  "readings": []
+}
