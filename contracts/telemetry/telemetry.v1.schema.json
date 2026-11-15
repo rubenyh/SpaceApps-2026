@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "telemetry.v1.schema.json",
+  "title": "Telemetry batch v1 (ship to ground)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "ship_id", "batch_id", "sent_at", "astronauts", "sensors", "readings"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "ship_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "batch_id": { "type": "string", "format": "uuid" },
+    "sent_at": { "type": "string", "format": "date-time" },
+    "astronauts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "display_name"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,31}$" },
+          "display_name": { "type": "string", "minLength": 1, "maxLength": 80 }
+        }
+      }
+    },
+    "sensors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "unit", "stale_after_seconds", "normal_min", "normal_max", "range_role", "provisional", "range_source"],
+        "properties": {
+          "kind": { "$ref": "#/$defs/kind" },
+          "unit": { "type": ["string", "null"] },
+          "stale_after_seconds": { "type": ["integer", "null"], "exclusiveMinimum": 0 },
+          "normal_min": { "type": ["number", "null"] },
+          "normal_max": { "type": ["number", "null"] },
+          "range_role": { "enum": ["health", "sample_validity"] },
+          "provisional": { "type": "boolean" },
+          "range_source": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "readings": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "astronaut_id", "kind", "value", "value_text", "unit", "recorded_at", "received_at", "quality", "source"],
+        "properties": {
+          "id": { "type": "integer", "minimum": 1 },
+          "astronaut_id": { "type": "string" },
+          "kind": { "$ref": "#/$defs/kind" },
+          "value": { "type": ["number", "null"] },
+          "value_text": { "type": ["string", "null"], "maxLength": 64 },
+          "unit": { "type": "string", "minLength": 1, "maxLength": 32 },
+          "recorded_at": { "type": "string", "format": "date-time" },
+          "received_at": { "type": "string", "format": "date-time" },
+          "quality": { "enum": ["good", "suspect", "bad"] },
+          "source": { "type": "string", "minLength": 1, "maxLength": 64 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "kind": {
+      "enum": ["heart_rate", "spo2", "muscle_density", "urine_ph", "urine_salinity", "urine_color", "urine_temperature", "urine_radiation_marker"]
+    }
+  }
+}

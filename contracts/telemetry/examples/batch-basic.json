@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "ship_id": "ship-01",
+  "batch_id": "7b0c7a52-2f0e-4a8e-9a43-3c1f2b6d9e10",
+  "sent_at": "2026-11-14T18:02:15.000000Z",
+  "astronauts": [
+    { "id": "ast-01", "display_name": "Demo Uno" },
+    { "id": "ast-02", "display_name": "Demo Dos" }
+  ],
+  "sensors": [
+    { "kind": "heart_rate", "unit": "bpm", "stale_after_seconds": 300, "normal_min": 60, "normal_max": 100, "range_role": "health", "provisional": true, "range_source": "AHA / Mayo Clinic" },
+    { "kind": "urine_temperature", "unit": "°C", "stale_after_seconds": 86400, "normal_min": 32, "normal_max": 38, "range_role": "sample_validity", "provisional": true, "range_source": "49 CFR 40.65" },
+    { "kind": "urine_color", "unit": "rgb_hex", "stale_after_seconds": 86400, "normal_min": null, "normal_max": null, "range_role": "health", "provisional": true, "range_source": null }
+  ],
+  "readings": [
+    { "id": 41, "astronaut_id": "ast-02", "kind": "heart_rate", "value": 112, "value_text": null, "unit": "bpm", "recorded_at": "2026-11-14T18:02:10.000000Z", "received_at": "2026-11-14T18:02:10.020000Z", "quality": "good", "source": "device:pulse-ox" },
+    { "id": 42, "astronaut_id": "ast-01", "kind": "urine_color", "value": null, "value_text": "#D9C24A", "unit": "rgb_hex", "recorded_at": "2026-11-14T18:02:11.000000Z", "received_at": "2026-11-14T18:02:11.030000Z", "quality": "good", "source": "device:urine-analyser" }
+  ]
+}

@@ -1,0 +1,870 @@
+/* Consola de base: split-flap departures board. Palette from the direction contract. */
+:root {
+  --flap: #0b0b0d;
+  --steel: #15171a;
+  --housing: #1c1e22;
+  --frame: #2a2d31;
+  --steel-mid: #5b5e63;
+  --label: #a7aaaf;
+  --letter: #f2f2f2;
+  --amber: #ffb000;
+  --red: #c8452f;
+  --data: 26px;
+
+  color-scheme: dark;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  color: var(--letter);
+  background: var(--steel);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 1024px;
+  min-height: 700px;
+  height: 100%;
+}
+
+#root {
+  height: 100%;
+}
+
+::selection {
+  background: var(--letter);
+  color: var(--flap);
+}
+
+:focus-visible {
+  outline: 2px solid var(--letter);
+  outline-offset: 2px;
+}
+
+* {
+  scrollbar-color: var(--frame) var(--steel);
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--steel);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--frame);
+  border: 3px solid var(--steel);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--steel-mid);
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+sub {
+  font-size: 0.7em;
+  vertical-align: baseline;
+  position: relative;
+  top: 0.2em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.muted {
+  color: var(--label);
+}
+
+/* --- Shell --------------------------------------------------------------- */
+
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+  height: 100%;
+}
+
+.topbar {
+  display: flex;
+  align-items: stretch;
+  gap: 24px;
+  height: 56px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--frame);
+  text-transform: uppercase;
+}
+
+.brand {
+  align-self: center;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.tabs {
+  display: flex;
+}
+
+.tab {
+  padding: 0 14px;
+  border: 0;
+  background: none;
+  color: var(--label);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--letter);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--letter);
+  box-shadow: inset 0 -3px var(--letter);
+}
+
+.tab:focus-visible {
+  outline-offset: -6px;
+}
+
+.linkbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--label);
+  white-space: nowrap;
+}
+
+.linkbar strong {
+  color: var(--letter);
+  font-weight: 600;
+}
+
+.linkbar__words {
+  padding: 3px 8px;
+  border: 1px solid var(--frame);
+  color: var(--letter);
+}
+
+.linkbar--no_batch .linkbar__words,
+.linkbar--unknown .linkbar__words {
+  color: var(--amber);
+  border-color: var(--amber);
+}
+
+.linkbar--late .linkbar__words {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--flap);
+}
+
+.linkbar--late .linkbar__facts {
+  color: var(--amber);
+}
+
+.linkbar--lost .linkbar__words,
+.linkbar--unreachable .linkbar__words {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 16px 24px 0;
+  padding: 10px 10px 10px 16px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.banner p {
+  flex: 1;
+}
+
+.banner--alert {
+  background: var(--red);
+  color: #fff;
+}
+
+.banner--stale {
+  background: var(--amber);
+  color: var(--flap);
+}
+
+.button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  background: var(--flap);
+  color: var(--letter);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--frame);
+}
+
+.button:active {
+  background: var(--steel-mid);
+}
+
+.panel {
+  overflow: auto;
+  padding: 24px 24px 40px;
+}
+
+/* --- Flaps ----------------------------------------------------------------- */
+
+.flap {
+  display: inline-block;
+  max-width: 100%;
+  font-size: var(--data);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  vertical-align: middle;
+}
+
+.flap__face {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.flap__tile,
+.flap--plate .flap__face {
+  position: relative;
+  z-index: 0;
+  background: var(--flap);
+  border-radius: 2px;
+}
+
+.flap__tile {
+  display: inline-block;
+  width: 0.62em;
+  padding: 0.1em 0;
+  text-align: center;
+}
+
+.flap--plate .flap__face {
+  display: block;
+  padding: 0.1em 0.35em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre;
+}
+
+/* The hinge line splits every flap, behind the letters. */
+.flap__tile::after,
+.flap--plate .flap__face::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  z-index: -1;
+  height: 1px;
+  background: rgb(0 0 0 / 0.9);
+  pointer-events: none;
+}
+
+/* Board lettering inside text tables: 19px bold so red letters stay large-text contrast. */
+.flap--text {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.flap--text.flap--plate .flap__face {
+  display: inline-block;
+}
+
+.cell--alert .flap--text .flap__face,
+.flap--text.flap--red .flap__face,
+.flap--text.flap--red .flap__tile {
+  color: var(--red);
+}
+
+.board__norange {
+  display: block;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+
+.flap--inline {
+  font-size: inherit;
+  letter-spacing: inherit;
+}
+
+.flap--inline .flap__face {
+  display: inline-block;
+  color: var(--letter);
+}
+
+.flap--skeleton .flap__tile {
+  animation: settle 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes settle {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* --- Board ----------------------------------------------------------------- */
+
+.board-wrap {
+  overflow-x: auto;
+}
+
+/* Content-sized columns: fixed tile counts and plate min-widths keep them still between polls;
+   the name column takes the slack and truncates. */
+.board {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 4px;
+  margin: -4px;
+}
+
+.board thead th,
+.sensors thead th,
+.log thead th {
+  padding: 4px 8px;
+  color: var(--label);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.board__unit {
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.board tbody th,
+.board tbody td {
+  padding: 10px;
+  background: var(--housing);
+  border-top: 1px solid var(--frame);
+  text-align: left;
+  font-weight: inherit;
+  vertical-align: top;
+}
+
+.row {
+  cursor: pointer;
+  transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Focusing or hovering a row dims the rest of the board. */
+.board tbody:has(.row:hover, .row:focus-within) .row:not(:hover, :focus-within) {
+  opacity: 0.4;
+}
+
+.row--skeleton {
+  cursor: default;
+}
+
+.row__open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.board tbody th:first-child {
+  width: 100%;
+  max-width: 0;
+}
+
+.row__open .flap {
+  display: block;
+}
+
+.row:hover > *,
+.row:focus-within > * {
+  border-top-color: var(--steel-mid);
+}
+
+.note {
+  display: block;
+  min-height: 1.4em;
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
+.cell--alert .flap__tile,
+.cell--alert .flap--plate .flap__face {
+  color: var(--red);
+}
+
+.cell--alert .note {
+  display: inline-block;
+  padding: 0 6px;
+  background: var(--red);
+  color: #fff;
+}
+
+.cell--stale .flap__tile,
+.cell--stale .flap--plate .flap__face,
+.cell--stale .note {
+  color: var(--amber);
+}
+
+.cell--muted .flap--plate .flap__face,
+.cell--muted .flap__tile {
+  color: var(--label);
+}
+
+.cell--state .flap {
+  display: block;
+}
+
+.board .cell--state .flap__face {
+  min-width: 5.9em;
+}
+
+.board .cell--age .flap__face {
+  min-width: 4.8em;
+}
+
+.cell--state.cell--alert .flap__face {
+  background: var(--red);
+  color: #fff;
+}
+
+.cell--state.cell--stale .flap__face {
+  background: var(--amber);
+  color: var(--flap);
+}
+
+.cell--state.cell--empty .flap__face {
+  color: var(--label);
+}
+
+.cell--age .flap {
+  display: block;
+}
+
+.board tbody .board__empty {
+  padding: 24px;
+  font-size: 18px;
+}
+
+/* --- Tables and logs --------------------------------------------------------- */
+
+.section {
+  margin-top: 40px;
+}
+
+.section h2,
+.explain h2 {
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.log,
+.sensors {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.log thead th,
+.sensors thead th {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--frame);
+}
+
+.log td {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--frame);
+  font-size: 18px;
+}
+
+.serial {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.log--alerts tbody tr:hover,
+.sensors tbody tr:hover {
+  background: var(--housing);
+}
+
+.sensors tbody th,
+.sensors td {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--frame);
+  font-size: 18px;
+  font-weight: 500;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.sensors tbody th {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sensors .note {
+  margin: 0;
+}
+
+.value {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--steel-mid);
+  border-radius: 2px;
+}
+
+.tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.tag--prov {
+  border: 1px solid var(--steel-mid);
+  color: var(--label);
+}
+
+.quality--warn {
+  color: var(--amber);
+}
+
+.empty {
+  padding: 20px;
+  background: var(--flap);
+  border: 1px solid var(--frame);
+  font-size: 18px;
+}
+
+.empty .hint {
+  margin-top: 8px;
+}
+
+.hint {
+  max-width: 96ch;
+  margin-top: 10px;
+  font-size: 15px;
+  color: var(--label);
+}
+
+/* --- Toolbar --------------------------------------------------------------- */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.toolbar__label {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
+.toolbar__meta {
+  margin-left: auto;
+  font-size: 16px;
+  color: var(--label);
+}
+
+.toolbar .cell--state .flap__face {
+  font-size: 20px;
+}
+
+select {
+  appearance: none;
+  min-height: 44px;
+  padding: 0 40px 0 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='8' viewBox='0 0 14 8'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%23A7AAAF' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  border: 1px solid var(--steel-mid);
+  border-radius: 2px;
+  background: var(--flap);
+  color: var(--letter);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+select option {
+  background: var(--flap);
+  color: var(--letter);
+}
+
+select:hover {
+  border-color: var(--label);
+}
+
+/* --- Trends ---------------------------------------------------------------- */
+
+.charts {
+  display: grid;
+  gap: 16px;
+}
+
+.charts--2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.charts--3 {
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+}
+
+.trend {
+  margin: 0;
+  padding: 12px 14px 8px;
+  background: var(--flap);
+  border: 1px solid var(--frame);
+}
+
+.trend figcaption {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.trend__range {
+  margin-left: auto;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--label);
+}
+
+.trend__skeleton {
+  aspect-ratio: 560 / 190;
+  background: var(--housing);
+}
+
+.trend__state {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 560 / 190;
+  color: var(--amber);
+  text-align: center;
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: inherit;
+}
+
+.chart__grid {
+  stroke: var(--frame);
+  stroke-width: 1;
+}
+
+.chart__zone {
+  fill: rgb(242 242 242 / 0.06);
+}
+
+.chart__edge {
+  stroke: var(--steel-mid);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.chart__tick {
+  fill: var(--label);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.chart__line {
+  fill: none;
+  stroke: var(--letter);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.chart__point,
+.chart__end {
+  fill: var(--letter);
+}
+
+.chart__empty {
+  fill: var(--label);
+  font-size: 17px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* --- Link ------------------------------------------------------------------ */
+
+.link-grid {
+  display: grid;
+  grid-template-columns: minmax(340px, 1fr) 1.4fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.facts {
+  margin: 0;
+}
+
+.facts div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--frame);
+}
+
+.facts dt {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
+.facts dd {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.link-state--late,
+.link-state--no_batch {
+  color: var(--amber);
+}
+
+.link-state--lost,
+.link-state--unreachable {
+  padding: 0 6px;
+  background: var(--red);
+  color: #fff;
+}
+
+.explain p {
+  max-width: 70ch;
+  margin-bottom: 12px;
+  line-height: 1.45;
+}
+
+.explain .log {
+  margin-top: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    transition: none;
+  }
+
+  .flap--skeleton .flap__tile {
+    animation: none;
+  }
+}
+
+/* Narrow window (1024): tighter tabs, no UTC clock; the link state word stays. */
+@media (max-width: 1199px) {
+  .topbar {
+    gap: 16px;
+  }
+
+  .tab {
+    padding: 0 10px;
+  }
+
+  .linkbar__utc {
+    display: none;
+  }
+}
+
+/* Wide window: the board lettering grows to fill the first viewport. */
+@media (min-width: 1200px) {
+  :root {
+    --data: 36px;
+  }
+}

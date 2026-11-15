@@ -80,6 +80,14 @@ class ReadingRepository:
         ).fetchall()
         return [_to_reading(row) for row in rows]
 
+    def after_id(self, cursor: int | None, limit: int) -> list[Reading]:
+        """Readings with id > cursor (all if None), oldest id first. Telemetry uses it."""
+        rows = self._conn.execute(
+            f"SELECT {_COLUMNS} FROM readings WHERE id > ? ORDER BY id LIMIT ?",
+            (cursor or 0, limit),
+        ).fetchall()
+        return [_to_reading(row) for row in rows]
+
     def latest(self, astronaut_id: str, kind: SensorKind) -> Reading | None:
         """Most recent reading of one kind by recorded_at, or None."""
         row = self._conn.execute(
