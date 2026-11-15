@@ -25,7 +25,7 @@ from wellbeing_vision.facecrop import CROP_PX, FaceCrop
 from wellbeing_vision.identify import face_id, gallery_of
 from wellbeing_vision.identity import face_verdict, verify
 from wellbeing_vision.overlay import AMBER, MUTED, RED, WHITE, Notice, Row, render, severity
-from wellbeing_vision.schemas import VisionSession
+from wellbeing_vision.schemas import VisionSession, quality_of
 from wellbeing_vision.sink import Sink
 
 NEUTRAL_S = 3.0
@@ -50,11 +50,6 @@ MIN_ID_SAMPLES = 3  # face samples before the preview says the face belongs to s
 STALL_S = 2.0  # a gap between processed frames this long ends the log (camera or window stalled)
 TRACE_FIELDS = ("t", "face_px", "usable", "ear", "ear_ratio", "eye_blink", "jaw_delta", "brow_delta", "lip_delta",
                 "speaking", "pitch_delta", "yaw", "look_down_delta", "look_up_delta", "looking_down")
-
-
-def quality_of(valid_frame_ratio: float) -> str:
-    # PROVISIONAL: share of frames with a usable face (too far counts as not usable).
-    return "good" if valid_frame_ratio >= 0.8 else "suspect" if valid_frame_ratio >= 0.5 else "bad"
 
 
 def _ema(prev: float | None, x: float, a: float) -> float:
