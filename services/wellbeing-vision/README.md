@@ -25,9 +25,12 @@ The repo lives in OneDrive: if `.venv` files get locked during `uv sync`, pause 
 | `uv run pytest` | Unit tests (no camera needed). |
 
 `--dry-run` prints the JSON instead of posting it (add `--out file.jsonl` to also save it).
-Without `--dry-run`, summaries are POSTed to `WELLBEING_VISION_API_URL`; if the API is down they go to
-`outbox/pending.jsonl` and are retried on the next send. Payloads the API rejects (4xx) are parked in
-`outbox/rejected.jsonl`.
+Without `--dry-run`, summaries are POSTed to `--api-url` (`bitacora`, `ambiente`) or else
+`WELLBEING_VISION_API_URL` (default `http://127.0.0.1:8000`; another laptop: `http://<its IP>:8000`). At start
+it checks `GET /wellbeing/parameters` and prints `API OK at <url> (mission_tz=...)` or why it failed
+(unreachable, timeout, HTTP error); it keeps running either way. If the API is down, summaries go to
+`outbox/pending.jsonl` and are resent in order on the next send (one attempt per send, so a down API does
+not stall the preview). Payloads the API rejects (4xx) are parked in `outbox/rejected.jsonl`.
 
 ## Cameras
 

@@ -13,6 +13,13 @@ def _astronaut(value: str) -> str:
     return value
 
 
+def _sink(settings: Settings, args) -> Sink:
+    sink = Sink(settings.api_url, settings.outbox_path, dry_run=args.dry_run, dry_run_file=args.out)
+    if not args.dry_run:
+        sink.check()
+    return sink
+
+
 def main() -> None:
     settings = Settings()
     parser = argparse.ArgumentParser(prog="wellbeing-vision")
@@ -59,6 +66,9 @@ def main() -> None:
     amb.add_argument("--dry-run", action="store_true", help="print JSON instead of POSTing")
     amb.add_argument("--out", type=Path, help="with --dry-run, also append JSON lines here")
 
+    for p in (bit, amb):
+        p.add_argument("--api-url", metavar="URL",
+                       help="onboard-api base URL, e.g. http://192.168.1.20:8000 (default WELLBEING_VISION_API_URL)")
     for p in (bit, enr, ide, amb):
         p.add_argument("--backend", choices=("auto", "dshow", "msmf"),
                        help="camera backend (default WELLBEING_VISION_CAMERA_BACKEND or auto: DSHOW, then MSMF)")
@@ -68,6 +78,8 @@ def main() -> None:
                        help="turn these cameras clockwise before processing and display, e.g. --turn 1:180")
 
     args = parser.parse_args()
+    if getattr(args, "api_url", None):
+        settings = settings.model_copy(update={"api_url": args.api_url})
     if getattr(args, "backend", None):
         settings = settings.model_copy(update={"camera_backend": args.backend})
     if getattr(args, "flip", None):
@@ -97,7 +109,7 @@ def main() -> None:
         except ValueError:
             parser.error("--size takes WxH, e.g. 640x480")
         settings = settings.model_copy(update={"ambient_width": w, "ambient_height": h, "min_track_s": args.min_track})
-        sink = Sink(settings.api_url, settings.outbox_path, dry_run=args.dry_run, dry_run_file=args.out)
+        sink = _sink(settings, args)
         run_ambiente(settings, sink, args.cameras, args.window, args.rotate, args.seconds, args.overlap, args.trace)
         return
     if args.astronaut not in settings.astronauts:
@@ -108,7 +120,7 @@ def main() -> None:
         if not run_enroll(settings, args.astronaut, args.camera, args.samples, args.append):
             raise SystemExit(1)
         return
-    sink = Sink(settings.api_url, settings.outbox_path, dry_run=args.dry_run, dry_run_file=args.out)
+    sink = _sink(settings, args)
     if args.cmd == "bitacora":
         from wellbeing_vision.bitacora import run_bitacora  # imports MediaPipe only when needed
 
