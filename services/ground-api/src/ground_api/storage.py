@@ -99,6 +99,37 @@ CREATE TABLE IF NOT EXISTS incident_updates (
 );
 CREATE INDEX IF NOT EXISTS incident_updates_by_incident
     ON incident_updates (ship_id, incident_id, occurred_at);
+-- contracts/medical-eval section 4. Manifest and result are stored verbatim.
+CREATE TABLE IF NOT EXISTS eval_candidates (
+    digest TEXT PRIMARY KEY,
+    candidate_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    received_at TEXT NOT NULL,
+    manifest_json TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    status TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS eval_decisions (
+    digest TEXT PRIMARY KEY REFERENCES eval_candidates (digest),
+    decision TEXT NOT NULL,
+    reviewer TEXT NOT NULL,
+    role TEXT NOT NULL,
+    notes TEXT NOT NULL,
+    decided_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS eval_findings (
+    id TEXT PRIMARY KEY,
+    digest TEXT NOT NULL REFERENCES eval_candidates (digest),
+    case_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    when_it_applies TEXT NOT NULL,
+    source TEXT NOT NULL,
+    expected_behavior TEXT NOT NULL,
+    reporter TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    status TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS eval_findings_by_digest ON eval_findings (digest, created_at);
 """
 
 _READING_COLUMNS = (
@@ -372,3 +403,111 @@ def get_incident(conn: sqlite3.Connection, incident_id: str) -> GroundIncident |
         "SELECT * FROM incidents WHERE id = ? ORDER BY rowid LIMIT 1", (incident_id,)
     ).fetchone()
     return _to_incident(conn, row) if row else None
+
+
+# --- Medical evaluation review (contracts/medical-eval section 4) ---------------------------
+
+
+def _candidate(row: sqlite3.Row) -> dict:
+    return {
+        "candidate_id": row["candidate_id"],
+        "digest": row["digest"],
+        "status": row["status"],
+        "created_at": row["created_at"],
+        "manifest": json.loads(row["manifest_json"]),
+        "result": json.loads(row["result_json"]),
+    }
+
+
+def _decision(row: sqlite3.Row) -> dict:
+    return {**dict(row), "decided_at": from_db(row["decided_at"])}
+
+
+def _finding(row: sqlite3.Row) -> dict:
+    return {**dict(row), "created_at": from_db(row["created_at"])}
+
+
+def insert_candidate(conn: sqlite3.Connection, manifest: dict, result: dict, now: datetime) -> bool:
+    """False if this digest is already stored (a candidate is immutable once submitted)."""
+    return bool(conn.execute(
+        "INSERT INTO eval_candidates (digest, candidate_id, created_at, received_at, manifest_json,"
+        " result_json, status) VALUES (?, ?, ?, ?, ?, ?, 'pending_review') ON CONFLICT DO NOTHING",
+        (manifest["digest"], manifest["candidate_id"], manifest["created_at"], to_db(now),
+         json.dumps(manifest, ensure_ascii=False), json.dumps(result, ensure_ascii=False)),
+    ).rowcount)
+
+
+def list_candidates(conn: sqlite3.Connection) -> list[dict]:
+    rows = conn.execute("SELECT * FROM eval_candidates ORDER BY received_at DESC, rowid DESC")
+    return [_candidate(row) for row in rows]
+
+
+def get_candidate(conn: sqlite3.Connection, digest: str) -> dict | None:
+    row = conn.execute("SELECT * FROM eval_candidates WHERE digest = ?", (digest,)).fetchone()
+    return _candidate(row) if row else None
+
+
+def decide(
+    conn: sqlite3.Connection, digest: str, decision: str, reviewer: str, role: str, notes: str,
+    now: datetime,
+) -> dict | None:
+    """Record the one decision for a pending candidate. None if unknown or already decided."""
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        if not conn.execute(
+            "UPDATE eval_candidates SET status = ? WHERE digest = ? AND status = 'pending_review'",
+            (decision, digest),
+        ).rowcount:
+            conn.execute("ROLLBACK")
+            return None
+        conn.execute(
+            "INSERT INTO eval_decisions (digest, decision, reviewer, role, notes, decided_at)"
+            " VALUES (?, ?, ?, ?, ?, ?)",
+            (digest, decision, reviewer, role, notes, to_db(now)),
+        )
+        conn.execute("COMMIT")
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
+    return list_decisions(conn, digest)[0]
+
+
+def list_decisions(conn: sqlite3.Connection, digest: str) -> list[dict]:
+    rows = conn.execute("SELECT * FROM eval_decisions WHERE digest = ?", (digest,))
+    return [_decision(row) for row in rows]
+
+
+def latest_approved(conn: sqlite3.Connection, before: str | None = None) -> dict | None:
+    """Latest approved candidate. With `before`: the one approved before that digest
+    (or the latest one, if `before` is not approved)."""
+    rows = conn.execute(
+        "SELECT c.* FROM eval_candidates c JOIN eval_decisions d ON d.digest = c.digest"
+        " WHERE d.decision = 'approved' ORDER BY d.decided_at DESC, d.rowid DESC"
+    ).fetchall()
+    digests = [row["digest"] for row in rows]
+    if before in digests:
+        rows = rows[digests.index(before) + 1:]
+    return _candidate(rows[0]) if rows else None
+
+
+def insert_finding(conn: sqlite3.Connection, finding: dict, now: datetime) -> dict:
+    conn.execute(
+        "INSERT INTO eval_findings (id, digest, case_id, kind, when_it_applies, source,"
+        " expected_behavior, reporter, created_at, status)"
+        " VALUES (:id, :digest, :case_id, :kind, :when_it_applies, :source, :expected_behavior,"
+        " :reporter, :created_at, 'open')",
+        {**finding, "created_at": to_db(now)},
+    )
+    return get_finding(conn, finding["id"])
+
+
+def get_finding(conn: sqlite3.Connection, finding_id: str) -> dict | None:
+    row = conn.execute("SELECT * FROM eval_findings WHERE id = ?", (finding_id,)).fetchone()
+    return _finding(row) if row else None
+
+
+def list_findings(conn: sqlite3.Connection, digest: str) -> list[dict]:
+    rows = conn.execute(
+        "SELECT * FROM eval_findings WHERE digest = ? ORDER BY created_at, rowid", (digest,)
+    )
+    return [_finding(row) for row in rows]
