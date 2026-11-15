@@ -19,6 +19,8 @@ The repo lives in OneDrive: if `.venv` files get locked during `uv sync`, pause 
 |---|---|
 | `uv run wellbeing-vision models` | Download MediaPipe and OpenCV Zoo models. |
 | `uv run wellbeing-vision bitacora --astronaut ast-01 [--camera 0] [--seconds 60] [--no-mirror] [--trace t.csv] [--dry-run]` | Daily video log: 3 s neutral, then fatigue and tension with a live preview. Sends one summary. Keys: `f` fullscreen, `q`/Esc end. |
+| `uv run wellbeing-vision enroll --astronaut ast-01 [--camera 0] [--samples 10]` | Enroll a face: 10 templates while turning the head a little. Replaces the previous enrollment. |
+| `uv run wellbeing-vision identify [--camera 0] [--rotate 180] [--seconds 0]` | Multi-person preview: one box per tracked face with its name or `unknown-<n>`, and the linked pose. Sends nothing. |
 | `uv run pytest` | Unit tests (no camera needed). |
 
 `--dry-run` prints the JSON instead of posting it (add `--out file.jsonl` to also save it).
@@ -56,6 +58,24 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
 - `--trace t.csv` writes per-frame derived numbers (face px, EAR and its ratio, eyeBlink, jaw/brow/lip deltas,
   talking flag, head pitch and yaw, eyeLookDown/Up, looking-down flag) to tune thresholds. No images. It
   never overwrites: if `t.csv` exists it writes `t-2.csv`, `t-3.csv`... and prints the path.
+
+## Identity
+
+- YuNet finds the faces; SFace turns each one into a 128-number template, aligned by the eyes first, so an
+  upside-down face matches an upright enrollment. Templates live in `data/faces/<astronaut>.npz` (local,
+  gitignored). They are biometric data: never sent, never committed; delete the file to remove a person.
+- A face is an astronaut when the cosine match is at least 0.363 (the threshold published with SFace) and
+  0.08 ahead of the runner-up (PROVISIONAL). Each tracked face averages its last 10 templates, needs 3 before
+  it gets a name, and one astronaut can only be one face at a time; the rest show as `unknown-<track>`.
+- Orientation: YuNet needs roughly upright faces, so the frame is tried at 0, 180, 90 and 270 degrees,
+  starting with the last one that worked. `--rotate N` fixes it (demo: `--rotate 180`). One orientation per
+  frame: an upright and an upside-down person are not seen at the same time.
+- IoU tracker (overlap 0.3, 15 frames of grace). MediaPipe Pose (up to 4 people) is linked to the face box
+  that holds the pose's nose; a pose narrower than the face is dropped as a misfire.
+- The daily log checks its face every 10 frames against the gallery. If it confirms the claimed astronaut,
+  the payload says `identity.method: "face"` with the median score, and up to 3 frames scoring 0.5 or more
+  are added to the gallery (at most 20 such templates, oldest dropped). Otherwise it stays `manual` and the
+  reason is printed.
 
 ## Settings (env vars)
 
