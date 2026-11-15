@@ -85,6 +85,7 @@ No case is known to fail on content against `main`. These gaps were found by the
 
 - Typo and transcription cases (`breathing.transcription.001`, `chest.hypothetical.002`, `dizziness.typo.001`, `fever.typo.001`, `injury.typo.001`, `loc.transcription.001`, `neuro.transcription.001`, `neuro.typo.001`, `vomiting.typo.001`) and `loc.negation.002` (English "didn't"): issue #51.
 - `cabin.alarm.005` (English "several of us have …" raised no cabin alarm) and `abdominal.stale.001` (Spanish "me duele mucho el estómago" was out of coverage): issue #73.
+- `urinary.simulated.001` (live run only: the LLM interpreter read a reddish sample with "no tengo síntomas" as dark urine and gave the muscle card): issue #78.
 
 Passing these cases means the code matches the team's draft expectations. It is not a clinical review.
 
