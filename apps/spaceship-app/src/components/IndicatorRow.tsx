@@ -9,6 +9,7 @@ import {
   indicatorScored,
   SOURCE_LABELS,
   sourcesText,
+  staleHint,
 } from "../lib/wellbeing";
 import { Arrow, CHEVRON, OriginMark, WellbeingPill } from "./WellbeingMarks";
 import { ZTrack } from "./ZTrack";
@@ -20,10 +21,12 @@ interface Props {
   minDays: number;
   expanded: boolean;
   onToggle: () => void;
+  /** Today's mission day, for the age of old data. */
+  today?: string;
 }
 
 /** One indicator vs. the person's own usual, with its components on demand. */
-export function IndicatorRow({ indicator, threshold, minDays, expanded, onToggle }: Props) {
+export function IndicatorRow({ indicator, threshold, minDays, expanded, onToggle, today }: Props) {
   const { kind, status, components } = indicator;
   const scored = indicatorScored(indicator, minDays);
   const z = scored ? indicator.z : null;
@@ -58,21 +61,30 @@ export function IndicatorRow({ indicator, threshold, minDays, expanded, onToggle
         <span>
           <OriginMark origin={indicator.latest_origin} />
         </span>
-        <button
-          type="button"
-          className="btn btn--ghost wb-iconbtn"
-          aria-expanded={expanded}
-          aria-controls={detailId}
-          aria-label={`${expanded ? "Hide" : "Show"} ${kind} components`}
-          onClick={onToggle}
-        >
-          <Arrow d={expanded ? CHEVRON.up : CHEVRON.down} />
-        </button>
+        {components.length === 0 ? (
+          // Nothing to expand: keep the 44 px toggle column so the grid stays aligned.
+          <span aria-hidden="true" />
+        ) : (
+          <button
+            type="button"
+            className="btn btn--ghost wb-iconbtn"
+            aria-expanded={expanded}
+            aria-controls={detailId}
+            aria-label={`${expanded ? "Hide" : "Show"} ${kind} components`}
+            onClick={onToggle}
+          >
+            <Arrow d={expanded ? CHEVRON.up : CHEVRON.down} />
+          </button>
+        )}
       </div>
       <p className="wb-ind__hint">
-        {indicator.sources.length === 0 ? "No source has data for this indicator." : caption}
+        {indicator.sources.length === 0
+          ? "No source has data for this indicator."
+          : status === "stale"
+            ? `${staleHint(indicator.latest_day, today)} ${caption}`
+            : caption}
       </p>
-      <div id={detailId} className="wb-ind__detail" hidden={!expanded}>
+      <div id={detailId} className="wb-ind__detail" hidden={!expanded || components.length === 0}>
         <table className="wb-comp">
           <thead>
             <tr>

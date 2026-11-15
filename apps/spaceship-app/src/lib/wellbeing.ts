@@ -6,6 +6,7 @@ import type {
   IndicatorState,
   IndicatorStatus,
   SupportLevel,
+  TimelineDay,
   Trend,
   WellbeingAssessment,
   WellbeingSource,
@@ -126,6 +127,36 @@ export function addDays(day: string, n: number): string {
 /** Days in an inclusive period: dayCount("2026-10-25", "2026-11-14") → 21. */
 export function dayCount(from: string, to: string): number {
   return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS) + 1;
+}
+
+/** "Nov 1–Nov 3", or "Nov 1" for a single day. */
+export const dayRange = (from: string, to: string) =>
+  from === to ? formatDay(from) : `${formatDay(from)}–${formatDay(to)}`;
+
+/**
+ * Timeline footnote ranges (days ascending): the days before the first day with data,
+ * and first..last day whose level is baseline_pending. null when there are none.
+ */
+export function timelineRanges(days: Pick<TimelineDay, "day" | "has_data" | "level">[]): {
+  beforeData: [string, string] | null;
+  baseline: [string, string] | null;
+} {
+  const first = days.findIndex((d) => d.has_data);
+  const before = first < 0 ? days.length : first;
+  const pending = days.filter((d) => d.has_data && d.level === "baseline_pending");
+  return {
+    beforeData: before > 0 ? [days[0].day, days[before - 1].day] : null,
+    baseline: pending.length > 0 ? [pending[0].day, pending[pending.length - 1].day] : null,
+  };
+}
+
+/** Hint for an old indicator: "Last data Nov 11 — 3 days old." The age needs today's mission day. */
+export function staleHint(latestDay: string | null, today?: string): string {
+  if (latestDay === null) return "Last data ---.";
+  const age = today ? dayCount(latestDay, today) - 1 : null;
+  return age !== null && age > 0
+    ? `Last data ${formatDay(latestDay)} — ${age} ${age === 1 ? "day" : "days"} old.`
+    : `Last data ${formatDay(latestDay)}.`;
 }
 
 /** Valid ground-package period: both set, from ≤ to ≤ today (ISO strings compare as dates). */

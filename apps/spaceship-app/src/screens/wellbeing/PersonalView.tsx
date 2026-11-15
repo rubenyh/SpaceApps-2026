@@ -4,9 +4,11 @@ import { getWellbeing, getWellbeingParameters, getWellbeingTimeline, listCheckin
 import { IndicatorRow } from "../../components/IndicatorRow";
 import { Panel } from "../../components/Panel";
 import { ConfidenceMeter, OriginMark, TrendMark, WellbeingIcon, WellbeingPill } from "../../components/WellbeingMarks";
+import { WellbeingServiceBanner } from "../../components/WellbeingServiceBanner";
 import { WellbeingTimeline } from "../../components/WellbeingTimeline";
 import { usePolling } from "../../hooks/usePolling";
 import {
+  addDays,
   baselineDays,
   formatClock,
   formatDay,
@@ -41,12 +43,16 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
   const params = usePolling("wb-params", getWellbeingParameters, PARAMS_POLL_MS);
   const tz = params.data?.mission_tz;
   const today = tz ? missionDay(tz) : undefined;
+  // Not chained behind the params poll (which retries only every 5 min): the mission day is
+  // within one day of the UTC day, so fetch from UTC yesterday and pick today once tz is known.
   const checkin = usePolling(
-    today ? `wb-checkin:${astronautId}:${today}` : null,
-    (s) => listCheckins(astronautId, { since: today, until: today }, s),
+    `wb-checkin:${astronautId}`,
+    (s) => listCheckins(astronautId, { since: addDays(missionDay("UTC"), -1) }, s),
     POLL_MS,
   );
-  const todayCheckin = checkin.data?.[0] ?? null;
+  const checkinLoaded = today !== undefined && checkin.data !== null;
+  const todayCheckin = (today && checkin.data?.find((c) => c.day === today)) || null;
+  const checkinFailed = !checkinLoaded && (checkin.error !== null || params.error !== null);
   const [open, setOpen] = useState<Partial<Record<IndicatorKind, boolean>>>({});
 
   const a = assessment.data;
@@ -57,6 +63,8 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
   const retry = () => {
     assessment.refresh();
     timeline.refresh();
+    params.refresh();
+    checkin.refresh();
   };
   const minDays = params.data?.baseline_min_days ?? null;
   // no_data: no wellbeing input at all, so there is no baseline and no score to show.
@@ -78,8 +86,15 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
               <WellbeingIcon kind="ok" size={18} />
               Check-in done {formatClock(todayCheckin.submitted_at, tz)} · Edit
             </>
-          ) : checkin.data ? (
+          ) : checkinLoaded ? (
             "Start today's check-in"
+          ) : checkinFailed ? (
+            <>
+              <span className="footer__state--wb-no_data">
+                <WellbeingIcon kind="no_data" size={18} />
+              </span>
+              Daily check-in · status unavailable
+            </>
           ) : (
             "Daily check-in"
           )}
@@ -92,26 +107,7 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
         </button>
       </div>
 
-      {error ? (
-        <div className="banner banner--stale" role="alert">
-          <WellbeingIcon kind="service_off" size={30} />
-          <div className="banner__text">
-            <span className="banner__title">Wellbeing service unavailable</span>
-            <span>
-              {assessment.updatedAt !== null
-                ? `Showing the last data received, at ${formatClock(
-                    new Date(assessment.updatedAt).toISOString(),
-                    params.data?.mission_tz,
-                  )}. `
-                : "No data has been received yet. "}
-              Physical health tabs are not affected.
-            </span>
-          </div>
-          <button type="button" className="btn btn--ghost" onClick={retry}>
-            Retry
-          </button>
-        </div>
-      ) : null}
+      <WellbeingServiceBanner error={error} updatedAt={assessment.updatedAt} onRetry={retry} timeZone={tz} />
 
       {!a || threshold === null || minDays === null ? (
         error ? null : (
@@ -162,6 +158,7 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
                   indicator={ind}
                   threshold={threshold}
                   minDays={minDays}
+                  today={today}
                   expanded={open[ind.kind] ?? false}
                   onToggle={() => setOpen((o) => ({ ...o, [ind.kind]: !o[ind.kind] }))}
                 />
@@ -186,7 +183,7 @@ export function PersonalView({ toggle, astronautId, displayName, onCheckin, onSh
             )}
           </Panel>
 
-          {t ? <WellbeingTimeline timeline={t} /> : null}
+          {t ? <WellbeingTimeline timeline={t} sustainDays={params.data?.sustain_days} /> : null}
         </div>
       )}
     </div>
