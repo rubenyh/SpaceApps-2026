@@ -7,7 +7,7 @@ import { StateIcon, StatusPill } from "../components/StatusPill";
 import { useNow } from "../hooks/useNow";
 import { usePolling } from "../hooks/usePolling";
 import { healthAlerts, rangeSide, shownStatus } from "../lib/estado";
-import { formatAge, rangeText, readingValueText, unitLabel } from "../lib/format";
+import { formatAge, formatNumber, rangeText, readingValueText, unitLabel } from "../lib/format";
 import { findSensor, liveAge } from "../lib/sensors";
 
 type DetailTab = "vitales" | "musculo" | "orina";
@@ -111,6 +111,7 @@ export function EstadoScreen({ astronautId, onNavigate }: Props) {
   const ph = findSensor(data, "urine_ph");
   const temp = findSensor(data, "urine_temperature");
   const radiation = findSensor(data, "urine_radiation_marker");
+  const radiationState = shownStatus(radiation, offline);
   const alerts = healthAlerts(data);
   const doubtfulSample = temp?.status === "alert" && temp.config.range_role === "sample_validity";
 
@@ -159,13 +160,16 @@ export function EstadoScreen({ astronautId, onNavigate }: Props) {
             limbs={loaded ? shownStatus(muscle, offline) : null}
           />
           {loaded ? (
-            // Any radiation reading is "possible exposure": never a dose, never an all-clear.
-            <div className={`estado__radiation${radiation?.latest ? " estado__radiation--flag" : ""}`}>
-              <StateIcon state={radiation?.latest ? "doubtful" : "no_data"} />
+            // Urine 8-OHdG: an indirect marker, never a dose.
+            <div className={`estado__radiation${radiationState === "alert" ? " estado__radiation--flag" : ""}`}>
+              <StateIcon state={radiationState} />
               <span>
-                <strong>Radiation:</strong>{" "}
-                {radiation?.latest ? "possible exposure, needs confirmation." : "no data."} It is an
-                indirect indicator and does not measure dose.
+                <strong>Radiation (urine 8-OHdG):</strong>{" "}
+                {radiation?.latest?.value != null
+                  ? `${formatNumber(radiation.latest.value)} ${unitLabel(radiation.latest.unit)}`
+                  : "no data"}
+                {radiation && rangeText(radiation.config) ? `, normal ${rangeText(radiation.config)}` : ""}.
+                Indirect indicator, does not measure dose.
               </span>
             </div>
           ) : null}

@@ -30,19 +30,24 @@ interface UrineData {
   status: AstronautStatus;
   salinity: Reading[];
   ph: Reading[];
+  radiation: Reading[];
 }
 
 async function fetchUrine(astronautId: string, signal: AbortSignal): Promise<UrineData> {
   const since = new Date(Date.now() - TREND_DAYS * DAY).toISOString();
-  const [status, salinity, ph] = await Promise.all([
+  const [status, salinity, ph, radiation] = await Promise.all([
     getAstronautStatus(astronautId, signal),
     listReadings(
       { astronaut_id: astronautId, kind: "urine_salinity", since, limit: 1000 },
       signal,
     ),
     listReadings({ astronaut_id: astronautId, kind: "urine_ph", since, limit: 1000 }, signal),
+    listReadings(
+      { astronaut_id: astronautId, kind: "urine_radiation_marker", since, limit: 1000 },
+      signal,
+    ),
   ]);
-  return { status, salinity, ph };
+  return { status, salinity, ph, radiation };
 }
 
 // Same order as URINE_KINDS.
@@ -135,7 +140,12 @@ export function OrinaScreen({ astronautId }: Props) {
               emptyText="No readings in 14 days"
             />
           </Panel>
-          <RadiationPanel sensor={radiation} ageSeconds={liveAge(radiation, updatedAt, now)} />
+          <RadiationPanel
+            sensor={radiation}
+            readings={data?.radiation ?? []}
+            ageSeconds={liveAge(radiation, updatedAt, now)}
+            now={now}
+          />
         </div>
       </div>
     </div>
