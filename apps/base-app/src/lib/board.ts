@@ -54,13 +54,10 @@ export interface CellView {
   note: string;
 }
 
-/** One board/sensor cell. Never invents a value; the radiation marker never shows its value. */
+/** One board/sensor cell. Never invents a value. */
 export function cellView(s: SensorStatus | null | undefined, offline: boolean): CellView {
   const st = shownStatus(s, offline);
   if (!s || !s.latest || st === "no_data") return { text: "--", tone: "muted", note: "No data" };
-  if (s.kind === "urine_radiation_marker") {
-    return { text: "Possible exposure", tone: st === "stale" ? "stale" : "plain", note: st === "stale" ? "Old data" : "Needs confirmation" };
-  }
   const text = readingValueText(s.latest);
   if (st === "stale") return { text, tone: "stale", note: "Old data" };
   if (st === "no_range") return { text, tone: "plain", note: "No range" };

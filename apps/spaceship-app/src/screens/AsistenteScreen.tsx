@@ -274,7 +274,7 @@ function VisibleData({ status, updatedAt }: { status: AstronautStatus | null; up
     { label: "Muscle", ...one("muscle_density") },
     {
       label: "Radiation",
-      state: radiation?.latest ? "doubtful" : "no_data",
+      state: radiation?.status ?? "no_data",
       age: liveAge(radiation, updatedAt, now),
     },
   ];
