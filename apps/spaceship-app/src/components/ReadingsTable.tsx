@@ -1,3 +1,4 @@
+import { withSub2 } from "./Sub2";
 import type { Reading } from "../api/types";
 import { SENSOR_LABELS, formatUtcDateTime, readingValueText, unitLabel } from "../lib/format";
 import { ColorSwatch } from "./ColorSwatch";
@@ -28,7 +29,7 @@ export function ReadingsTable({ readings }: Props) {
           {readings.map((r) => (
             <tr key={r.id}>
               <td className="readings__dim">{formatUtcDateTime(r.recorded_at)}</td>
-              <td className="readings__sensor">{SENSOR_LABELS[r.kind] ?? r.kind}</td>
+              <td className="readings__sensor">{withSub2(SENSOR_LABELS[r.kind] ?? r.kind)}</td>
               <td className="num">
                 {r.kind === "urine_color" ? <ColorSwatch value={r.value_text} /> : readingValueText(r)}
               </td>

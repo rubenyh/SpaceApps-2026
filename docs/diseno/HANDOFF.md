@@ -1,5 +1,25 @@
 # Rediseño de la consola biomédica: guía de implementación
 
+> **Identidad visual reemplazada (2026-11-15).** La paleta azul marino / azul NASA, la
+> fuente del sistema, el verde de NORMAL, la banda de cabecera y el pie de leyenda ya no
+> aplican. Las dos consolas (`apps/spaceship-app` y `apps/base-app`) comparten una sola
+> identidad. Fuente de verdad: `apps/spaceship-app/src/styles/tokens.css`. Las maquetas
+> de `pantallas/` siguen valiendo para estructura, contenido y lógica de estados, no para
+> colores, tipografía ni bordes.
+>
+> | Elemento | Valor actual |
+> |---|---|
+> | Tipografía | Barlow Condensed 500/600/700, empaquetada con `@fontsource` |
+> | Superficies | steel `#15171a` (página, barra lateral, barra superior), flap `#0b0b0d` (tarjetas), housing `#1c1e22` (bloques internos), frame `#2a2d31` (bordes), steel-mid `#5b5e63` (bordes de controles) |
+> | Texto | letter `#f2f2f2`, label `#a7aaaf` |
+> | Estados | ALERTA rojo `#c8452f`; DATO VIEJO ámbar `#ffb000`; SIN DATOS, SIN RANGO y muestra dudosa en gris `#a7aaaf`; NORMAL = texto normal, **sin verde** |
+> | Bordes | 1 px frame en todas las tarjetas; solo ALERTA se pone roja |
+> | Forma | radio 2 px |
+> | Ventana | barra lateral (208 px) con la navegación + barra superior (56 px) con título, tripulante, conexión y reloj UTC; sin pie |
+> | Texto visible | en inglés (ver `PRODUCT.md`) |
+>
+> Las secciones de abajo que contradigan esta tabla quedan reemplazadas por ella.
+
 Este paquete es la referencia visual para reimplementar la interfaz sobre el código
 actual (Tauri + React). Los HTML de `pantallas/` son **maquetas estáticas**: hay que
 reconstruirlas como componentes React con los datos reales, no copiarlas tal cual.
@@ -8,7 +28,7 @@ reconstruirlas como componentes React con los datos reales, no copiarlas tal cua
 
 | Archivo | Qué es |
 |---|---|
-| `tokens.css` | Variables CSS finales. Copiar a `:root` (p. ej. `src/styles/tokens.css`). |
+| `tokens.css` | Copia de referencia de los tokens actuales. La fuente de verdad es `apps/spaceship-app/src/styles/tokens.css`. |
 | `pantallas/01-estado.html` … `06-registros.html` | Las seis pestañas. |
 | `pantallas/estado-*.html` | Servicio no disponible, sin tripulación, sin lecturas, cargando. |
 | `pantallas/hoja-de-componentes.html` | Todas las piezas reutilizables y sus variantes. |
@@ -20,7 +40,7 @@ línea: úsalos para leer medidas, colores y espaciados, y tradúcelos a CSS con
 ## Restricciones (no negociables)
 
 - Solo React + CSS + SVG escritos a mano. Sin librerías de componentes ni de gráficas.
-- Sin fuentes empaquetadas: `--font-sans` (pila del sistema).
+- Una sola fuente, Barlow Condensed, empaquetada con `@fontsource` (`--font-sans`).
 - Ventana 1280×800, mínimo 1024×700. No es responsive para móvil.
 - Todo el texto visible en español. Ningún texto por debajo de 14 px. Objetivos táctiles ≥ 44 px.
 - Nada de valores, unidades o rangos inventados: si algo no está definido, la interfaz lo dice.
@@ -28,12 +48,11 @@ línea: úsalos para leer medidas, colores y espaciados, y tradúcelos a CSS con
 ## Estructura de la ventana
 
 ```
-<Header>      60 px  banda azul (--color-brand) + línea roja de 3 px
-              marca · "Consola biomédica" · selector de tripulante | reloj UTC · indicador de conexión
-<Tabs>        52 px  Estado · Signos vitales · Músculo · Orina · Asistente · Registros
-              activa = subrayado 3 px --color-accent; pestaña con problema = icono del estado peor
-<main>        flex: 1, padding 20 px, gap 16 px
-<Footer>      40 px  leyenda de estados + nota de rangos provisionales
+.sidebar      208 px  marca + navegación vertical (TabBar): Estado · Signos vitales · Músculo · Orina · Asistente · Registros …
+              activa = línea izquierda de 3 px; pestaña con problema = icono del estado peor
+.topbar       56 px   título de la pantalla · selector de tripulante · conexión onboard · enlace a Tierra · reloj UTC
+.main         padding 24 px, gap 16 px
+(sin pie de leyenda)
 ```
 
 ## Lógica de estado de una lectura
@@ -59,13 +78,16 @@ Excepciones:
 
 ## Codificación visual de estados (debe funcionar en blanco y negro)
 
+El estado lo llevan el icono y el texto. Todas las tarjetas tienen el mismo borde de
+1 px; solo ALERTA lo cambia a rojo.
+
 | Estado | Borde | Icono | Texto | Extra |
 |---|---|---|---|---|
-| ALERTA | `--border-alert` | triángulo con `!` | "Alerta" | etiqueta rellena `--state-alert-fill`, fondo teñido, el icono pulsa |
-| NORMAL | `--border-normal` | círculo con check | "Normal" | — |
-| DATO VIEJO | `--border-stale` | reloj | "Dato viejo" | valor atenuado (`--color-text-faint`), antigüedad en ámbar |
+| ALERTA | `--border-alert` (rojo) | triángulo con `!` | "Alerta" | etiqueta rellena `--state-alert-fill`, el icono pulsa |
+| NORMAL | `--border-normal` | círculo con check | "Normal" | texto normal, sin color |
+| DATO VIEJO | `--border-normal` | reloj | "Dato viejo" | etiqueta ámbar rellena, valor atenuado, antigüedad en ámbar |
 | SIN DATOS | `--border-nodata` | círculo tachado | "Sin datos" | valor `---`, "Nunca medido" |
-| SIN RANGO | `--border-norange` | rombo | "Sin rango" | sin juicio de bueno/malo |
+| SIN RANGO | `--border-normal` | rombo | "Sin rango" | etiqueta gris, sin juicio de bueno/malo |
 
 La pulsación usa `animation: var(--alert-pulse)` y se desactiva con
 `prefers-reduced-motion` (ya está en `tokens.css`). Añadir también un ajuste en la app.

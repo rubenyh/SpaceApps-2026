@@ -20,16 +20,21 @@ export function TabBar<K extends string>({ tabs, active, onChange, flags, disabl
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
     const idx = tabs.findIndex((t) => t.key === active);
-    const next = (idx + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    const last = tabs.length - 1;
+    let next: number;
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") next = idx === last ? 0 : idx + 1;
+    else if (e.key === "ArrowUp" || e.key === "ArrowLeft") next = idx === 0 ? last : idx - 1;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = last;
+    else return;
     onChange(tabs[next].key);
     refs.current[next]?.focus();
     e.preventDefault();
   };
 
   return (
-    <div className="tabbar" role="tablist" aria-label="Screens" onKeyDown={onKeyDown}>
+    <div className="tabbar" role="tablist" aria-label="Screens" aria-orientation="vertical" onKeyDown={onKeyDown}>
       {tabs.map((t, i) => {
         const selected = t.key === active;
         const flag = flags?.[t.key] ?? null;
