@@ -62,7 +62,7 @@ if ! $no_apps; then
   elif $device; then
     ip=$(ipconfig getifaddr en0 || ipconfig getifaddr en1 || echo '<Mac IP>')
     open "$watch/WatchApp.xcodeproj"
-    echo "Watch: in Xcode pick your watch and press Run, then enter http://$ip:8000 and pick ast-01."
+    echo "Watch: in Xcode pick your watch and press Run, then enter http://$ip:8000 and pick Elena Ruiz (ast-01)."
     echo "       Signing and Developer Mode: $watch/README.md"
   else
     echo 'Building the watch app for the simulator...'

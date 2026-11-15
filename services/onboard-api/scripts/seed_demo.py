@@ -18,7 +18,8 @@ import urllib.error
 import urllib.request
 from datetime import UTC, datetime, timedelta
 
-ASTRONAUTS = {"ast-01": "Demo Uno", "ast-02": "Demo Dos"}
+# Fictional demo profiles, the same names as in wellbeing (docs/wellbeing/demo-crew.md).
+ASTRONAUTS = {"ast-01": "Elena Ruiz", "ast-02": "Marco Tanaka"}
 # Resting heart rate centre per astronaut: ast-02 sits above the 60-100 range.
 HEART_RATE = {"ast-01": 72, "ast-02": 108}
 SPO2 = {"ast-01": 98, "ast-02": 96}
