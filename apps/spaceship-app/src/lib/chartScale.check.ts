@@ -1,5 +1,5 @@
 // Self-check for components/chartScale.ts. Run: node src/lib/chartScale.check.ts
-import { niceScale, splitGaps, stepDecimals } from "../components/chartScale.ts";
+import { dailyMean, niceScale, splitGaps, stepDecimals } from "../components/chartScale.ts";
 
 function eq(actual: unknown, expected: unknown, what: string): void {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
@@ -42,5 +42,14 @@ const burst = [
 ];
 eq(splitGaps(burst, 3, 1.5 * DAY).length, 1, "burst keeps daily line");
 eq(splitGaps([...burst, { t: 20 * DAY, v: 1 }], 3, 1.5 * DAY).length, 2, "missing days still break");
+
+// Daily mean: a burst of same-day samples collapses to one point per UTC day.
+const D = 86_400_000;
+eq(
+  dailyMean([{ t: 0, v: 1 }, { t: D + 100, v: 2 }, { t: D + 300, v: 4 }]),
+  [{ t: 0, v: 1 }, { t: D + 200, v: 3 }],
+  "daily mean",
+);
+eq(dailyMean([]), [], "daily mean empty");
 
 console.log("chartScale.check: ok");
