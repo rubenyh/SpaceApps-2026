@@ -1,0 +1,45 @@
+{
+  "case_id": "cabin.alarm.003",
+  "version": 1,
+  "family": "cabin_environment_alert",
+  "tags": [
+    "alarm"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "The smoke alarm is going off",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "cabin_environment_alert",
+    "clarify": false,
+    "required_actions": [
+      "Alarm REPORTED by text"
+    ],
+    "prohibited_actions": [
+      "ignore the alarm",
+      "rules out the alert"
+    ],
+    "acceptable_sources": [
+      "medlineplus-carbonmonoxidepoisoning"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

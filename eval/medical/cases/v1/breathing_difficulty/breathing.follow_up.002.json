@@ -1,0 +1,63 @@
+{
+  "case_id": "breathing.follow_up.002",
+  "version": 1,
+  "family": "breathing_difficulty",
+  "tags": [
+    "follow_up",
+    "conflicting_readings"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "Is my oxygen saturation OK?",
+        "astronaut_id": "ast-01"
+      }
+    },
+    {
+      "request": {
+        "message": "yes, a little",
+        "astronaut_id": "ast-01"
+      },
+      "use_previous_clarification": true
+    }
+  ],
+  "readings": [
+    {
+      "astronaut_id": "ast-01",
+      "kind": "spo2",
+      "unit": "%",
+      "quality": "suspect",
+      "source": "manual",
+      "age_seconds": 60,
+      "value": 88
+    }
+  ],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "breathing_difficulty",
+    "clarify": false,
+    "required_actions": [
+      "Shortness of breath with no identified warning signs"
+    ],
+    "prohibited_actions": [
+      "SpO₂ is normal, so",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-breathingproblems"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Turn 1: isolated suspect SpO2 asks for symptoms and a repeat measurement. Turn 2 short 'yes' reports mild breathlessness."
+  }
+}

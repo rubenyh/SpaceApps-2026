@@ -1,0 +1,43 @@
+{
+  "case_id": "allergy.hypothetical.001",
+  "version": 1,
+  "family": "severe_allergic_reaction",
+  "tags": [
+    "hypothetical"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "¿Qué hago si alguien tiene una reacción alérgica?",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "informational",
+    "protocol_id": null,
+    "clarify": false,
+    "required_actions": [],
+    "prohibited_actions": [
+      "wait and see",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-anaphylaxis"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

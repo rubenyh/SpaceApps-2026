@@ -1,0 +1,48 @@
+{
+  "case_id": "vomiting.missing_equipment.001",
+  "version": 1,
+  "family": "vomiting_diarrhea_or_dehydration",
+  "tags": [
+    "missing_equipment",
+    "dependency_down"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "El analizador de orina no funciona; tengo diarrea y orino muy poco",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "down"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "vomiting_diarrhea_or_dehydration",
+    "clarify": false,
+    "required_actions": [
+      "You cannot keep fluids down"
+    ],
+    "prohibited_actions": [
+      "stop drinking",
+      "nothing to worry"
+    ],
+    "acceptable_sources": [
+      "medlineplus-dehydration",
+      "medlineplus-nauseaandvomiting",
+      "medlineplus-diarrhea"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

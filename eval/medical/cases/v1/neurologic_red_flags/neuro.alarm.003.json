@@ -1,0 +1,48 @@
+{
+  "case_id": "neuro.alarm.003",
+  "version": 1,
+  "family": "neurologic_red_flags",
+  "tags": [
+    "alarm",
+    "dependency_down"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "Suddenly I lost vision in one eye",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "down",
+    "chroma": "down",
+    "readings": "down"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "neurologic_red_flags",
+    "clarify": false,
+    "required_actions": [
+      "Possible stroke signs"
+    ],
+    "prohibited_actions": [
+      "aspirin",
+      "wait until it passes",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-stroke",
+      "medlineplus-headache"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

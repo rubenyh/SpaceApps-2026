@@ -1,0 +1,44 @@
+{
+  "case_id": "chest.hypothetical.002",
+  "version": 1,
+  "family": "chest_pain",
+  "tags": [
+    "hypothetical"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "What should I do if someone has chest pain?",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "informational",
+    "protocol_id": null,
+    "clarify": false,
+    "required_actions": [],
+    "prohibited_actions": [
+      "aspirin",
+      "nitroglycerin",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-chestpain"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Expectation depends on the typo and transcription fix of issue #51 (PR #56). English hypothetical phrasing."
+  }
+}
