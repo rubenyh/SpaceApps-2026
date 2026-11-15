@@ -1,5 +1,5 @@
 # Demo stack (onboard + ground). From the repo root: docker compose up --build
-# Or run.ps1 to also open both Tauri consoles. The consoles run on the host and talk to
+# Or run.ps1 (Windows) / run.sh (macOS) to also open both Tauri consoles. The consoles run on the host and talk to
 # http://127.0.0.1:8000 (spaceship-app) and http://127.0.0.1:8001 (base-app).
 
 x-onboard-env: &onboard-env
@@ -23,7 +23,8 @@ services:
     image: space-apps/onboard-api
     environment: *onboard-env
     ports:
-      - "127.0.0.1:${ONBOARD_API_PORT:-8000}:8000"
+      # ONBOARD_API_HOST=0.0.0.0 publishes it on the LAN for a real watch (run.sh --watch-device).
+      - "${ONBOARD_API_HOST:-127.0.0.1}:${ONBOARD_API_PORT:-8000}:8000"
     volumes:
       - sqlite:/data/sqlite
       - chroma:/data/chroma

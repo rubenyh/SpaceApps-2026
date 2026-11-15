@@ -137,6 +137,8 @@ class AssistantRequest(BaseModel):
     # `clarification` from the previous response, to answer its question. Then
     # `message` holds only the answer (resending the original text also works).
     clarification: Clarification | None = None
+    # Device that sent the message. The watch sends "watch"; older clients omit it.
+    source: Literal["console", "watch"] = "console"
 
 
 class GuideSource(BaseModel):

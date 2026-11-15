@@ -362,3 +362,21 @@ def test_demo_reset_waits_for_send_in_flight(client: TestClient, astronaut: str,
             assert ground[0]["incident_updates"] == []
 
     asyncio.run(scenario())
+
+
+def test_created_update_carries_origin_and_reading_ids_others_send_empty(
+    client: TestClient, astronaut: str, db_path: Path
+) -> None:
+    from onboard_api.schemas.assistant import AssistantResponse
+
+    response = AssistantResponse(reply="r", workflow="medical", needs_clarification=False, urgency="immediate")
+    conn = connect(db_path)
+    try:
+        repo = IncidentRepository(conn)
+        incident_id = repo.create_or_reuse(response, "ana", "ana", T0, reported_via="watch", reading_ids=[3, 7])
+        repo._add_event(incident_id, "acknowledged", to_db_timestamp(T0 + timedelta(minutes=1)), "ana")
+    finally:
+        conn.close()
+    created, acked = TelemetryPublisher(httpx.AsyncClient(), db_path, "ship-01", 5)._build_batch().incident_updates
+    assert (created.type, created.reported_via, created.reading_ids) == ("created", "watch", [3, 7])
+    assert (acked.type, acked.reported_via, acked.reading_ids) == ("acknowledged", "watch", [])

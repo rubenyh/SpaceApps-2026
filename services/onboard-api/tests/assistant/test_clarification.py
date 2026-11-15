@@ -168,6 +168,27 @@ def test_sos_keeps_the_card_alarms_of_the_case(ask, breathing) -> None:
     assert body["urgency"] == "immediate" and body["action"].startswith(prompts.SOS_ACTION)
     assert body["protocol_id"] == "breathing_difficulty"
     assert body["findings"][0]["detail"] == prompts.SOS_FINDING
+    sqlite = [f["source"] for f in body["findings"] if f["source"].startswith("sqlite:")]
+    assert sqlite and len(sqlite) == len(set(sqlite))  # card and SOS reading findings not duplicated
+
+
+def test_watch_sos_attaches_latest_readings_and_gaps(client: TestClient, astronaut: str, db_path) -> None:
+    readings = [_reading("heart_rate", 128, "bpm"), _reading("muscle_density", 42, "au")]
+    body, *_ = post(client, db_path, {"astronaut_id": "ana", "message": "SOS", "source": "watch"},
+                    readings=readings, llm=Forbidden("llm"), retriever=Forbidden("retriever"))
+    assert body["urgency"] == "immediate" and body["action"].startswith(prompts.SOS_ACTION)
+    by_source = {f["source"]: f for f in body["findings"]}
+    assert body["findings"][0]["detail"] == prompts.SOS_FINDINGS["watch"]
+    assert by_source["sqlite:heart_rate"]["kind"] == "reading" and "128" in by_source["sqlite:heart_rate"]["detail"]
+    assert by_source["sqlite:muscle_density"]["kind"] == "reading"
+    assert by_source["sqlite:spo2"]["kind"] == "data_gap"
+    assert by_source["sqlite:spo2"]["evidence_flags"] == ["missing"]
+
+
+def test_sos_without_readings_repository_adds_no_reading_findings(ask) -> None:
+    body, *_ = ask("SOS", llm=Forbidden("llm"), provider=FailingReadings())
+    assert body["urgency"] == "immediate"
+    assert [f["detail"] for f in body["findings"]] == [prompts.SOS_FINDINGS["console"]]
 
 
 # --- failures and separation ---

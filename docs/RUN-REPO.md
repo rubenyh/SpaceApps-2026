@@ -43,7 +43,18 @@ To stop the consoles, close their windows.
 
 If PowerShell blocks the script ("running scripts is disabled"), run it once with `powershell -ExecutionPolicy Bypass -File .\run.ps1`.
 
-On macOS or Linux, run `docker compose up --build -d`, then `npm run tauri dev` in `apps/spaceship-app` and in `apps/base-app`.
+On macOS, from the repo root:
+
+```sh
+./run.sh                 # stack + both consoles (one Terminal window each) + watch app in the watchOS simulator
+./run.sh --no-apps       # only the Docker stack
+./run.sh --watch-device  # also publishes onboard-api on the LAN and opens the watch project in Xcode
+./run.sh --down          # stop the Docker stack (keeps the volumes)
+```
+
+The watch steps run only when `apps/watch-app/` exists and Xcode has a watchOS simulator (`xcodebuild -downloadPlatform watchOS`). The simulator starts as `ast-01` against `http://127.0.0.1:8000`.
+
+On Linux, run `docker compose up --build -d`, then `npm run tauri dev` in `apps/spaceship-app` and in `apps/base-app`.
 
 ## Option B: step by step
 
@@ -98,6 +109,10 @@ uv run wellbeing-vision bitacora --astronaut ast-01  # daily video log
 ```
 
 Sit facing the camera, about 50 cm away, in good light. The process sends only derived metrics, never frames. Add `--dry-run` to print the JSON without sending it. Details: [`services/wellbeing-vision/README.md`](../services/wellbeing-vision/README.md).
+
+### 5. Optional: Apple Watch (macOS + Xcode)
+
+The watch app shows the astronaut's readings and sends an SOS. `./run.sh` starts it in the watchOS simulator. Compose publishes onboard-api only on `127.0.0.1` by default, so a real watch cannot reach it. For a real watch, use `./run.sh --watch-device` (sets `ONBOARD_API_HOST=0.0.0.0`) or run onboard-api natively with `uv run fastapi dev --host 0.0.0.0`. Install and setup: [`apps/watch-app/README.md`](../apps/watch-app/README.md).
 
 ## Check the full flow
 

@@ -256,6 +256,9 @@ def test_incident_updates_stored_once_despite_retries(client: TestClient, clock:
         "protocol_version": "1.0",
         "matched_rules": RULES,
         "action": CREATED["action"],
+        "reported_via": "watch",
+        "readings": [],
+        "missing_reading_ids": 2,  # fixture ids 101, 102 never reached ground
         "acknowledgments": [
             {"acknowledged_by": "ast-02", "acknowledged_at": "2026-11-14T18:06:30Z", "received_at": received}
         ],
@@ -312,3 +315,43 @@ def test_demo_reset_is_off_by_default_then_deletes_one_astronaut(client: TestCli
     # Updates are gone too: the same ids are accepted again as new.
     accepted = client.post("/telemetry/v1/batches", json=batch(readings=[], incident_updates=[CREATED]))
     assert accepted.json()["incident_updates_accepted"] == 1
+
+
+def test_incident_joins_received_readings_and_counts_missing(client: TestClient) -> None:
+    client.post("/telemetry/v1/batches", json=batch(readings=[reading(1, "heart_rate", 120), reading(2, "spo2", 88)]))
+    created = {**CREATED, "reading_ids": [2, 1, 99]}
+    # A later non-created update (empty reading_ids, null origin) must not erase them.
+    acked = {**ACKED, "reported_via": None, "reading_ids": []}
+    client.post("/telemetry/v1/batches", json=batch(readings=[], incident_updates=[created, acked]))
+    incident = client.get(f"/incidents/{INCIDENT_ID}").json()
+    assert incident["reported_via"] == "watch"
+    assert [r["id"] for r in incident["readings"]] == [2, 1]
+    assert incident["readings"][0] == {**reading(2, "spo2", 88), "value": 88.0, "ground_received_at": "2026-11-14T18:02:45Z"}
+    assert incident["missing_reading_ids"] == 1
+    assert client.get("/incidents").json() == [incident]
+
+
+def test_old_batch_without_origin_fields_accepted(client: TestClient) -> None:
+    old = [{k: v for k, v in u.items() if k not in ("reported_via", "reading_ids")} for u in (CREATED, ACKED)]
+    response = client.post("/telemetry/v1/batches", json=batch(readings=[], incident_updates=old))
+    assert response.status_code == 202 and response.json()["incident_updates_accepted"] == 2
+    incident = client.get(f"/incidents/{INCIDENT_ID}").json()
+    assert (incident["reported_via"], incident["readings"], incident["missing_reading_ids"]) == (None, [], 0)
+
+
+def test_existing_ground_db_without_new_columns_still_opens(tmp_path: Path) -> None:
+    import sqlite3
+
+    db = tmp_path / "ground.db"
+    conn = sqlite3.connect(db)
+    conn.executescript(
+        "CREATE TABLE incidents (ship_id TEXT NOT NULL, id TEXT NOT NULL, astronaut_id TEXT,"
+        " began_at TEXT, urgency TEXT NOT NULL, protocol_id TEXT, protocol_version TEXT,"
+        " matched_rules_json TEXT NOT NULL, action TEXT, PRIMARY KEY (ship_id, id));"
+        "INSERT INTO incidents VALUES ('ship-01', 'old', NULL, NULL, 'immediate', NULL, NULL, '[]', NULL);"
+    )
+    conn.close()
+    with TestClient(create_app(Settings(db_path=db))) as c:
+        old = c.get("/incidents/old").json()
+        assert (old["reported_via"], old["readings"], old["missing_reading_ids"]) == (None, [], 0)
+        assert c.post("/telemetry/v1/batches", json=INCIDENT).status_code == 202

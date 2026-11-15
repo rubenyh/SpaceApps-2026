@@ -2,7 +2,7 @@
 
 SQLite database of `services/onboard-api` (`ONBOARD_DB_PATH`, default `data/onboard.db`, relative to the working directory, git-ignored). `ground-api` keeps its own SQLite copy (`GROUND_DB_PATH`, default `data/ground.db`; tables `batches`, `astronauts`, `sensors`, `readings`, `alerts`, `incidents`, `incident_updates`), created in code by [`storage.py`](../services/ground-api/src/ground_api/storage.py) and not described here.
 
-Schema and reference data: [`migrations/onboard/0001_baseline.sql`](migrations/onboard/0001_baseline.sql) and [`migrations/onboard/0002_incidents.sql`](migrations/onboard/0002_incidents.sql). If this document and the SQL differ, the SQL wins.
+Schema and reference data: [`migrations/onboard/0001_baseline.sql`](migrations/onboard/0001_baseline.sql) , [`migrations/onboard/0002_incidents.sql`](migrations/onboard/0002_incidents.sql) and [`migrations/onboard/0003_incident_origin.sql`](migrations/onboard/0003_incident_origin.sql). If this document and the SQL differ, the SQL wins.
 
 Readings are informational support only. Diagnosis and treatment decisions stay with qualified personnel.
 
@@ -84,14 +84,14 @@ Table CHECK `(value IS NULL) <> (value_text IS NULL)`: exactly one of `value` an
 
 `idx_readings_lookup ON readings (astronaut_id, kind, recorded_at DESC)`: serves "latest reading of one kind" (`ReadingRepository.latest`) and the filtered, newest-first list (`ReadingRepository.search`).
 
-## `incidents` (version 2)
+## `incidents` (version 2, origin columns version 3)
 
 One urgent medical incident. Created by `POST /assistant/messages` when the response has `urgency = 'immediate'` ([`repositories/incidents.py`](../services/onboard-api/src/onboard_api/repositories/incidents.py)). Read with `GET /incidents` and `GET /incidents/{id}`.
 
 | Column | Type | Null | Default | Notes |
 |---|---|---|---|---|
 | `id` | TEXT | PK | | UUID v4, generated onboard (never an integer: ground deduplicates by id across DB resets). |
-| `trigger_key` | TEXT | NOT NULL | | `"<astronaut_id or ''>\|<sorted rule ids>\|<sorted event ids>"`. Rule ids are `matched_rules[].rule_id` plus `sos` for the SOS path; event ids come from findings with source `event:<id>`. |
+| `trigger_key` | TEXT | NOT NULL | | `"<astronaut_id or ''>\|<sorted rule ids>\|<sorted event ids>"`. Rule ids are `matched_rules[].rule_id` plus `sos` for the SOS path (console or watch SOS text, so both share one open incident); event ids come from findings with source `event:<id>`. |
 | `status` | TEXT | NOT NULL | `'open'` | CHECK `IN ('open','closed')`. |
 | `astronaut_id` | TEXT | NULL | | Assessed person from the request. No FK: the request may name an unknown or no astronaut. |
 | `reported_by` | TEXT | NULL | | Crewmate who sent the request, from the request. No FK. |
@@ -106,6 +106,8 @@ One urgent medical incident. Created by `POST /assistant/messages` when the resp
 | `data_notices_json` | TEXT | NOT NULL | | JSON `list[str]`. |
 | `mission_procedures_json` | TEXT | NOT NULL | | JSON `list[MissionProcedure]`. |
 | `missing_guidance_json` | TEXT | NOT NULL | | JSON `list[str]`. |
+| `reported_via` | TEXT | NULL | | Version 3. CHECK `IN ('console','watch')`: `source` of the request that created the incident. NULL for rows created before version 3. A reuse keeps the original value. |
+| `reading_ids_json` | TEXT | NOT NULL | `'[]'` | Version 3. JSON `list[int]` of `readings.id`: the latest reading per kind for the astronaut when the incident was created (same readings the medical workflow shows). `[]` for rows created before version 3, or when no astronaut or no readings. |
 
 Unique partial index `incidents_open_trigger (trigger_key) WHERE status = 'open'`: one open incident per trigger. The same trigger while it is open reuses the incident; after it is closed, a new incident is created.
 
@@ -140,7 +142,7 @@ Indexes: unique `incident_events_created (incident_id) WHERE type = 'created'`; 
 
 ## Version and migrations
 
-- Schema version is `PRAGMA user_version`. Migration files are `db/migrations/onboard/NNNN_<slug>.sql`; `NNNN` is the `user_version` the database has after that file. `0001_baseline.sql` is version 1, `0002_incidents.sql` is version 2. A version 1 database gets only 0002 and keeps its rows.
+- Schema version is `PRAGMA user_version`. Migration files are `db/migrations/onboard/NNNN_<slug>.sql`; `NNNN` is the `user_version` the database has after that file. `0001_baseline.sql` is version 1, `0002_incidents.sql` is version 2, `0003_incident_origin.sql` is version 3. A database gets only the pending files and keeps its rows.
 - `init_db` in [`database.py`](../services/onboard-api/src/onboard_api/repositories/database.py) runs at service start-up. Each pending migration runs in one transaction together with its `PRAGMA user_version = N`; on error it rolls back, leaving schema and version unchanged. Rerunning is a no-op. A database newer than the latest file is rejected.
 - Legacy databases (version 0 with the tables already present) are compared with the 0001 schema; on a match only `user_version` is set to 1 (no data change), otherwise start-up fails naming the difference.
 - After migrating, `PRAGMA foreign_key_check` must report no violations, or start-up fails.
@@ -212,7 +214,7 @@ One camera summary from the vision process: one per daily log (`bitacora`) or on
 | `id` | INTEGER | PK AUTOINCREMENT | | |
 | `astronaut_id` | TEXT | NOT NULL | | Known id or `unknown-<track>`. |
 | `started_at` | TEXT | NOT NULL | | Timestamp, copied from the body for indexing. The session counts for this day. |
-| `body` | TEXT | NOT NULL | | `VisionSessionCreate` JSON: `session_type`, `module_id`, `ended_at`, `quality`, `valid_frame_ratio`, `identity`, `neutral_ok`, `fatigue`, `tension`, `motion`, `provisional`. `tension` may carry the optional `brow_lower_peak_1s` and `lip_press_peak_1s` (0-1, highest level held ≥ 1 s); older rows without them read as null, so no migration was needed. `lip_press_*` is stored but not scored (speech triggers it). Fields and ranges: contract section 6. |
+| `body` | TEXT | NOT NULL | | `VisionSessionCreate` JSON: `session_type`, `module_id`, `ended_at`, `quality`, `valid_frame_ratio`, `identity`, `neutral_ok`, `fatigue`, `tension`, `motion`, `provisional`. `tension` may carry the optional `brow_lower_peak_1s` and `lip_press_peak_1s` (0-1, highest level held ≥ 1 s); older rows without them read as null, so no migration was needed. `lip_press_*` is stored but not scored: vision now filters speech, but one pressed-lips log is not enough evidence, and as extra stress components the lips would dilute the brow signal. Fields and ranges: contract section 6. |
 | `received_at` | TEXT | NOT NULL | | Timestamp, set by the server. |
 
 Index `idx_vision_lookup (astronaut_id, started_at)`.

@@ -34,7 +34,7 @@ def post_message(
         # A storage failure never hides the action: it is reported next to it.
         try:
             incident_id = record_incident(
-                response, request.astronaut_id, request.reported_by, clock()
+                response, request.astronaut_id, request.reported_by, clock(), request.source
             )
             response.incident = IncidentRef(id=incident_id, recorded=True)
         except Exception as exc:

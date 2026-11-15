@@ -13,7 +13,7 @@ import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 import httpx
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
@@ -68,6 +68,9 @@ class IncidentUpdate(BaseModel):
     matched_rules: list[IncidentRule]
     action: str | None
     acknowledged_by: str | None
+    # Optional inside v1. reading_ids only on created; other types send [].
+    reported_via: Literal["console", "watch"] | None = None
+    reading_ids: list[Annotated[int, Field(ge=1)]] = []
 
     @classmethod
     def from_event(cls, e: QueuedIncidentEvent) -> "IncidentUpdate":
@@ -86,6 +89,8 @@ class IncidentUpdate(BaseModel):
             ],
             action=e.action,
             acknowledged_by=e.acknowledged_by,
+            reported_via=e.reported_via,
+            reading_ids=e.reading_ids if e.type == "created" else [],
         )
 
 

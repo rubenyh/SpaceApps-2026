@@ -99,7 +99,14 @@
           }
         },
         "action": { "type": ["string", "null"] },
-        "acknowledged_by": { "type": ["string", "null"], "description": "Set only for type acknowledged." }
+        "acknowledged_by": { "type": ["string", "null"], "description": "Set only for type acknowledged." },
+        "reported_via": { "enum": ["console", "watch", null], "default": null, "description": "Optional, added inside v1. Where the report came from (incident origin)." },
+        "reading_ids": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "default": [],
+          "description": "Optional, added inside v1. Onboard reading ids (same ids as readings[].id) the incident captured. Filled only for type created; other types send []."
+        }
       }
     }
   }

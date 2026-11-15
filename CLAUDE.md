@@ -8,6 +8,7 @@ NASA Space Apps 2026 monorepo. An astronaut console (Tauri) talks to an onboard 
 |---|---|---|
 | `apps/spaceship-app/` | Astronaut console. Tauri 2 + React 19 + Vite 8 + TypeScript 6. Rust crate `spaceship_app_lib`. | Template scaffold |
 | `apps/base-app/` | Second Tauri 2 app, same stack. Assumed ground console (name only, no code yet). | Template scaffold |
+| `apps/watch-app/` | Apple Watch app, watchOS 10+ SwiftUI, watch-only (no iPhone app). Polls onboard-api status and open incidents; 2 s hold sends SOS to `POST /assistant/messages`. Replaces ARCHeR (no live API). Setup: `apps/watch-app/README.md`. | Readings, SOS, incident alert |
 | `services/onboard-api/` | FastAPI 0.163, Python 3.12, uv. Package `onboard_api` in `src/`. App `onboard_api.main:app`. | Readings API, SQLite repository, `POST /assistant/messages` (LangGraph medical workflow, Ollama, ChromaDB), pytest |
 | `services/ground-api/` | FastAPI 0.163, Python 3.12, uv. Package `ground_api` in `src/`. App `ground_api.main:app`. | Health route only |
 | `services/wellbeing-vision/` | Camera collector for the wellbeing module. Python 3.12, uv, OpenCV + MediaPipe. Own process, CLI `wellbeing-vision`. Sends derived metrics only (never frames) to onboard-api `POST /wellbeing/vision-sessions`. | Daily video log; identity, co-presence and demo mode planned |
@@ -38,6 +39,7 @@ Planned, not in the repo yet: hardware collectors (pySerial, OpenCV, MediaPipe),
 | `apps/spaceship-app` | `npm run build` | `tsc && vite build`. |
 | `apps/spaceship-app/src-tauri` | `cargo check` | On Git Bash, cargo is at `~/.cargo/bin/cargo.exe` (not on PATH). |
 | `apps/spaceship-app` | `npm run tauri dev` | Not run by Claude (opens a window). Vite port 1420. |
+| `apps/watch-app` | `xcodebuild -project WatchApp.xcodeproj -target WatchApp -sdk watchsimulator build` | macOS + Xcode only. Self-check: `swiftc WatchApp/Api.swift Checks/main.swift -o /tmp/watch-checks && /tmp/watch-checks`. A real watch needs onboard-api started with `uv run fastapi dev --host 0.0.0.0`. |
 
 Both Tauri apps use Vite port 1420 with `strictPort`. Do not run them at the same time without changing one port in `vite.config.ts` and `tauri.conf.json`.
 On Windows, set `PYTHONUTF8=1` if `fastapi` CLI output fails with `UnicodeEncodeError`.

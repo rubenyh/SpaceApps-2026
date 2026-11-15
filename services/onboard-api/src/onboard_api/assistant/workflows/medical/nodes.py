@@ -27,6 +27,7 @@ from onboard_api.assistant.workflows.medical.triage import (
     evaluate_alarms,
     evaluate_case,
     select_route,
+    sos_reading_findings,
 )
 from onboard_api.schemas.assistant import (
     AssistantResponse,
@@ -146,17 +147,21 @@ def route_after_recheck(state: MedicalState) -> str:
     return "respond_alarm" if state["alarm_hits"] else "load_context"
 
 
-def _with_sos(decision: Decision | None) -> Decision:
-    """SOS leads the action; card alarms found in the same turn are kept."""
-    finding = Finding(kind="event", detail=prompts.SOS_FINDING, source="report")
+def _with_sos(decision: Decision | None, source: str, ctx: ReadingsContext) -> Decision:
+    """SOS leads the action; card alarms found in the same turn are kept.
+    The latest readings are attached as evidence only; urgency never changes."""
+    finding = Finding(kind="event", detail=prompts.SOS_FINDINGS[source], source="report")
     emergency = MissionProcedure(title=prompts.EMERGENCY_PROCEDURE)
+    pids = [decision.protocol_id, *decision.additional_protocol_ids] if decision and decision.protocol_id else []
+    seen = {f.source for f in decision.findings} if decision else set()
+    readings = [f for f in sos_reading_findings(pids, ctx) if f.source not in seen]
     if decision is None:
         return Decision("immediate", None, [], prompts.SOS_ACTION, list(prompts.NOTIFY_EMERGENCY), [],
-                        [finding], [], None, [], prompts.SOS_ACTION, mission_procedures=[emergency])
+                        [finding, *readings], [], None, [], prompts.SOS_ACTION, mission_procedures=[emergency])
     decision.action = f"{prompts.SOS_ACTION} {decision.action}"
     decision.summary = f"{prompts.SOS_ACTION}\n{decision.summary}"
     decision.notify = list(dict.fromkeys([*prompts.NOTIFY_EMERGENCY, *decision.notify]))
-    decision.findings = [finding, *decision.findings]
+    decision.findings = [finding, *decision.findings, *readings]
     if all(p.title != emergency.title for p in decision.mission_procedures):
         decision.mission_procedures = [emergency, *decision.mission_procedures]
     return decision
@@ -169,7 +174,7 @@ def respond_alarm(state: MedicalState, readings: ReadingsProvider) -> dict:
     ctx = _safe_load(readings, state)
     decision = decide(hits, load_catalog(), ctx) if hits else None
     if state.get("sos"):
-        decision = _with_sos(decision)
+        decision = _with_sos(decision, state["request"].source, ctx)
     notices = [*state.get("notices", []), prompts.ALARM_NOTICE, *_reading_notices(ctx, decision)]
     state = {**state, "readings": ctx, "notices": notices}
     return {"route": "alarm", "decision": decision, "readings": ctx,
