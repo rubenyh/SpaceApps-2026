@@ -42,3 +42,9 @@ export function guidanceMissing(incident: Pick<Incident, "missing_guidance" | "m
 export function defaultAcknowledger(crew: Astronaut[], affected: string | null): string {
   return (crew.find((a) => a.id !== affected) ?? crew[0])?.id ?? "";
 }
+
+/** Ids not in `seen`. `seen` null is the first load: those were already open, so none are new. */
+export function newIncidentIds(seen: ReadonlySet<string> | null, incidents: Incident[]): string[] {
+  if (seen === null) return [];
+  return incidents.map((i) => i.id).filter((id) => !seen.has(id));
+}

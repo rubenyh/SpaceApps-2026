@@ -1,6 +1,6 @@
 // Self-check for lib/incident.ts. Run: node src/lib/incident.check.ts
 import type { Incident } from "../api/types";
-import { ackLabels, defaultAcknowledger, groundLabel, guidanceMissing, ruleLabel } from "./incident.ts";
+import { ackLabels, defaultAcknowledger, groundLabel, guidanceMissing, newIncidentIds, ruleLabel } from "./incident.ts";
 
 function eq(actual: unknown, expected: unknown, what: string): void {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
@@ -57,5 +57,9 @@ const crew = [{ id: "ana", display_name: "Ana", created_at: "" }, { id: "ben", d
 eq(defaultAcknowledger(crew, "ana"), "ben", "other crewmate");
 eq(defaultAcknowledger(crew.slice(0, 1), "ana"), "ana", "alone");
 eq(defaultAcknowledger([], "ana"), "", "no crew");
+
+eq(newIncidentIds(null, [base]), [], "first load: already open, no beep");
+eq(newIncidentIds(new Set(["i1"]), [base]), [], "nothing new");
+eq(newIncidentIds(new Set(["i1"]), [base, { ...base, id: "i2" }]), ["i2"], "new id");
 
 console.log("incident.check: ok");
