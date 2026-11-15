@@ -1853,6 +1853,234 @@ textarea {
   font-size: var(--text-sm);
 }
 
+/* ---------- Wellbeing ---------- */
+/* Reference: docs/design/wellbeing. Same grammar as the physical tabs, but nothing pulses. */
+
+.wellbeing__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.wellbeing__spacer {
+  flex: 1;
+}
+
+.wellbeing__note {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.wellbeing__faint {
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+}
+
+/* Level pill: icon + text + border per level (HANDOFF "Mapeo de SupportLevel"). */
+.wpill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: var(--border-normal);
+  border-radius: var(--radius-pill);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  white-space: nowrap;
+  justify-self: start;
+}
+
+.wpill--sm {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: var(--text-sm);
+}
+
+.wpill--md {
+  min-height: 36px;
+  font-size: var(--text-md);
+}
+
+.wpill--lg {
+  min-height: 52px;
+  padding: 0 18px;
+  gap: 10px;
+  font-size: var(--text-xl);
+}
+
+.wpill--ok {
+  color: var(--state-normal);
+}
+
+.wpill--attention {
+  border: 2px solid var(--state-stale);
+  color: var(--state-stale);
+}
+
+.wpill--needs_support {
+  border: var(--border-alert);
+  background: var(--state-alert-tint);
+  color: var(--state-alert);
+}
+
+.wpill--baseline_pending {
+  border: var(--border-norange);
+  color: var(--state-norange);
+}
+
+.wpill--stale {
+  border: var(--border-stale);
+  color: var(--state-stale);
+}
+
+.wpill--no_data {
+  border: var(--border-nodata);
+  color: var(--state-nodata);
+}
+
+/* LIVE / SIMULATED / MIXED */
+.origin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px var(--space-2);
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  justify-self: start;
+}
+
+.origin--live {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: var(--weight-bold);
+}
+
+.origin--simulated {
+  border: 1px dashed var(--color-text-faint);
+  color: var(--color-text-faint);
+}
+
+.origin--mixed {
+  border-color: var(--color-text-muted);
+  color: var(--color-text-muted);
+}
+
+.trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+}
+
+.confidence {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.confidence__bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.confidence__bar {
+  width: 10px;
+  height: 18px;
+  border: 1px solid var(--color-text-faint);
+  border-radius: var(--radius-sm);
+}
+
+.confidence__bar--on {
+  border-color: var(--color-text);
+  background: var(--color-text);
+}
+
+/* ZTrack: z from -2 to +4; usual band from 0 to the threshold. */
+.ztrack {
+  position: relative;
+  height: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+}
+
+.ztrack__zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--range-zone);
+}
+
+.ztrack__threshold {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  border-left: 2px dashed var(--color-text-muted);
+}
+
+.ztrack__marker {
+  position: absolute;
+  top: -4px;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  border: 2px solid var(--color-bg);
+  border-radius: 50%;
+  background: var(--color-text);
+}
+
+.ztrack__marker--beyond {
+  background: var(--state-stale);
+}
+
+.ztrack--empty {
+  border: var(--border-nodata);
+  background: transparent;
+}
+
+.ztrack--stale {
+  opacity: 0.6;
+}
+
+.ztrack--stale .ztrack__marker {
+  border: 2px dashed var(--color-text);
+  background: transparent;
+}
+
+/* Simulated history hatching (timeline cells and legend). */
+.sim-hatch {
+  background: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--color-text-faint) 35%, transparent) 0 2px,
+    transparent 2px 6px
+  );
+}
+
+.footer__state--wb-ok {
+  color: var(--state-normal);
+}
+
+.footer__state--wb-attention,
+.footer__state--wb-stale {
+  color: var(--state-stale);
+}
+
+.footer__state--wb-needs_support {
+  color: var(--state-alert);
+}
+
+.footer__state--wb-baseline_pending {
+  color: var(--state-norange);
+}
+
+.footer__state--wb-no_data {
+  color: var(--state-nodata);
+}
+
 /* ---------- minimum window (1024 px) ---------- */
 
 @media (max-width: 1150px) {

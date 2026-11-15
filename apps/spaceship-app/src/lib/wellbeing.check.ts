@@ -1,0 +1,40 @@
+// Self-check for lib/wellbeing.ts. Run: node src/lib/wellbeing.check.ts
+import type { CrewMemberSummary } from "../api/types";
+import { barFraction, formatDay, formatDayLong, formatZ, missionDay, supportSuggestion, zPercent } from "./wellbeing.ts";
+
+function eq(actual: unknown, expected: unknown, what: string): void {
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error(`${what}: ${JSON.stringify(actual)} != ${JSON.stringify(expected)}`);
+  }
+}
+
+eq(formatZ(null), "---", "missing z");
+eq(formatZ(2.44), "+2.4", "positive z");
+eq(formatZ(-0.2), "−0.2", "negative z uses a true minus");
+eq(formatZ(-0.04), "0.0", "no signed zero");
+
+eq(zPercent(-2), 0, "track start");
+eq(zPercent(4), 100, "track end");
+eq(zPercent(1), 50, "track middle");
+eq(zPercent(9), 100, "clamped high");
+eq(zPercent(-5), 0, "clamped low");
+
+eq(barFraction(2), 0.5, "bar half");
+eq(barFraction(6), 1, "bar capped at z 4");
+eq(barFraction(-1), 0, "no negative bar");
+
+eq(formatDay("2026-11-07"), "Nov 7", "short day");
+eq(formatDayLong("2026-11-07"), "Sat, Nov 7", "long day");
+eq(missionDay("America/Tijuana", new Date("2026-11-15T03:00:00Z")), "2026-11-14", "mission day in zone");
+
+const member = (level: CrewMemberSummary["level"]): CrewMemberSummary => ({
+  astronaut_id: "a",
+  display_name: "Ana Sorensen",
+  level,
+  trend: "stable",
+  latest_origin: null,
+});
+eq(supportSuggestion(member("ok")), null, "no suggestion when doing well");
+eq(supportSuggestion(member("needs_support"))?.title, "Check in with Ana", "suggestion title");
+
+console.log("wellbeing.check: ok");
