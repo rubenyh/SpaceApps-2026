@@ -51,7 +51,7 @@ flowchart LR
 
 On the ship, the console (reads and assistant), the demo producers and the vision collector (writes) call onboard-api over HTTP. onboard-api pushes readings to ground-api in telemetry batches ([flow 6](#6-telemetry-and-ground-console)). base-app reads only from ground-api.
 
-In the Docker Compose demo, `onboard-api`, `ollama`, `demo-init` and `simulator` run as containers and the console stays on the host. ground-api and base-app are not in the stack, and telemetry is off by default there. The paths in the diagram are the native defaults; Compose uses the `sqlite`, `chroma` and `ollama` volumes instead ([Docker Compose demo](#docker-compose-demo)).
+In the Docker Compose demo, `onboard-api`, `ollama`, `demo-init` and `simulator` and `ground-api` run as containers, and both consoles stay on the host. Telemetry goes to the `ground-api` container. The paths in the diagram are the native defaults; Compose uses the `sqlite`, `chroma` and `ollama` volumes instead ([Docker Compose demo](#docker-compose-demo)).
 
 ## Component map
 
@@ -81,7 +81,7 @@ All commands were run on Windows 11 with Git Bash on 2026-11-14.
 
 ### Docker Compose demo
 
-`docker compose up --build` from the repo root runs the onboard stack: `onboard-api` (port 8000), `ollama`, the one-shot `demo-init` (model pull and guide ingest via [`scripts/prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py)) and `simulator`. The API does not depend on Ollama or `demo-init`. The console stays native. ground-api and base-app are not in the stack; Compose sets `ONBOARD_TELEMETRY_ENABLED=false` and points `ONBOARD_GROUND_API_URL` at `http://host.docker.internal:8001` for when it is turned on. Steps, logs and volumes: [README](../README.md#run-the-demo-docker-compose--tauri). The sections below describe the native setup.
+`docker compose up --build` from the repo root runs the onboard stack: `onboard-api` (port 8000), `ollama`, the one-shot `demo-init` (model pull and guide ingest via [`scripts/prepare_demo.py`](../services/onboard-api/scripts/prepare_demo.py)) `simulator` and `ground-api` (port 8001). The API does not depend on Ollama, `demo-init` or `ground-api`. Both consoles stay native. Compose points `ONBOARD_GROUND_API_URL` at `http://ground-api:8001`. `run.ps1` starts the stack and opens both consoles ([RUN-REPO](RUN-REPO.md)). Steps, logs and volumes: [README](../README.md#run-the-demo-docker-compose--tauri). The sections below describe the native setup.
 
 Until `demo-init` finishes, the guide index is empty and searches fall back as described in [Failure and fallback behavior](#failure-and-fallback-behavior). The API picks up the first ingest without a restart. After a later re-ingest, restart it with `docker compose restart onboard-api`.
 
@@ -131,7 +131,7 @@ Runtime configuration (all prefixed `ONBOARD_`):
 | `RETRIEVAL_MAX_DISTANCE` | `0.50` | Drops chunks with a larger cosine distance |
 | `DEMO_EVENTS_PATH` | unset | Ship events for the demo, e.g. [`demo/events.example.json`](../services/onboard-api/demo/events.example.json): a simulated radiation event and a `cabin_co2` event, both for `ast-02` only. While an event is active, every message for that astronaut routes to an `immediate` alarm; `ast-01` has no events. |
 | `TELEMETRY_ENABLED` | `true` | Starts the telemetry publisher. Compose sets it to `false`. |
-| `GROUND_API_URL` | `http://127.0.0.1:8001` | Publisher base URL. Compose default: `http://host.docker.internal:8001`. |
+| `GROUND_API_URL` | `http://127.0.0.1:8001` | Publisher base URL. Compose default: `http://ground-api:8001`. |
 | `TELEMETRY_INTERVAL_SECONDS` | `5.0` | Wait between batches, and base of the retry backoff |
 | `SHIP_ID` | `ship-01` | `ship_id` in every batch and in the cursor query |
 

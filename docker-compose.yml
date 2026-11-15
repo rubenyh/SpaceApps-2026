@@ -1,12 +1,13 @@
-# Onboard demo stack. From the repo root: docker compose up --build
-# The Tauri console runs on the host and talks to http://127.0.0.1:8000.
+# Demo stack (onboard + ground). From the repo root: docker compose up --build
+# Or run.ps1 to also open both Tauri consoles. The consoles run on the host and talk to
+# http://127.0.0.1:8000 (spaceship-app) and http://127.0.0.1:8001 (base-app).
 
 x-onboard-env: &onboard-env
   ONBOARD_DB_PATH: /data/sqlite/onboard.db
   WELLBEING_DB_PATH: /data/sqlite/wellbeing.db
-  # Ground services are not part of this stack; set to true with ONBOARD_GROUND_API_URL to publish.
-  ONBOARD_TELEMETRY_ENABLED: ${ONBOARD_TELEMETRY_ENABLED:-false}
-  ONBOARD_GROUND_API_URL: ${ONBOARD_GROUND_API_URL:-http://host.docker.internal:8001}
+  # Telemetry goes to the ground-api service below. Set false to keep the ship offline.
+  ONBOARD_TELEMETRY_ENABLED: ${ONBOARD_TELEMETRY_ENABLED:-true}
+  ONBOARD_GROUND_API_URL: ${ONBOARD_GROUND_API_URL:-http://ground-api:8001}
   ONBOARD_CHROMA_PATH: /data/chroma
   ONBOARD_OLLAMA_BASE_URL: http://ollama:11434
   ONBOARD_OLLAMA_CHAT_MODEL: ${ONBOARD_OLLAMA_CHAT_MODEL:-qwen2.5:0.5b}
@@ -26,6 +27,18 @@ services:
       - chroma:/data/chroma
     restart: unless-stopped
     # No depends_on ollama: alarm and SOS replies must work while models are down.
+
+  ground-api:
+    build: services/ground-api
+    image: space-apps/ground-api
+    environment:
+      GROUND_DB_PATH: /data/ground.db
+    ports:
+      - "127.0.0.1:${GROUND_API_PORT:-8001}:8001"
+    volumes:
+      - ground:/data
+    restart: unless-stopped
+    # No depends_on from onboard-api: the publisher retries and sends the backlog later.
 
   ollama:
     image: ollama/ollama:0.40.16
@@ -67,3 +80,4 @@ volumes:
   sqlite:
   chroma:
   ollama:
+  ground:

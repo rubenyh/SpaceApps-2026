@@ -4,13 +4,17 @@ NASA Space Apps 2026. An astronaut console (Tauri) talks to an onboard FastAPI s
 
 ## Run the demo (Docker Compose + Tauri)
 
-Docker Compose runs the onboard stack. The Tauri console runs natively on the host. Ground services and physical hardware are not part of the demo.
+Docker Compose runs the onboard stack and ground-api. The Tauri consoles run natively on the host. Physical hardware is not part of the demo.
+
+**One command (Windows):** `.
+un.ps1` from the repo root starts the stack and opens both consoles. Full guide: [`docs/RUN-REPO.md`](docs/RUN-REPO.md).
 
 | Service | What it does |
 |---|---|
 | `onboard-api` | FastAPI on `http://127.0.0.1:8000`. Applies the SQLite migrations at startup. Starts without Ollama, so alarm and SOS replies keep working when the models are down. |
 | `ollama` | Official `ollama/ollama` image. Reachable only inside Compose as `http://ollama:11434`. |
 | `demo-init` | One-shot. Waits for Ollama, pulls `qwen2.5:0.5b` and `bge-m3` if missing, and runs the guide ingest when the Chroma index is missing or outdated. Exits 0 when done. Safe to rerun. |
+| `ground-api` | FastAPI on `http://127.0.0.1:8001`. Receives telemetry from `onboard-api` and serves base-app. Volume `ground`. |
 | `simulator` | `firmware/simulator.py`. Starts after the API healthcheck passes, registers `ast-01` and `ast-02`, and posts readings every 5 s. |
 
 Volumes: `sqlite` (`onboard.db` and `wellbeing.db`), `chroma` (guide index), `ollama` (models). They survive `docker compose down` and restarts.
@@ -62,8 +66,8 @@ docker compose down -v    # also delete the volumes (database, index, models)
 
 ### Notes
 
-- Port 8000 must be free. Stop any native `uv run fastapi dev` first, or publish another port with `ONBOARD_API_PORT=8010 docker compose up --build` and start the console with `VITE_ONBOARD_API_URL=http://127.0.0.1:8010`.
-- Telemetry to ground is off in this stack (`ONBOARD_TELEMETRY_ENABLED=false`; the native default is on). To publish to a ground-api running on the host, start with `ONBOARD_TELEMETRY_ENABLED=true` (default target `http://host.docker.internal:8001`, override with `ONBOARD_GROUND_API_URL`).
+- Ports 8000 and 8001 must be free. Stop any native `uv run fastapi dev` first (`GROUND_API_PORT` moves ground), or publish another port with `ONBOARD_API_PORT=8010 docker compose up --build` and start the console with `VITE_ONBOARD_API_URL=http://127.0.0.1:8010`.
+- Telemetry goes to the `ground-api` container (`http://ground-api:8001`). Start with `ONBOARD_TELEMETRY_ENABLED=false` to keep the ship offline, or set `ONBOARD_GROUND_API_URL=http://host.docker.internal:8001` to publish to a native ground-api on the host.
 - Each simulator start uploads its 30-day flash log again, so restarts add more history rows.
 - First run needs no API restart: while the index is empty, the API reopens it on each search and picks up the `demo-init` ingest.
 - If the corpus or embedding model changes, `demo-init` re-ingests on the next `up`. Restart the API afterwards (`docker compose restart onboard-api`) so it reads the rebuilt index.
