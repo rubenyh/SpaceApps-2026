@@ -1,7 +1,16 @@
 // Self-check for lib/wellbeing.ts. Run: node src/lib/wellbeing.check.ts
-import type { ComponentState, IndicatorState, CrewMemberSummary, Origin, WellbeingAssessment } from "../api/types";
+import type {
+  ComponentState,
+  IndicatorState,
+  CrewMemberSummary,
+  Origin,
+  SupportLevel,
+  WellbeingAssessment,
+} from "../api/types";
 import {
   addDays,
+  dayRange,
+  timelineRanges,
   barFraction,
   baselineDays,
   indicatorScored,
@@ -48,6 +57,29 @@ eq(addDays("2026-11-14", -20), "2026-10-25", "add days back");
 eq(addDays("2026-02-28", 1), "2026-03-01", "add days over month end");
 eq(dayCount("2026-10-25", "2026-11-14"), 21, "inclusive day count");
 eq(dayCount("2026-11-14", "2026-11-14"), 1, "single day");
+eq(dayRange("2026-11-01", "2026-11-03"), "Nov 1–Nov 3", "day range");
+eq(dayRange("2026-11-01", "2026-11-01"), "Nov 1", "single-day range");
+{
+  const d = (day: string, has_data: boolean, level: SupportLevel) => ({ day, has_data, level });
+  eq(
+    timelineRanges([
+      d("2026-11-01", false, "no_data"),
+      d("2026-11-02", false, "no_data"),
+      d("2026-11-03", true, "baseline_pending"),
+      d("2026-11-04", true, "baseline_pending"),
+      d("2026-11-05", true, "ok"),
+    ]),
+    { beforeData: ["2026-11-01", "2026-11-02"], baseline: ["2026-11-03", "2026-11-04"] },
+    "timeline ranges",
+  );
+  eq(timelineRanges([d("2026-11-01", true, "ok")]), { beforeData: null, baseline: null }, "no ranges");
+  eq(
+    timelineRanges([d("2026-11-01", false, "no_data"), d("2026-11-02", false, "baseline_pending")]),
+    { beforeData: ["2026-11-01", "2026-11-02"], baseline: null },
+    "no data at all",
+  );
+  eq(timelineRanges([]), { beforeData: null, baseline: null }, "empty timeline");
+}
 eq(validPeriod("2026-10-25", "2026-11-14", "2026-11-14"), true, "period ok");
 eq(validPeriod("2026-11-15", "2026-11-14", "2026-11-20"), false, "from after to");
 eq(validPeriod("2026-11-01", "2026-11-15", "2026-11-14"), false, "period in the future");

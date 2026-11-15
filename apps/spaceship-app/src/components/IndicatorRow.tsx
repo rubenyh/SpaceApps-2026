@@ -61,16 +61,21 @@ export function IndicatorRow({ indicator, threshold, minDays, expanded, onToggle
         <span>
           <OriginMark origin={indicator.latest_origin} />
         </span>
-        <button
-          type="button"
-          className="btn btn--ghost wb-iconbtn"
-          aria-expanded={expanded}
-          aria-controls={detailId}
-          aria-label={`${expanded ? "Hide" : "Show"} ${kind} components`}
-          onClick={onToggle}
-        >
-          <Arrow d={expanded ? CHEVRON.up : CHEVRON.down} />
-        </button>
+        {components.length === 0 ? (
+          // Nothing to expand: keep the 44 px toggle column so the grid stays aligned.
+          <span aria-hidden="true" />
+        ) : (
+          <button
+            type="button"
+            className="btn btn--ghost wb-iconbtn"
+            aria-expanded={expanded}
+            aria-controls={detailId}
+            aria-label={`${expanded ? "Hide" : "Show"} ${kind} components`}
+            onClick={onToggle}
+          >
+            <Arrow d={expanded ? CHEVRON.up : CHEVRON.down} />
+          </button>
+        )}
       </div>
       <p className="wb-ind__hint">
         {indicator.sources.length === 0
@@ -79,7 +84,7 @@ export function IndicatorRow({ indicator, threshold, minDays, expanded, onToggle
             ? `${staleHint(indicator.latest_day, today)} ${caption}`
             : caption}
       </p>
-      <div id={detailId} className="wb-ind__detail" hidden={!expanded}>
+      <div id={detailId} className="wb-ind__detail" hidden={!expanded || components.length === 0}>
         <table className="wb-comp">
           <thead>
             <tr>

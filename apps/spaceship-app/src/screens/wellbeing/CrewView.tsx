@@ -113,6 +113,14 @@ export function CrewView({ toggle }: { toggle: ReactNode }) {
         All crew members agreed to wellbeing monitoring before the mission. Crew view shows level and trend
         only.
       </p>
+      <details className="wb-shared wellbeing__faint">
+        <summary>What is shared and with whom</summary>
+        <p>
+          The crew view shows only each person's overall level, trend and data origin. Indicators, check-in
+          answers, comments and notes stay in Personal, behind each person's PIN. Nothing goes to the ground
+          psychologist without that person's confirmation.
+        </p>
+      </details>
     </div>
   );
 }

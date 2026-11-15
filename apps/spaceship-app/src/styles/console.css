@@ -2317,6 +2317,17 @@ textarea {
   color: var(--color-text-muted);
 }
 
+/* Crew consent note: the summary is the 44 px target. */
+.wb-shared summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--target-min);
+  width: fit-content;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* PIN gate before Personal, Check-in and Ground */
 .wb-lock {
   display: flex;
@@ -3211,6 +3222,10 @@ textarea {
   padding-top: var(--space-4);
 }
 
+.wb-ci__edit-note {
+  text-align: right;
+}
+
 .wb-ci__actions .btn,
 .wb-saved .btn {
   min-height: 48px;
@@ -3354,7 +3369,32 @@ textarea {
   }
 
   .wellbeing__bar {
-    gap: var(--space-3);
+    gap: var(--space-2);
+  }
+
+  /* Personal bar on one row at 1024: name hidden, label kept whole, buttons tighter. */
+  .wb-private {
+    flex: 1 0 auto;
+    white-space: nowrap;
+  }
+
+  .wb-private__who,
+  .wb-private + .wellbeing__spacer {
+    display: none;
+  }
+
+  .wb-private,
+  .wellbeing__bar .btn {
+    font-size: var(--text-xs);
+  }
+
+  .wellbeing__bar .btn:not(.wb-iconbtn) {
+    padding: 0 var(--space-3);
+  }
+
+  /* The Wellbeing footer legend is wider than 1024: scroll the footer, not the page. */
+  .footer {
+    overflow-x: auto;
   }
 }
 

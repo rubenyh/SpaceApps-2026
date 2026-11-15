@@ -198,6 +198,7 @@ export function CheckinView({ astronautId, displayName, onBack }: Props) {
               {saving ? "Saving…" : "Save today's check-in"}
             </button>
           </div>
+          <p className="wellbeing__faint wb-ci__edit-note">You can edit today's check-in until midnight station time.</p>
         </form>
       )}
     </div>
