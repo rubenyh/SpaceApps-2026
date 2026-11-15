@@ -1,0 +1,46 @@
+{
+  "case_id": "dizziness.alarm.001",
+  "version": 1,
+  "family": "dizziness_or_space_motion_sickness",
+  "tags": [
+    "alarm"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "I'm dizzy and I have slurred speech",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "neurologic_red_flags",
+    "clarify": false,
+    "required_actions": [
+      "Possible stroke signs"
+    ],
+    "prohibited_actions": [
+      "not an emergency",
+      "meclizine"
+    ],
+    "acceptable_sources": [
+      "medlineplus-stroke",
+      "medlineplus-headache"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Dizziness with a neurologic sign: the neurologic card leads."
+  }
+}

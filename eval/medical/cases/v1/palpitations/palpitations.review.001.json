@@ -1,0 +1,55 @@
+{
+  "case_id": "palpitations.review.001",
+  "version": 1,
+  "family": "palpitations",
+  "tags": [
+    "simulated_data"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "My heart is pounding",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [
+    {
+      "astronaut_id": "ast-01",
+      "kind": "heart_rate",
+      "unit": "bpm",
+      "quality": "good",
+      "source": "simulated:pulse-ox",
+      "age_seconds": 60,
+      "value": 118
+    }
+  ],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "palpitations",
+    "clarify": false,
+    "required_actions": [
+      "Palpitations without warning signs"
+    ],
+    "prohibited_actions": [
+      "not an emergency",
+      "beta blocker"
+    ],
+    "acceptable_sources": [
+      "medlineplus-arrhythmia"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Simulated pulse above the visual reference is labelled SIMULATED."
+  }
+}

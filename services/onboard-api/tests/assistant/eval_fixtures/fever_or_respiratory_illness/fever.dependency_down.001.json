@@ -1,0 +1,45 @@
+{
+  "case_id": "fever.dependency_down.001",
+  "version": 1,
+  "family": "fever_or_respiratory_illness",
+  "tags": [
+    "dependency_down",
+    "negation"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "No me falta el aire, pero tengo tos y algo de fiebre",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "down",
+    "chroma": "down",
+    "readings": "down"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "fever_or_respiratory_illness",
+    "clarify": false,
+    "required_actions": [
+      "drink fluids"
+    ],
+    "prohibited_actions": [
+      "antibiotic"
+    ],
+    "acceptable_sources": [
+      "medlineplus-fever"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "test fixture"
+  }
+}

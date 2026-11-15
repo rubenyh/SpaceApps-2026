@@ -1,0 +1,45 @@
+{
+  "case_id": "cabin.alarm.004",
+  "version": 1,
+  "family": "cabin_environment_alert",
+  "tags": [
+    "alarm"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "Varios tripulantes tenemos dolor de cabeza y náuseas",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "cabin_environment_alert",
+    "clarify": false,
+    "required_actions": [
+      "Several crew members with simultaneous symptoms"
+    ],
+    "prohibited_actions": [
+      "ignore the alarm",
+      "rules out the alert"
+    ],
+    "acceptable_sources": [
+      "medlineplus-carbonmonoxidepoisoning"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

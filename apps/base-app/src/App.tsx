@@ -11,15 +11,17 @@ import { Alertas } from "./screens/Alertas";
 import { Astronauta } from "./screens/Astronauta";
 import { Enlace } from "./screens/Enlace";
 import { Incidents } from "./screens/Incidents";
+import { MedicalEval } from "./screens/MedicalEval";
 import { Tripulacion } from "./screens/Tripulacion";
 
-type Tab = "crew" | "astro" | "alerts" | "incidents" | "link";
+type Tab = "crew" | "astro" | "alerts" | "incidents" | "eval" | "link";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "crew", label: "Crew" },
   { key: "astro", label: "Astronaut" },
   { key: "alerts", label: "Alerts" },
   { key: "incidents", label: "Incidents" },
+  { key: "eval", label: "Eval" },
   { key: "link", label: "Link" },
 ];
 
@@ -177,6 +179,8 @@ export default function App() {
           <Alertas alerts={alerts.data} limit={ALERTS_LIMIT} crew={crew.data} offline={offline} />
         ) : tab === "incidents" ? (
           <Incidents />
+        ) : tab === "eval" ? (
+          <MedicalEval />
         ) : (
           <Enlace link={link.data} since={since} state={state} crew={crew.data} ledger={ledger} offline={offline} />
         )}

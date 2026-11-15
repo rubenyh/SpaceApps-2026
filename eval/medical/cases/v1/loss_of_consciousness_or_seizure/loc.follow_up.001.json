@@ -1,0 +1,54 @@
+{
+  "case_id": "loc.follow_up.001",
+  "version": 1,
+  "family": "loss_of_consciousness_or_seizure",
+  "tags": [
+    "follow_up",
+    "alarm"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "Mi compañero se desmayó",
+        "astronaut_id": "ast-01"
+      }
+    },
+    {
+      "request": {
+        "message": "no",
+        "astronaut_id": "ast-01"
+      },
+      "use_previous_clarification": true
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "immediate",
+    "protocol_id": "loss_of_consciousness_or_seizure",
+    "clarify": false,
+    "required_actions": [
+      "Unresponsive crew member"
+    ],
+    "prohibited_actions": [
+      "restrain",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-fainting",
+      "medlineplus-seizures"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Turn 1 asks whether the person recovered. Turn 2 'no' means still unresponsive."
+  }
+}

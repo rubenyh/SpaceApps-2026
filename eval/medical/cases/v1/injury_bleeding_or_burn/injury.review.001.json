@@ -1,0 +1,47 @@
+{
+  "case_id": "injury.review.001",
+  "version": 1,
+  "family": "injury_bleeding_or_burn",
+  "tags": [
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "I bumped my head, no other symptoms",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "injury_bleeding_or_burn",
+    "clarify": false,
+    "required_actions": [
+      "Injury without warning signs"
+    ],
+    "prohibited_actions": [
+      "apply butter",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-headinjuries",
+      "medlineplus-bleeding",
+      "medlineplus-burns"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

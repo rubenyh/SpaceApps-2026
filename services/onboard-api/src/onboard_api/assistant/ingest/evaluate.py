@@ -79,26 +79,43 @@ NEGATIVE = [
 ]
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="python -m onboard_api.assistant.ingest.evaluate")
-    parser.add_argument("--min-hit-rate", type=float, default=0.8)
-    args = parser.parse_args(argv)
-
-    settings = Settings()
+def raw_retriever(settings: Settings) -> GuideRetriever:
+    """Retriever without a distance threshold: raw distances, then judge the threshold."""
     ollama = OllamaClient(
         settings.ollama_base_url,
         settings.ollama_chat_model,
         settings.ollama_embed_model,
         settings.ollama_timeout_seconds,
     )
-    # No threshold here: we want to see raw distances, then judge the threshold.
-    retriever = GuideRetriever(settings.chroma_path, settings.guides_collection, ollama, 2.0)
+    return GuideRetriever(settings.chroma_path, settings.guides_collection, ollama, 2.0)
+
+
+def check_retrieval(retriever) -> list[tuple[str, str, str, list[str], list]]:
+    """Top-3 search for every CASES query: (family, kind, query, expected, top).
+    Raises DependencyUnavailable when ChromaDB or the embedder fails."""
+    return [
+        (family, kind, query, expected, retriever.search(query, k=3, language="es"))
+        for family, kind, query, expected in CASES
+    ]
+
+
+def hit_rate(rows) -> float:
+    """Share of queries with an expected source_id in the top 3."""
+    return sum(any(h.source_id in exp for h in top) for *_, exp, top in rows) / len(rows)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="python -m onboard_api.assistant.ingest.evaluate")
+    parser.add_argument("--min-hit-rate", type=float, default=0.8)
+    args = parser.parse_args(argv)
+
+    settings = Settings()
+    retriever = raw_retriever(settings)
 
     hits = 0
     expected_distances: list[float] = []  # best expected hit per query that hit
     try:
-        for family, kind, query, expected in CASES:
-            top = retriever.search(query, k=3, language="es")
+        for family, kind, query, expected, top in check_retrieval(retriever):
             found = [h for h in top if h.source_id in expected]
             hits += bool(found)
             if found:

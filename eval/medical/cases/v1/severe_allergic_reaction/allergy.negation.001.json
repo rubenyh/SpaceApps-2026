@@ -1,0 +1,47 @@
+{
+  "case_id": "allergy.negation.001",
+  "version": 1,
+  "family": "severe_allergic_reaction",
+  "tags": [
+    "negation",
+    "near_miss"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "No tengo ronchas ni hinchazón en la garganta; me duele el estómago desde ayer",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "abdominal_pain_or_gi_bleeding",
+    "clarify": false,
+    "required_actions": [
+      "Abdominal pain"
+    ],
+    "prohibited_actions": [
+      "wait and see",
+      "not an emergency"
+    ],
+    "acceptable_sources": [
+      "medlineplus-abdominalpain",
+      "medlineplus-bleeding"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}

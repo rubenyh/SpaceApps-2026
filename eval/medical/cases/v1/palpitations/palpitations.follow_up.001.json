@@ -1,0 +1,62 @@
+{
+  "case_id": "palpitations.follow_up.001",
+  "version": 1,
+  "family": "palpitations",
+  "tags": [
+    "follow_up"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "Is my pulse OK?",
+        "astronaut_id": "ast-01"
+      }
+    },
+    {
+      "request": {
+        "message": "my heart is racing",
+        "astronaut_id": "ast-01"
+      },
+      "use_previous_clarification": true
+    }
+  ],
+  "readings": [
+    {
+      "astronaut_id": "ast-01",
+      "kind": "heart_rate",
+      "unit": "bpm",
+      "quality": "good",
+      "source": "manual",
+      "age_seconds": 60,
+      "value": 112
+    }
+  ],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "up",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "palpitations",
+    "clarify": false,
+    "required_actions": [
+      "Palpitations without warning signs"
+    ],
+    "prohibited_actions": [
+      "not an emergency",
+      "beta blocker"
+    ],
+    "acceptable_sources": [
+      "medlineplus-arrhythmia"
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Turn 1: isolated high pulse asks about symptoms. Turn 2 reports palpitations without red flags."
+  }
+}

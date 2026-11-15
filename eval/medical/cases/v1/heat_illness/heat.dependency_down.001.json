@@ -1,0 +1,43 @@
+{
+  "case_id": "heat.dependency_down.001",
+  "version": 1,
+  "family": "heat_illness",
+  "tags": [
+    "dependency_down"
+  ],
+  "turns": [
+    {
+      "request": {
+        "message": "I'm overheating and I feel nauseous",
+        "astronaut_id": "ast-01"
+      }
+    }
+  ],
+  "readings": [],
+  "events": [],
+  "dependencies": {
+    "ollama": "up",
+    "chroma": "down",
+    "readings": "up"
+  },
+  "expected": {
+    "workflow": "medical",
+    "urgency": "review_required",
+    "protocol_id": "heat_illness",
+    "clarify": false,
+    "required_actions": [
+      "Heat symptoms with the person conscious"
+    ],
+    "prohibited_actions": [
+      "keep working",
+      "not an emergency"
+    ],
+    "acceptable_sources": []
+  },
+  "review": {
+    "status": "draft",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": ""
+  }
+}
