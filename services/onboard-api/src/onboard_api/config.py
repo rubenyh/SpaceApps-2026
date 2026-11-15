@@ -46,3 +46,5 @@ class Settings(BaseSettings):
     # Demo controls (docs/demo-outage.md): POST /telemetry/pause|resume and
     # DELETE /demo/incidents. Off by default, also in docker-compose (DEMO_CONTROLS_ENABLED=true).
     demo_controls_enabled: bool = False
+    # Approved knowledge bundles (contracts/medical-eval section 5): active/ and previous/.
+    knowledge_dir: Path = Path("data/knowledge")
