@@ -604,6 +604,17 @@ def _reading_findings(pids: list[str], readings: ReadingsContext) -> list[Findin
     if not readings.available:
         return [Finding(kind="data_gap", detail="Readings unavailable: the repository could not be queried.",
                         source="sqlite", evidence_flags=["missing"])]
+    return _kind_findings(kinds, pids, readings)
+
+
+def sos_reading_findings(pids: list[str], readings: ReadingsContext) -> list[Finding]:
+    """Every latest reading plus a data gap per reference kind with none; nothing if unavailable."""
+    if not readings.available:
+        return []
+    return _kind_findings(list(dict.fromkeys([*readings.latest, *REFERENCE])), pids, readings)
+
+
+def _kind_findings(kinds: list[str], pids: list[str], readings: ReadingsContext) -> list[Finding]:
     out = []
     for kind in kinds:
         r = readings.latest.get(kind)
