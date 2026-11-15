@@ -1,11 +1,13 @@
 """Clinician review and version-bound approval, contracts/medical-eval section 4 (issue #54)."""
 
+import base64
 import hashlib
 import json
 import uuid
+from pathlib import Path
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
@@ -214,6 +216,33 @@ def approved(conn: Connection) -> dict:
     if c is None:
         raise HTTPException(404, "No approved candidate")
     return {"candidate_id": c["candidate_id"], "digest": c["digest"], "manifest": c["manifest"]}
+
+
+def _component_files(root: Path, component: dict) -> dict[str, str]:
+    """Files of one component as {posix path from root: base64}. Inline components have none."""
+    if component["path"] == "inline":
+        return {}
+    target = (root / component["path"]).resolve()
+    if not target.is_relative_to(root):
+        raise HTTPException(409, f"Component path leaves the staging root: {component['path']}")
+    files = [target] if target.is_file() else sorted(f for f in target.rglob("*") if f.is_file())
+    if not files:
+        raise HTTPException(409, f"Component not staged on ground: {component['path']}")
+    return {f.relative_to(root).as_posix(): base64.b64encode(f.read_bytes()).decode("ascii") for f in files}
+
+
+@router.get("/approved/bundle")
+def approved_bundle(request: Request, conn: Connection) -> dict:
+    """Staged bundle for onboard activation (section 5): the latest approved manifest plus
+    the bytes of every component. Pending or rejected candidates are never served."""
+    c = storage.latest_approved(conn)
+    if c is None:
+        raise HTTPException(404, "No approved candidate")
+    root = request.app.state.settings.bundle_root.resolve()
+    files: dict[str, str] = {}
+    for component in c["manifest"]["components"]:
+        files |= _component_files(root, component)
+    return {"candidate_id": c["candidate_id"], "digest": c["digest"], "manifest": c["manifest"], "files": files}
 
 
 def _entry(x: dict) -> dict:

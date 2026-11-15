@@ -1,3 +1,4 @@
+import base64
 import copy
 from pathlib import Path
 
@@ -200,3 +201,31 @@ def test_finding_and_draft_case(client: TestClient) -> None:
     assert draft["review"]["status"] == "draft" and draft["review"]["reviewer"] is None
     assert stored["id"] in draft["review"]["notes"] and digest in draft["review"]["notes"]
     assert client.get("/medical-eval/findings/missing/draft-case").status_code == 404
+
+
+def test_bundle_serves_only_the_approved_candidate(tmp_path: Path) -> None:
+    root = tmp_path / "staging"
+    (root / PROTOCOLS).mkdir(parents=True)
+    (root / PROTOCOLS / "headache.json").write_bytes(b'{"id": "headache"}')
+    (root / RULES).write_bytes(b"RULES = 1\n")
+    with TestClient(create_app(Settings(db_path=tmp_path / "ground.db", bundle_root=root))) as client:
+        rejected = submit(client, candidate("c1"))
+        pending = submit(client, candidate("c2", rules_sha="d" * 64))
+        assert client.get("/medical-eval/approved/bundle").status_code == 404  # nothing approved
+        assert decide(client, rejected, "rejected").status_code == 201
+        assert client.get("/medical-eval/approved/bundle").status_code == 404  # rejected is never served
+        approved = submit(client, candidate("c3", rules_sha="e" * 64))
+        assert decide(client, approved).status_code == 201
+        bundle = client.get("/medical-eval/approved/bundle").json()
+    assert (bundle["candidate_id"], bundle["digest"]) == ("c3", approved) and pending != approved
+    assert bundle["manifest"]["digest"] == approved
+    assert set(bundle["files"]) == {f"{PROTOCOLS}/headache.json", RULES}
+    assert base64.b64decode(bundle["files"][RULES]) == b"RULES = 1\n"
+
+
+def test_bundle_refuses_unstaged_components(tmp_path: Path) -> None:
+    with TestClient(create_app(Settings(db_path=tmp_path / "ground.db", bundle_root=tmp_path / "empty"))) as client:
+        digest = submit(client, candidate("c1"))
+        decide(client, digest)
+        r = client.get("/medical-eval/approved/bundle")
+    assert r.status_code == 409 and "not staged" in r.json()["detail"]

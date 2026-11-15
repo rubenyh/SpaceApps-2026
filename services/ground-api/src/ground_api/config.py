@@ -22,3 +22,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = DEFAULT_CORS_ORIGINS
     # DELETE /demo/incidents for the outage demo (docs/demo-outage.md). Off by default.
     demo_controls_enabled: bool = False
+    # Staging root for approved knowledge bundles: manifest component paths resolve from
+    # here (GET /medical-eval/approved/bundle). Default: the repo root when run from
+    # services/ground-api.
+    bundle_root: Path = Path("../..")
