@@ -1,7 +1,6 @@
 """Wellbeing routes. Contract: docs/wellbeing-contract.md.
 
-Register in main.py with `app.include_router(wellbeing_router)` (pending,
-coordinated with the onboard owner).
+Registered in onboard_api/main.py with `app.include_router(wellbeing_router)`.
 """
 
 from datetime import date
