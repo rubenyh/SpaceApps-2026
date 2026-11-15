@@ -837,6 +837,145 @@ select:hover {
   margin-top: 8px;
 }
 
+/* --- Medical evaluation ------------------------------------------------------ */
+
+.tag--alert {
+  background: var(--red);
+  color: #fff;
+}
+
+.eval-bad {
+  color: var(--red);
+}
+
+.eval-facts {
+  max-width: 640px;
+}
+
+.eval-compare {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.eval-answer {
+  padding: 12px 16px;
+  background: var(--flap);
+  border: 1px solid var(--frame);
+}
+
+.eval-answer h3,
+.eval-subhead {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
+.eval-subhead {
+  margin-top: 16px;
+}
+
+.eval-answer p {
+  margin-top: 8px;
+}
+
+.eval-reply {
+  white-space: pre-wrap;
+}
+
+.eval-answer {
+  overflow-wrap: anywhere;
+}
+
+.eval-sources,
+.eval-failures,
+.eval-findings,
+.eval-decisions {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+.eval-findings {
+  padding-left: 0;
+  list-style: none;
+}
+
+.eval-finding {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--frame);
+}
+
+.eval-form {
+  display: grid;
+  gap: 10px;
+  max-width: 640px;
+  margin-top: 12px;
+}
+
+.eval-form label {
+  display: grid;
+  gap: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
+.eval-form input,
+.eval-form textarea {
+  padding: 8px 12px;
+  border: 1px solid var(--steel-mid);
+  border-radius: 2px;
+  background: var(--flap);
+  color: var(--letter);
+  font: inherit;
+  font-size: 17px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.eval-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.eval-flag {
+  margin-top: 12px;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.eval-error {
+  color: var(--amber);
+}
+
+.eval-json {
+  max-height: 360px;
+  overflow: auto;
+  margin: 8px 0 0;
+  padding: 12px;
+  background: var(--flap);
+  border: 1px solid var(--frame);
+  font-size: 14px;
+}
+
+.eval-toolbar {
+  margin: 40px 0 0;
+}
+
+.eval-pick {
+  margin-top: 16px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .row {
     transition: none;
