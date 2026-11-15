@@ -286,3 +286,75 @@ Después levanta la API. `demo_reset.py` hace un respaldo cada vez que corre, as
 - [ ] Consola abierta y conectada a la API (o, si no está la pestaña, esta guía abierta en el paso 2.1).
 - [ ] Plan B a mano: hay respaldos en `services\onboard-api\data\backups\` (los crea `demo_reset.py`) y esta guía abierta en la sección 3.
 - [ ] Frase lista: "el historial es simulado; la bitácora de hoy es real; el sistema no diagnostica, apoya".
+
+## 5. Visión en otra laptop
+
+Para la demo, visión corre en la laptop de Hiram (cámaras y caras registradas ahí) y la API y la consola corren en la de Rubén. Las dos laptops tienen que estar en la misma red. Las caras registradas no salen de la laptop de visión: por la red sólo viajan los números.
+
+**En la laptop de la API (Rubén)**
+
+1. Levanta la API escuchando en la red, no sólo en `127.0.0.1`:
+
+   ```powershell
+   cd services\onboard-api
+   $env:WELLBEING_MISSION_TZ = "America/Tijuana"
+   $env:ONBOARD_TELEMETRY_ENABLED = "false"
+   uv run fastapi dev --host 0.0.0.0
+   ```
+
+   Con Docker: `$env:ONBOARD_API_HOST = "0.0.0.0"` antes de `.\run.ps1` (por defecto el compose sólo publica en `127.0.0.1`).
+
+2. Abre el puerto 8000 sólo en redes privadas. Hazlo una vez, en PowerShell **como administrador**:
+
+   ```powershell
+   New-NetFirewallRule -DisplayName "onboard-api 8000 (demo)" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow -Profile Private
+   Get-NetConnectionProfile | Select-Object InterfaceAlias, Name, NetworkCategory
+   ```
+
+   Si la red sale como `Public`, la regla no aplica. Cámbiala con `Set-NetConnectionProfile -InterfaceAlias "Wi-Fi" -NetworkCategory Private` (como administrador). Después de la demo, quita la regla con `Remove-NetFirewallRule -DisplayName "onboard-api 8000 (demo)"`.
+
+3. Saca la IP de esa laptop:
+
+   ```powershell
+   (Get-NetIPConfiguration | Where-Object IPv4DefaultGateway).IPv4Address.IPAddress
+   ```
+
+   Si sale más de una, usa la de la red donde está la otra laptop (`ipconfig` muestra a qué adaptador pertenece cada una).
+
+**En la laptop de visión (Hiram)**
+
+4. Prueba que llega, con la IP del paso 3:
+
+   ```powershell
+   $B = "http://192.168.1.20:8000"   # cambia por la IP de la laptop de la API
+   Test-NetConnection 192.168.1.20 -Port 8000 | Select-Object TcpTestSucceeded
+   (Invoke-RestMethod "$B/wellbeing/parameters").mission_tz   # debe decir America/Tijuana
+   ```
+
+5. Apunta visión a esa API. Puedes usar la variable, una vez por terminal:
+
+   ```powershell
+   $env:WELLBEING_VISION_API_URL = $B
+   ```
+
+   o la opción `--api-url`, que tiene prioridad sobre la variable:
+
+   ```powershell
+   uv run wellbeing-vision bitacora --astronaut ast-01 --camera 1 --flip 1 --seconds 60 --api-url $B
+   uv run wellbeing-vision ambiente --cameras 0 1 --flip 1 --window 60 --api-url $B
+   ```
+
+   Al arrancar, visión imprime `API OK at http://...:8000 (mission_tz=America/Tijuana)`. Si dice `API not reachable` o `timeout`, sigue funcionando: guarda los resúmenes en `outbox\pending.jsonl` y los manda en orden cuando la API vuelve a contestar. Revisa la red, la IP y el firewall.
+
+6. Relojes sincronizados: la API asigna cada sesión al día según la hora de **la laptop de visión**. En las dos laptops, *Configuración → Hora e idioma → Fecha y hora → Sincronizar ahora*. Para comprobar la diferencia desde la laptop de visión:
+
+   ```powershell
+   $r = Invoke-WebRequest "$B/wellbeing/parameters" -UseBasicParsing
+   ([datetime]$r.Headers["Date"] - (Get-Date)).TotalSeconds   # debe estar entre -5 y 5
+   ```
+
+**Respaldo: hotspot**
+
+Las redes de eventos suelen aislar a los equipos entre sí (`Test-NetConnection` falla aunque las dos laptops tengan internet). En ese caso, conecta las dos laptops al hotspot de un teléfono y repite los pasos 3 a 5: la IP cambia, así que también cambia `$B`. Otra opción es el hotspot móvil de Windows en la laptop de la API (*Configuración → Red e Internet → Zona con cobertura inalámbrica móvil*). Con él, esa laptop suele quedar en `192.168.137.1`. Confírmalo con `ipconfig`, y revisa que esa red también esté en `Private` (paso 2).
+
+Si nada conecta, visión puede correr en la misma laptop que la API, con las cámaras conectadas ahí. Las caras se registran en cada laptop, así que en ese caso hay que registrar a la tripulación otra vez (sección 1).
