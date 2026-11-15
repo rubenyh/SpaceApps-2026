@@ -51,7 +51,7 @@ def main() -> None:
     parser.add_argument("export", type=Path, help="export.zip or export.xml")
     parser.add_argument("--astronaut", required=True, help="astronaut_id, e.g. ast-01")
     parser.add_argument("--base", default="http://127.0.0.1:8000")
-    parser.add_argument("--since", type=date.fromisoformat, help="YYYY-MM-DD (UTC day)")
+    parser.add_argument("--since", type=date.fromisoformat, help="YYYY-MM-DD (mission day in the API's WELLBEING_MISSION_TZ)")
     parser.add_argument(
         "--source",
         default=DEFAULT_SOURCE,
