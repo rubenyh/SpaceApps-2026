@@ -34,7 +34,7 @@ class _Module:
     def __init__(self, settings: Settings, index: int, ids, rotation: int | None, start: datetime) -> None:
         self.index, self.module_id = index, settings.cameras.get(index, f"cam{index}")
         self.source = f"vision:cam{index}"
-        self.camera = open_camera(index)
+        self.camera = open_camera(index, settings.camera_backend)
         self.faceid, self.tracker, self.pose = face_id(settings), IoUTracker(ids), _pose_landmarker(settings)
         self.orientations = (rotation,) if rotation is not None else ORIENTATIONS
         self.faceid.deg = self.orientations[0]

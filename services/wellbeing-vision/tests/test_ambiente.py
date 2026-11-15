@@ -39,7 +39,7 @@ def test_two_modules_send_windows_and_see_a_transfer(monkeypatch, tmp_path, caps
 
     ticks = itertools.count()
     monkeypatch.setattr(amb.time, "monotonic", lambda: next(ticks) * 0.05)
-    monkeypatch.setattr(amb, "open_camera", lambda i: Cam(i))
+    monkeypatch.setattr(amb, "open_camera", lambda i, backend: Cam(i))
     monkeypatch.setattr(amb, "face_id", lambda s: FakeID())
     g = Gallery(tmp_path)
     g.people = {"ast-01": {"enrolled": V[None], "auto": np.empty((0, 128), np.float32)}}

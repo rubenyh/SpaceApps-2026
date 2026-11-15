@@ -50,7 +50,13 @@ def main() -> None:
     amb.add_argument("--dry-run", action="store_true", help="print JSON instead of POSTing")
     amb.add_argument("--out", type=Path, help="with --dry-run, also append JSON lines here")
 
+    for p in (bit, enr, ide, amb):
+        p.add_argument("--backend", choices=("auto", "dshow", "msmf"),
+                       help="camera backend (default WELLBEING_VISION_CAMERA_BACKEND or auto: DSHOW, then MSMF)")
+
     args = parser.parse_args()
+    if getattr(args, "backend", None):
+        settings = settings.model_copy(update={"camera_backend": args.backend})
     if args.cmd == "models":
         download_models(settings.models_dir)
         return

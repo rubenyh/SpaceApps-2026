@@ -53,7 +53,7 @@ class _Window:
 def run_enroll(settings: Settings, astronaut_id: str, camera: int, samples: int = ENROLL_SAMPLES) -> bool:
     """Shows the frame as the camera delivers it: only the daily log mirrors (self-view)."""
     faceid, gallery = face_id(settings), gallery_of(settings)
-    cap, window = open_camera(camera), _Window("Enrollment - wellbeing-vision")
+    cap, window = open_camera(camera, settings.camera_backend), _Window("Enrollment - wellbeing-vision")
     title = f"ENROLLMENT · {settings.astronauts.get(astronaut_id, astronaut_id)}"
     templates: list[np.ndarray] = []
     t0, last = time.monotonic(), -ENROLL_GAP_S
@@ -128,7 +128,7 @@ def run_identify(settings: Settings, camera: int, seconds: float = 0.0, rotation
     orientations = (rotation,) if rotation is not None else ORIENTATIONS
     faceid.deg = orientations[0]
     pose = _pose_landmarker(settings)
-    cap, window = open_camera(camera), _Window("Identity - wellbeing-vision")
+    cap, window = open_camera(camera, settings.camera_backend), _Window("Identity - wellbeing-vision")
     t0, last_ms, i = time.monotonic(), -1, 0
     names: dict[str, float] = {}
     try:

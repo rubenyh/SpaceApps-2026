@@ -131,7 +131,7 @@ def test_identify_shows_the_frame_as_delivered_with_boxes_in_place(monkeypatch):
     monkeypatch.setattr(ident, "gallery_of", lambda s: Gallery(None))
     monkeypatch.setattr(ident, "_pose_landmarker", lambda s: type("P", (), {
         "detect_for_video": lambda self, img, ms: type("R", (), {"pose_landmarks": []})(), "close": lambda self: None})())
-    monkeypatch.setattr(ident, "open_camera", lambda i: type("C", (), {
+    monkeypatch.setattr(ident, "open_camera", lambda i, backend: type("C", (), {
         "read": lambda self: (True, frame), "release": lambda self: None})())
     for name in ("namedWindow", "destroyAllWindows", "setWindowProperty"):
         monkeypatch.setattr(ident.cv2, name, lambda *a, **k: None)

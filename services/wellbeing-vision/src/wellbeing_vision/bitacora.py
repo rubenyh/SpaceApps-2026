@@ -134,7 +134,7 @@ def run_bitacora(settings: Settings, sink: Sink, astronaut_id: str, camera: int,
     cropper = FaceCrop(model_path(settings.models_dir, "face_detection_yunet_2023mar.onnx"))
     faceid, gallery = face_id(settings), gallery_of(settings)
     id_samples = []  # (scores, template) from the recording, for the identity check
-    cap = open_camera(camera)
+    cap = open_camera(camera, settings.camera_backend)
     cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
     title = f"DAILY LOG · {settings.astronauts.get(astronaut_id, astronaut_id)}"
     min_px = settings.min_face_px

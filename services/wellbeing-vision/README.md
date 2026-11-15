@@ -29,6 +29,14 @@ Without `--dry-run`, summaries are POSTed to `WELLBEING_VISION_API_URL`; if the 
 `outbox/pending.jsonl` and are retried on the next send. Payloads the API rejects (4xx) are parked in
 `outbox/rejected.jsonl`.
 
+## Cameras
+
+Every camera command (`bitacora`, `enroll`, `identify`, `ambiente`) opens cameras the same way: it asks for
+1280x720 and, with `auto`, tries DSHOW first and falls back to MSMF if DSHOW does not open or gives no frame in
+2 s (USB phone-webcam apps often only work with MSMF). It prints the backend and the resolution each camera
+really delivers, and warns when it is not 1280x720 (faces look smaller). A camera that opens with no
+backend stops the command with an error naming the index and what was tried; it never ends silently.
+
 ## Daily video log (bitácora) capture
 
 The log is a **controlled-distance capture: frontal, ~50 cm from the camera, good light, same time each day**.
@@ -105,6 +113,7 @@ The log is a **controlled-distance capture: frontal, ~50 cm from the camera, goo
 | `WELLBEING_VISION_CAMERAS` | `{"0":"modulo-a","1":"modulo-b"}` |
 | `WELLBEING_VISION_ASTRONAUTS` | `{"ast-01":"ast-01", ... "ast-04":"ast-04"}` |
 | `WELLBEING_VISION_MIN_FACE_PX` | `160` (PROVISIONAL) |
+| `WELLBEING_VISION_CAMERA_BACKEND` | `auto` (DSHOW, then MSMF); `dshow` or `msmf` to force one. Also `--backend` on every camera command. |
 | `WELLBEING_VISION_MODELS_DIR` / `_DATA_DIR` | `models` / `data` |
 
 ## Thresholds
