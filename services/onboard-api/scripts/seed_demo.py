@@ -95,7 +95,8 @@ def seed(base: str) -> None:
     reading(base, "ast-02", "urine_salinity", "mS/cm", old, 24.3)
     reading(base, "ast-02", "urine_color", "rgb_hex", old, value_text="#B8860B")
     reading(base, "ast-02", "urine_temperature", "°C", old, 29.5, quality="suspect")
-    # urine_radiation_marker is left without data on purpose: no marker is defined.
+    # urine_radiation_marker (urinary 8-OHdG) is left without data here: firmware/simulator.py
+    # reports it and sets its unit and range at boot.
 
 
 def main() -> None:
