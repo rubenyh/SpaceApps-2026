@@ -6,6 +6,8 @@ Demo en Mexicali, zona de misión `America/Tijuana`. Todo en PowerShell, desde l
 
 Lo que se ve en vivo es real (la bitácora de hoy de ast-01); el historial de 21 días es **simulado**, y se dice abiertamente.
 
+La tripulación es ficticia: Elena Ruiz (ast-01), Marco Tanaka (ast-02), Sofía Mendel (ast-03) y Daniel Okafor (ast-04). Sus historias y qué decir de cada una: [wellbeing/demo-crew.md](wellbeing/demo-crew.md).
+
 > **¿Nativo o Docker?** Esta guía levanta la API de forma nativa, porque así corre con la zona de Mexicali. Si el equipo levanta todo con Docker (`.\run.ps1`, ver [`RUN-REPO.md`](RUN-REPO.md)), no abras la Terminal 1: el puerto 8000 ya es del contenedor. En ese caso sigue [Con Docker](#con-docker-runps1) al final de la sección 1.
 
 ## 1. Preparación (en este orden)

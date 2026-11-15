@@ -80,6 +80,7 @@ En esta carpeta:
 | [calibration.md](calibration.md) | De dónde sale cada rango, qué está medido y qué es supuesto, y cómo recalibrar. |
 | [limitations-and-next-steps.md](limitations-and-next-steps.md) | Limitaciones honestas y siguientes pasos. |
 | [judges-faq.md](judges-faq.md) | Preguntas probables de los jueces, con respuestas basadas en lo que hace el sistema hoy. |
+| [demo-crew.md](demo-crew.md) | La tripulación FICTICIA de la demo: los 4 perfiles, qué muestra cada uno y qué decir. |
 
 Documentos existentes (no se repiten aquí):
 
