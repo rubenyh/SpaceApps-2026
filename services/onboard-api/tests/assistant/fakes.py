@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from onboard_api.assistant.integrations import DependencyUnavailable, GuideChunk
+from onboard_api.assistant.integrations import DependencyUnavailable, EmbeddingUnavailable, GuideChunk
 from onboard_api.assistant.workflows.medical.state import ReadingsContext
 from onboard_api.schemas.assistant import OperationalEvent
 
@@ -65,6 +65,11 @@ class FakeRetriever:
 class FailingRetriever:
     def search(self, query, k=3, topics=None, language="es"):
         raise DependencyUnavailable("chroma down")
+
+
+class EmbedderDownRetriever:
+    def search(self, query, k=3, topics=None, language="es"):
+        raise EmbeddingUnavailable("ollama down")
 
 
 class FakeReadings:

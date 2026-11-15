@@ -88,17 +88,19 @@ export interface RequestOptions {
   method?: "GET" | "POST";
   body?: unknown;
   signal?: AbortSignal;
+  /** Default 10 s. */
+  timeoutMs?: number;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, signal } = options;
+  const { method = "GET", body, signal, timeoutMs = REQUEST_TIMEOUT_MS } = options;
 
   const controller = new AbortController();
   let timedOut = false;
   const timer = setTimeout(() => {
     timedOut = true;
     controller.abort();
-  }, REQUEST_TIMEOUT_MS);
+  }, timeoutMs);
   const onOuterAbort = () => controller.abort();
   if (signal) {
     if (signal.aborted) controller.abort();

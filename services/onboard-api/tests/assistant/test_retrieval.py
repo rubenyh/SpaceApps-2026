@@ -10,7 +10,7 @@ from onboard_api.assistant.ingest.medlineplus import (
     chunk_summary,
     estimate_tokens,
 )
-from onboard_api.assistant.integrations import DependencyUnavailable
+from onboard_api.assistant.integrations import DependencyUnavailable, EmbeddingUnavailable
 from onboard_api.assistant.integrations.chroma import GuideRetriever
 
 VOCAB = ["dolor", "pecho", "fiebre", "chest", "pain", "burns"]
@@ -96,6 +96,16 @@ def test_chroma_failure_is_dependency_unavailable(tmp_path: Path) -> None:
     not_a_dir.write_text("x")
     r = GuideRetriever(not_a_dir, "medical_guides", KeywordEmbedder(), 0.6)
     with pytest.raises(DependencyUnavailable):
+        r.search("dolor de pecho")
+
+
+def test_embedding_failure_is_named_apart_from_chroma(tmp_path: Path) -> None:
+    class DownEmbedder:
+        def embed(self, texts):
+            raise DependencyUnavailable("ollama down")
+
+    r = GuideRetriever(tmp_path / "chroma", "medical_guides", DownEmbedder(), 0.6)
+    with pytest.raises(EmbeddingUnavailable):
         r.search("dolor de pecho")
 
 

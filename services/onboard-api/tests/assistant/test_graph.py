@@ -8,6 +8,7 @@ import pytest
 from fakes import (
     FailingLLM,
     FailingReadings,
+    EmbedderDownRetriever,
     FailingRetriever,
     FakeEvents,
     FakeLLM,
@@ -214,6 +215,13 @@ def test_assessment_without_guides_skips_llm(triage: Triage) -> None:
     assert prompts.NOTICE_GUIDES_FAILED in r.data_notices
     assert prompts.NOTICE_READINGS_FAILED in r.data_notices
     assert "chat" not in llm.calls  # no draft; the interpreter (chat_json) may run
+
+
+def test_embedding_failure_names_ollama_not_chroma(triage: Triage) -> None:
+    triage.case_hits, triage.route, triage.decision = [hit()], "assessment", decision()
+    r = ask(deps(Forbidden("llm"), EmbedderDownRetriever(), FailingReadings()))
+    assert prompts.NOTICE_EMBEDDING_FAILED in r.data_notices
+    assert prompts.NOTICE_GUIDES_FAILED not in r.data_notices
 
 
 @pytest.mark.parametrize("retriever", [FakeRetriever([]), FailingRetriever()], ids=["empty", "down"])

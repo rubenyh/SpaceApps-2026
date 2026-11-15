@@ -12,6 +12,10 @@ class DependencyUnavailable(Exception):
     """A local dependency (Ollama, ChromaDB, SQLite) failed or timed out."""
 
 
+class EmbeddingUnavailable(DependencyUnavailable):
+    """The embedding model (Ollama) failed, so the guide index was not queried."""
+
+
 @dataclass(frozen=True)
 class GuideChunk:
     chunk_id: str

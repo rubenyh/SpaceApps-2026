@@ -36,7 +36,7 @@ Variables de entorno con prefijo `ONBOARD_` (`src/onboard_api/config.py`). No se
 | `ONBOARD_RETRIEVAL_MAX_DISTANCE` | `0.50` | Distancia coseno máxima de un fragmento recuperado. |
 | `ONBOARD_DEMO_EVENTS_PATH` | sin definir | Lista JSON de eventos operativos para el demo, p. ej. `demo/events.example.json`. Se carga al arrancar. |
 
-`demo/events.example.json` trae una alerta de radiación simulada para `ana` y una alerta de CO₂ de cabina. Con ese archivo, el reporte `{"astronaut_id": "ana", "message": "Tengo náuseas"}` activó la ruta de alarma (2026-11-14).
+`demo/events.example.json` trae una alerta de radiación simulada y una alerta de CO₂ de cabina, ambas solo para `ast-02` (los ids de `scripts/seed_demo.py` y `firmware/simulator.py`). Mientras un evento está activo, todo mensaje de esa persona va a la ruta de alarma (`urgency: "immediate"`), incluso "hola". `ast-01` no tiene eventos y sirve para las rutas normales. Un evento con `astronaut_ids: []` aplica a toda la tripulación y tiene el mismo efecto en todos.
 
 ## Modelos de Ollama
 
@@ -84,7 +84,7 @@ Alarma (`urgency: "immediate"`, no consulta lecturas, guías ni modelo):
 
 ```sh
 curl -s -X POST http://127.0.0.1:8000/assistant/messages -H "Content-Type: application/json" --data-binary @- <<'EOF'
-{"astronaut_id": "ana", "message": "Siento presión en el pecho desde hace un rato y sudor frío"}
+{"astronaut_id": "ast-01", "message": "Siento presión en el pecho desde hace un rato y sudor frío"}
 EOF
 ```
 
@@ -92,7 +92,7 @@ Aclaración (`needs_clarification: true` y `clarifying_question`):
 
 ```sh
 curl -s -X POST http://127.0.0.1:8000/assistant/messages -H "Content-Type: application/json" --data-binary @- <<'EOF'
-{"astronaut_id": "ana", "message": "Me duele la cabeza"}
+{"astronaut_id": "ast-01", "message": "Me duele la cabeza"}
 EOF
 ```
 
