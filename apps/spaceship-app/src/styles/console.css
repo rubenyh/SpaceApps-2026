@@ -1342,8 +1342,18 @@ select option {
 .asistente__grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 330px;
+  /* One row capped at the screen height: the chat log and the side panel scroll
+     inside, the page never does. */
+  grid-template-rows: minmax(0, 1fr);
   gap: var(--space-5);
   height: 100%;
+}
+
+/* Only the side panel's body scrolls; the gutter is reserved so rows don't
+   jump sideways when new readings (urine) make it overflow. */
+.asistente__side .panel__body {
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .chat {
@@ -3505,6 +3515,10 @@ h3.msg__who {
 .areadings__noicon {
   width: 16px;
   flex: none;
+}
+
+.areadings__source {
+  overflow-wrap: anywhere;
 }
 
 .areadings__value {
