@@ -151,7 +151,7 @@ Crew-reviewed case reports ([contract](../contracts/case-report/README.md)) and 
 | `knowledge_version_json` | TEXT | NULL | | JSON `{candidate_id, digest}` of the active bundle, or NULL. |
 | `incident_id` | TEXT | NULL | | Onboard incident id for an `immediate` reply. No FK. |
 | `status` | TEXT | NOT NULL | `'draft'` | CHECK `IN ('draft','queued','received','failed')`. Send moves `draft` or `failed` to `queued`; ground's acknowledgement moves `queued` to `received`; a permanent ground rejection to `failed`. |
-| `sent_by` | TEXT | NULL | | Crew member who pressed send. |
+| `sent_by` | TEXT | NULL | | Crew member it was sent for (`reported_by`, else `astronaut_id`), or who pressed retry. |
 | `queued_at` | TEXT | NULL | | Timestamp of the send; the contract's `sent_at`. |
 | `received_at` | TEXT | NULL | | Ground's receipt time from its acknowledgement. |
 | `error` | TEXT | NULL | | Reason for `failed`; cleared on resend. |

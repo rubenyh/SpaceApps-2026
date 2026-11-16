@@ -16,7 +16,8 @@ from onboard_api.schemas.case_reports import CaseReportStatus, SendCaseReport
 
 router = APIRouter(prefix="/case-reports", tags=["case-reports"])
 
-# (response, astronaut_id, reported_by, created_at) -> stored transmission status.
+# (response, astronaut_id, reported_by, created_at) -> stored transmission status
+# ("queued": reports are sent to base automatically).
 DraftStore = Callable[[AssistantResponse, str | None, str | None, datetime], str]
 
 
@@ -27,7 +28,14 @@ def get_draft_store(settings: Annotated[Settings, Depends(get_settings)]) -> Dra
     def store(response: AssistantResponse, astronaut_id: str | None, reported_by: str | None, at: datetime) -> str:
         conn = connect(settings.db_path)
         try:
-            return CaseReportRepository(conn).save_draft(response, astronaut_id, reported_by, at)
+            repo = CaseReportRepository(conn)
+            repo.save_draft(response, astronaut_id, reported_by, at)
+            # Every clinical report goes to base straight away: queued now, sent by
+            # the publisher at its next interval. POST /send stays for a failed retry.
+            # ponytail: no wake here (sync route, asyncio.Event is loop-bound);
+            # delivery waits up to one telemetry interval.
+            report = repo.queue(response.report.id, reported_by or astronaut_id, at)
+            return report.status if report else "draft"
         finally:
             conn.close()
 

@@ -62,13 +62,13 @@ Language: every screen of both consoles is in English, including the ground Crew
 
 ## Case report: ship to base across an outage and a restart
 
-The crew reviews an assistant case report and sends it to base. The report waits in the onboard SQLite queue (`case_reports`) while ground is down, survives an onboard-api restart, and reaches ground once. Contract: [case-report](../contracts/case-report/README.md). The report is informational support; diagnosis and treatment decisions stay with qualified personnel.
+Every clinical assistant reply sends its case report to base automatically. The report waits in the onboard SQLite queue (`case_reports`) while ground is down, survives an onboard-api restart, and reaches ground once. Contract: [case-report](../contracts/case-report/README.md). The report is informational support; diagnosis and treatment decisions stay with qualified personnel.
 
 1. Start ground-api (`services/ground-api`: `uv run fastapi dev --port 8001`) and onboard-api (`services/onboard-api`: `ONBOARD_DEMO_CONTROLS_ENABLED=true uv run fastapi dev`), then the device feed from the repo root: `python3 firmware/simulator.py` (needs Python 3.12; on Windows `python3` may be an older Python, use `python`).
-2. Start both consoles ([RUN-REPO.md](RUN-REPO.md)). In the spaceship console, Assistant tab, crew member `ast-01`, type `im dizzy`. The reply is `Review required` and carries a report with the tag **Draft**.
+2. Start both consoles ([RUN-REPO.md](RUN-REPO.md)). In the spaceship console, Assistant tab, crew member `ast-01`, type `im dizzy`. The reply is `Review required`; its report goes to base on its own and the tag turns **Received by base** within a few seconds.
 3. Open **Review & send to base**. It shows the report text and "Readings in this report".
 4. Take the link down: stop ground-api (Ctrl+C), or `POST /telemetry/pause` on onboard-api.
-5. Press **Send to base**. The tag changes to **Queued**.
+5. Type `im dizzy` again. The new reply's report tag is **Queued** (no button to press).
 6. Restart onboard-api. The report stays **Queued** (`GET /case-reports/{id}`).
 7. Bring the link back: start ground-api again, or `POST /telemetry/resume`. The tag changes to **Received by base** with ground's receipt time. After a stopped ground-api the first retry can wait up to 60 s (backoff). The pause is held in memory, so the onboard restart in step 6 already ends a paused outage.
 8. In the ground console, **Reports** tab: exactly one row for the report. The **Incidents** tab lists case reports only for incidents (`immediate` replies); a `Review required` report has no incident.

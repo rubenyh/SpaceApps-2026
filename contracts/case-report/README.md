@@ -8,10 +8,10 @@ console. Separate from telemetry v1: the telemetry batch and its
 
 | State | Meaning |
 |---|---|
-| `draft` | Built with an assistant reply and stored onboard under `id`. Nothing sent. |
-| `queued` | Crew pressed send. Stored in the durable queue (SQLite), retried by the telemetry publisher loop until ground acknowledges this id, also after an onboard restart. |
+| `draft` | Built with an assistant reply, stored onboard under `id`, not queued yet (only seen if queueing failed). |
+| `queued` | Set automatically when the reply is stored: every clinical report goes to base without a manual step. Stored in the durable queue (SQLite), retried by the telemetry publisher loop until ground acknowledges this id, also after an onboard restart. |
 | `received` | Ground answered 200 with `report_id` equal to this id. |
-| `failed` | Ground rejected the report permanently (4xx other than 404/408/429). `error` holds the reason. Network errors and 5xx keep it `queued`. |
+| `failed` | Ground rejected the report permanently (4xx other than 404/408/429). `error` holds the reason. Network errors and 5xx keep it `queued`. `POST /case-reports/{id}/send` queues it again. |
 
 The demo link pause (`POST /telemetry/pause`) also holds case reports.
 
@@ -39,13 +39,13 @@ JSON Schema: `case-report.v1.schema.json`. Example: `examples/report-basic.json`
 | `ship_id` | string | Onboard `ship_id` setting. |
 | `astronaut_id` | string or null | Person assessed. |
 | `reported_by` | string or null | Crewmate who reported, when not the person assessed. |
-| `sent_by` | string or null | Crew member who pressed send. |
+| `sent_by` | string or null | Crew member on whose behalf it was sent: `reported_by`, else `astronaut_id` (or who pressed retry). |
 | `urgency` | `immediate` / `review_required` / `undetermined` / `informational` | From the rules. |
 | `protocol_id` | string or null | |
 | `action` | string or null | |
 | `assessed_at` | UTC timestamp | Onboard clock when the readings were loaded. |
 | `created_at` | UTC timestamp | Draft built. |
-| `sent_at` | UTC timestamp | Crew pressed send. |
+| `sent_at` | UTC timestamp | Queued onboard. |
 | `incident_id` | string or null | Onboard incident id when one exists. |
 | `text` | string | The report body exactly as previewed. |
 | `readings` | list of `SnapshotReading` | `report.readings` from the reply: relevant readings with provenance: `id, kind, value, value_text, unit, recorded_at, received_at, quality, source, simulated, freshness, age_seconds`. |
